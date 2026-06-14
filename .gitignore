@@ -1,0 +1,9 @@
+# .NET
+bin/
+obj/
+*.user
+.vs/
+
+# ローカルのみ(検証用データ・出力物)
+/assets/
+/charm-lists/

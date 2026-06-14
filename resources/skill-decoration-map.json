@@ -1,0 +1,3081 @@
+{
+  "_meta": {
+    "description": "MHWilds 装飾品マスターデータ（フラット構造）",
+    "source": "https://mhwilds.wiki-db.com/decorations/ をパース、スキル名は短縮名辞書で正規スキル名へ解決",
+    "schema": {
+      "name": "装飾品名（例: 攻撃珠【１】）",
+      "slot_size": "装着に必要なスロットサイズ (1, 2, 3)",
+      "type": "weapon | armor （装着先のスロット種別）",
+      "skills": "{ スキル名: レベル, ... } 提供スキル"
+    },
+    "notes": [
+      "単体装飾品はスキル1つ、複合装飾品はスキル2つ（主スキルLv3 + 副スキルLv1）を提供する",
+      "「Ⅱ」付きはLv2、「Ⅲ」付きはLv3。表記がない単体装飾品はLv1相当（ただし達人芸など Lv1 が唯一のレベルのスキルもある）",
+      "type は主スキルが武器スキルか防具スキルかで分類"
+    ]
+  },
+  "decorations": [
+    {
+      "name": "攻撃珠【１】",
+      "slot_size": 1,
+      "type": "weapon",
+      "skills": {
+        "攻撃": 1
+      }
+    },
+    {
+      "name": "攻撃珠Ⅱ【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "攻撃": 2
+      }
+    },
+    {
+      "name": "攻撃珠Ⅲ【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "攻撃": 3
+      }
+    },
+    {
+      "name": "逆上珠【２】",
+      "slot_size": 2,
+      "type": "armor",
+      "skills": {
+        "逆恨み": 1
+      }
+    },
+    {
+      "name": "反攻珠【３】",
+      "slot_size": 3,
+      "type": "armor",
+      "skills": {
+        "巧撃": 1
+      }
+    },
+    {
+      "name": "守勢珠【１】",
+      "slot_size": 1,
+      "type": "weapon",
+      "skills": {
+        "攻めの守勢": 1
+      }
+    },
+    {
+      "name": "守勢珠Ⅱ【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "攻めの守勢": 2
+      }
+    },
+    {
+      "name": "守勢珠Ⅲ【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "攻めの守勢": 3
+      }
+    },
+    {
+      "name": "守勢・火炎珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "攻めの守勢": 3,
+        "火属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "守勢・流水珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "攻めの守勢": 3,
+        "水属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "守勢・氷結珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "攻めの守勢": 3,
+        "氷属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "守勢・雷光珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "攻めの守勢": 3,
+        "雷属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "守勢・破龍珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "攻めの守勢": 3,
+        "龍属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "守勢・匠珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "攻めの守勢": 3,
+        "匠": 1
+      }
+    },
+    {
+      "name": "守勢・鉄壁珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "攻めの守勢": 3,
+        "ガード性能": 1
+      }
+    },
+    {
+      "name": "無傷珠【２】",
+      "slot_size": 2,
+      "type": "armor",
+      "skills": {
+        "フルチャージ": 1
+      }
+    },
+    {
+      "name": "逆襲珠【２】",
+      "slot_size": 2,
+      "type": "armor",
+      "skills": {
+        "逆襲": 1
+      }
+    },
+    {
+      "name": "達人珠【１】",
+      "slot_size": 1,
+      "type": "weapon",
+      "skills": {
+        "見切り": 1
+      }
+    },
+    {
+      "name": "達人珠Ⅱ【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "見切り": 2
+      }
+    },
+    {
+      "name": "達人珠Ⅲ【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "見切り": 3
+      }
+    },
+    {
+      "name": "超心珠【１】",
+      "slot_size": 1,
+      "type": "weapon",
+      "skills": {
+        "超会心": 1
+      }
+    },
+    {
+      "name": "超心珠Ⅱ【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "超会心": 2
+      }
+    },
+    {
+      "name": "超心珠Ⅲ【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "超会心": 3
+      }
+    },
+    {
+      "name": "痛撃珠【３】",
+      "slot_size": 3,
+      "type": "armor",
+      "skills": {
+        "弱点特効": 1
+      }
+    },
+    {
+      "name": "抜刀珠【１】",
+      "slot_size": 1,
+      "type": "weapon",
+      "skills": {
+        "抜刀術【技】": 1
+      }
+    },
+    {
+      "name": "抜刀珠Ⅱ【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "抜刀術【技】": 2
+      }
+    },
+    {
+      "name": "抜刀珠Ⅲ【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "抜刀術【技】": 3
+      }
+    },
+    {
+      "name": "渾身珠【２】",
+      "slot_size": 2,
+      "type": "armor",
+      "skills": {
+        "渾身": 1
+      }
+    },
+    {
+      "name": "火炎珠【１】",
+      "slot_size": 1,
+      "type": "weapon",
+      "skills": {
+        "火属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "火炎珠Ⅱ【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "火属性攻撃強化": 2
+      }
+    },
+    {
+      "name": "火炎珠Ⅲ【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "火属性攻撃強化": 3
+      }
+    },
+    {
+      "name": "火炎・守勢珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "火属性攻撃強化": 3,
+        "攻めの守勢": 1
+      }
+    },
+    {
+      "name": "火炎・属会珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "火属性攻撃強化": 3,
+        "会心撃【属性】": 1
+      }
+    },
+    {
+      "name": "火炎・匠珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "火属性攻撃強化": 3,
+        "匠": 1
+      }
+    },
+    {
+      "name": "火炎・業物珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "火属性攻撃強化": 3,
+        "業物": 1
+      }
+    },
+    {
+      "name": "火炎・射法珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "火属性攻撃強化": 3,
+        "弾導強化": 1
+      }
+    },
+    {
+      "name": "火炎・初弾珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "火属性攻撃強化": 3,
+        "ファーストショット": 1
+      }
+    },
+    {
+      "name": "火炎・積弾珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "火属性攻撃強化": 3,
+        "フォースショット": 1
+      }
+    },
+    {
+      "name": "火炎・集中珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "火属性攻撃強化": 3,
+        "集中": 1
+      }
+    },
+    {
+      "name": "火炎・昂揚珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "火属性攻撃強化": 3,
+        "強化持続": 1
+      }
+    },
+    {
+      "name": "火炎・ＫＯ珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "火属性攻撃強化": 3,
+        "ＫＯ術": 1
+      }
+    },
+    {
+      "name": "火炎・速変珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "火属性攻撃強化": 3,
+        "高速変形": 1
+      }
+    },
+    {
+      "name": "火炎・鉄壁珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "火属性攻撃強化": 3,
+        "ガード性能": 1
+      }
+    },
+    {
+      "name": "火炎・強壁珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "火属性攻撃強化": 3,
+        "ガード強化": 1
+      }
+    },
+    {
+      "name": "流水珠【１】",
+      "slot_size": 1,
+      "type": "weapon",
+      "skills": {
+        "水属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "流水珠Ⅱ【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "水属性攻撃強化": 2
+      }
+    },
+    {
+      "name": "流水珠Ⅲ【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "水属性攻撃強化": 3
+      }
+    },
+    {
+      "name": "流水・守勢珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "水属性攻撃強化": 3,
+        "攻めの守勢": 1
+      }
+    },
+    {
+      "name": "流水・属会珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "水属性攻撃強化": 3,
+        "会心撃【属性】": 1
+      }
+    },
+    {
+      "name": "流水・匠珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "水属性攻撃強化": 3,
+        "匠": 1
+      }
+    },
+    {
+      "name": "流水・業物珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "水属性攻撃強化": 3,
+        "業物": 1
+      }
+    },
+    {
+      "name": "流水・射法珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "水属性攻撃強化": 3,
+        "弾導強化": 1
+      }
+    },
+    {
+      "name": "流水・初弾珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "水属性攻撃強化": 3,
+        "ファーストショット": 1
+      }
+    },
+    {
+      "name": "流水・積弾珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "水属性攻撃強化": 3,
+        "フォースショット": 1
+      }
+    },
+    {
+      "name": "流水・集中珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "水属性攻撃強化": 3,
+        "集中": 1
+      }
+    },
+    {
+      "name": "流水・昂揚珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "水属性攻撃強化": 3,
+        "強化持続": 1
+      }
+    },
+    {
+      "name": "流水・ＫＯ珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "水属性攻撃強化": 3,
+        "ＫＯ術": 1
+      }
+    },
+    {
+      "name": "流水・速変珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "水属性攻撃強化": 3,
+        "高速変形": 1
+      }
+    },
+    {
+      "name": "流水・鉄壁珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "水属性攻撃強化": 3,
+        "ガード性能": 1
+      }
+    },
+    {
+      "name": "流水・強壁珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "水属性攻撃強化": 3,
+        "ガード強化": 1
+      }
+    },
+    {
+      "name": "氷結珠【１】",
+      "slot_size": 1,
+      "type": "weapon",
+      "skills": {
+        "氷属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "氷結珠Ⅱ【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "氷属性攻撃強化": 2
+      }
+    },
+    {
+      "name": "氷結珠Ⅲ【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "氷属性攻撃強化": 3
+      }
+    },
+    {
+      "name": "氷結・守勢珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "氷属性攻撃強化": 3,
+        "攻めの守勢": 1
+      }
+    },
+    {
+      "name": "氷結・属会珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "氷属性攻撃強化": 3,
+        "会心撃【属性】": 1
+      }
+    },
+    {
+      "name": "氷結・匠珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "氷属性攻撃強化": 3,
+        "匠": 1
+      }
+    },
+    {
+      "name": "氷結・業物珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "氷属性攻撃強化": 3,
+        "業物": 1
+      }
+    },
+    {
+      "name": "氷結・射法珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "氷属性攻撃強化": 3,
+        "弾導強化": 1
+      }
+    },
+    {
+      "name": "氷結・初弾珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "氷属性攻撃強化": 3,
+        "ファーストショット": 1
+      }
+    },
+    {
+      "name": "氷結・積弾珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "氷属性攻撃強化": 3,
+        "フォースショット": 1
+      }
+    },
+    {
+      "name": "氷結・集中珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "氷属性攻撃強化": 3,
+        "集中": 1
+      }
+    },
+    {
+      "name": "氷結・昂揚珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "氷属性攻撃強化": 3,
+        "強化持続": 1
+      }
+    },
+    {
+      "name": "氷結・ＫＯ珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "氷属性攻撃強化": 3,
+        "ＫＯ術": 1
+      }
+    },
+    {
+      "name": "氷結・速変珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "氷属性攻撃強化": 3,
+        "高速変形": 1
+      }
+    },
+    {
+      "name": "氷結・鉄壁珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "氷属性攻撃強化": 3,
+        "ガード性能": 1
+      }
+    },
+    {
+      "name": "氷結・強壁珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "氷属性攻撃強化": 3,
+        "ガード強化": 1
+      }
+    },
+    {
+      "name": "雷光珠【１】",
+      "slot_size": 1,
+      "type": "weapon",
+      "skills": {
+        "雷属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "雷光珠Ⅱ【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "雷属性攻撃強化": 2
+      }
+    },
+    {
+      "name": "雷光珠Ⅲ【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "雷属性攻撃強化": 3
+      }
+    },
+    {
+      "name": "雷光・守勢珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "雷属性攻撃強化": 3,
+        "攻めの守勢": 1
+      }
+    },
+    {
+      "name": "雷光・属会珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "雷属性攻撃強化": 3,
+        "会心撃【属性】": 1
+      }
+    },
+    {
+      "name": "雷光・匠珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "雷属性攻撃強化": 3,
+        "匠": 1
+      }
+    },
+    {
+      "name": "雷光・業物珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "雷属性攻撃強化": 3,
+        "業物": 1
+      }
+    },
+    {
+      "name": "雷光・射法珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "雷属性攻撃強化": 3,
+        "弾導強化": 1
+      }
+    },
+    {
+      "name": "雷光・初弾珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "雷属性攻撃強化": 3,
+        "ファーストショット": 1
+      }
+    },
+    {
+      "name": "雷光・積弾珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "雷属性攻撃強化": 3,
+        "フォースショット": 1
+      }
+    },
+    {
+      "name": "雷光・集中珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "雷属性攻撃強化": 3,
+        "集中": 1
+      }
+    },
+    {
+      "name": "雷光・昂揚珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "雷属性攻撃強化": 3,
+        "強化持続": 1
+      }
+    },
+    {
+      "name": "雷光・ＫＯ珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "雷属性攻撃強化": 3,
+        "ＫＯ術": 1
+      }
+    },
+    {
+      "name": "雷光・速変珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "雷属性攻撃強化": 3,
+        "高速変形": 1
+      }
+    },
+    {
+      "name": "雷光・鉄壁珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "雷属性攻撃強化": 3,
+        "ガード性能": 1
+      }
+    },
+    {
+      "name": "雷光・強壁珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "雷属性攻撃強化": 3,
+        "ガード強化": 1
+      }
+    },
+    {
+      "name": "破龍珠【１】",
+      "slot_size": 1,
+      "type": "weapon",
+      "skills": {
+        "龍属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "破龍珠Ⅱ【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "龍属性攻撃強化": 2
+      }
+    },
+    {
+      "name": "破龍珠Ⅲ【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "龍属性攻撃強化": 3
+      }
+    },
+    {
+      "name": "破龍・守勢珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "龍属性攻撃強化": 3,
+        "攻めの守勢": 1
+      }
+    },
+    {
+      "name": "破龍・属会珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "龍属性攻撃強化": 3,
+        "会心撃【属性】": 1
+      }
+    },
+    {
+      "name": "破龍・匠珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "龍属性攻撃強化": 3,
+        "匠": 1
+      }
+    },
+    {
+      "name": "破龍・業物珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "龍属性攻撃強化": 3,
+        "業物": 1
+      }
+    },
+    {
+      "name": "破龍・射法珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "龍属性攻撃強化": 3,
+        "弾導強化": 1
+      }
+    },
+    {
+      "name": "破龍・初弾珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "龍属性攻撃強化": 3,
+        "ファーストショット": 1
+      }
+    },
+    {
+      "name": "破龍・積弾珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "龍属性攻撃強化": 3,
+        "フォースショット": 1
+      }
+    },
+    {
+      "name": "破龍・集中珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "龍属性攻撃強化": 3,
+        "集中": 1
+      }
+    },
+    {
+      "name": "破龍・昂揚珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "龍属性攻撃強化": 3,
+        "強化持続": 1
+      }
+    },
+    {
+      "name": "破龍・ＫＯ珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "龍属性攻撃強化": 3,
+        "ＫＯ術": 1
+      }
+    },
+    {
+      "name": "破龍・速変珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "龍属性攻撃強化": 3,
+        "高速変形": 1
+      }
+    },
+    {
+      "name": "破龍・鉄壁珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "龍属性攻撃強化": 3,
+        "ガード性能": 1
+      }
+    },
+    {
+      "name": "破龍・強壁珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "龍属性攻撃強化": 3,
+        "ガード強化": 1
+      }
+    },
+    {
+      "name": "毒珠【１】",
+      "slot_size": 1,
+      "type": "weapon",
+      "skills": {
+        "毒属性強化": 1
+      }
+    },
+    {
+      "name": "毒珠Ⅱ【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "毒属性強化": 2
+      }
+    },
+    {
+      "name": "毒珠Ⅲ【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "毒属性強化": 3
+      }
+    },
+    {
+      "name": "麻痺珠【１】",
+      "slot_size": 1,
+      "type": "weapon",
+      "skills": {
+        "麻痺属性強化": 1
+      }
+    },
+    {
+      "name": "麻痺珠Ⅱ【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "麻痺属性強化": 2
+      }
+    },
+    {
+      "name": "麻痺珠Ⅲ【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "麻痺属性強化": 3
+      }
+    },
+    {
+      "name": "睡眠珠【１】",
+      "slot_size": 1,
+      "type": "weapon",
+      "skills": {
+        "睡眠属性強化": 1
+      }
+    },
+    {
+      "name": "睡眠珠Ⅱ【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "睡眠属性強化": 2
+      }
+    },
+    {
+      "name": "睡眠珠Ⅲ【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "睡眠属性強化": 3
+      }
+    },
+    {
+      "name": "爆破珠【１】",
+      "slot_size": 1,
+      "type": "weapon",
+      "skills": {
+        "爆破属性強化": 1
+      }
+    },
+    {
+      "name": "爆破珠Ⅱ【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "爆破属性強化": 2
+      }
+    },
+    {
+      "name": "爆破珠Ⅲ【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "爆破属性強化": 3
+      }
+    },
+    {
+      "name": "属会珠【１】",
+      "slot_size": 1,
+      "type": "weapon",
+      "skills": {
+        "会心撃【属性】": 1
+      }
+    },
+    {
+      "name": "属会珠Ⅱ【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "会心撃【属性】": 2
+      }
+    },
+    {
+      "name": "属会珠Ⅲ【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "会心撃【属性】": 3
+      }
+    },
+    {
+      "name": "属会・火炎珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "会心撃【属性】": 3,
+        "火属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "属会・流水珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "会心撃【属性】": 3,
+        "水属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "属会・氷結珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "会心撃【属性】": 3,
+        "氷属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "属会・雷光珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "会心撃【属性】": 3,
+        "雷属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "属会・破龍珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "会心撃【属性】": 3,
+        "龍属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "属会・匠珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "会心撃【属性】": 3,
+        "匠": 1
+      }
+    },
+    {
+      "name": "属会・射法珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "会心撃【属性】": 3,
+        "弾導強化": 1
+      }
+    },
+    {
+      "name": "属会・ＫＯ珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "会心撃【属性】": 3,
+        "ＫＯ術": 1
+      }
+    },
+    {
+      "name": "属会・鉄壁珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "会心撃【属性】": 3,
+        "ガード性能": 1
+      }
+    },
+    {
+      "name": "特会珠【１】",
+      "slot_size": 1,
+      "type": "weapon",
+      "skills": {
+        "会心撃【特殊】": 1
+      }
+    },
+    {
+      "name": "特会珠Ⅱ【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "会心撃【特殊】": 2
+      }
+    },
+    {
+      "name": "特会珠Ⅲ【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "会心撃【特殊】": 3
+      }
+    },
+    {
+      "name": "特会・匠珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "会心撃【特殊】": 3,
+        "匠": 1
+      }
+    },
+    {
+      "name": "特会・射法珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "会心撃【特殊】": 3,
+        "弾導強化": 1
+      }
+    },
+    {
+      "name": "特会・ＫＯ珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "会心撃【特殊】": 3,
+        "ＫＯ術": 1
+      }
+    },
+    {
+      "name": "特会・鉄壁珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "会心撃【特殊】": 3,
+        "ガード性能": 1
+      }
+    },
+    {
+      "name": "溜幅珠【１】",
+      "slot_size": 1,
+      "type": "weapon",
+      "skills": {
+        "チャージマスター": 1
+      }
+    },
+    {
+      "name": "溜幅珠Ⅱ【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "チャージマスター": 2
+      }
+    },
+    {
+      "name": "溜幅珠Ⅲ【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "チャージマスター": 3
+      }
+    },
+    {
+      "name": "溜幅・匠珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "チャージマスター": 3,
+        "匠": 1
+      }
+    },
+    {
+      "name": "溜幅・ＫＯ珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "チャージマスター": 3,
+        "ＫＯ術": 1
+      }
+    },
+    {
+      "name": "匠珠【１】",
+      "slot_size": 1,
+      "type": "weapon",
+      "skills": {
+        "匠": 1
+      }
+    },
+    {
+      "name": "匠珠Ⅱ【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "匠": 2
+      }
+    },
+    {
+      "name": "匠珠Ⅲ【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "匠": 3
+      }
+    },
+    {
+      "name": "業物珠【１】",
+      "slot_size": 1,
+      "type": "weapon",
+      "skills": {
+        "業物": 1
+      }
+    },
+    {
+      "name": "業物珠Ⅱ【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "業物": 2
+      }
+    },
+    {
+      "name": "業物珠Ⅲ【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "業物": 3
+      }
+    },
+    {
+      "name": "業物・火炎珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "業物": 3,
+        "火属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "業物・流水珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "業物": 3,
+        "水属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "業物・氷結珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "業物": 3,
+        "氷属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "業物・雷光珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "業物": 3,
+        "雷属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "業物・破龍珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "業物": 3,
+        "龍属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "業物・匠珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "業物": 3,
+        "匠": 1
+      }
+    },
+    {
+      "name": "業物・ＫＯ珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "業物": 3,
+        "ＫＯ術": 1
+      }
+    },
+    {
+      "name": "業物・鉄壁珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "業物": 3,
+        "ガード性能": 1
+      }
+    },
+    {
+      "name": "剛刃珠【１】",
+      "slot_size": 1,
+      "type": "weapon",
+      "skills": {
+        "剛刃研磨": 1
+      }
+    },
+    {
+      "name": "剛刃珠Ⅱ【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "剛刃研磨": 2
+      }
+    },
+    {
+      "name": "剛刃珠Ⅲ【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "剛刃研磨": 3
+      }
+    },
+    {
+      "name": "心眼珠【１】",
+      "slot_size": 1,
+      "type": "weapon",
+      "skills": {
+        "心眼": 1
+      }
+    },
+    {
+      "name": "心眼珠Ⅱ【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "心眼": 2
+      }
+    },
+    {
+      "name": "心眼珠Ⅲ【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "心眼": 3
+      }
+    },
+    {
+      "name": "鈍器珠【１】",
+      "slot_size": 1,
+      "type": "weapon",
+      "skills": {
+        "鈍器使い": 1
+      }
+    },
+    {
+      "name": "鈍器珠Ⅱ【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "鈍器使い": 2
+      }
+    },
+    {
+      "name": "鈍器珠Ⅲ【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "鈍器使い": 3
+      }
+    },
+    {
+      "name": "達芸珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "達人芸": 1
+      }
+    },
+    {
+      "name": "強弾珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "通常弾・通常矢強化": 1
+      }
+    },
+    {
+      "name": "貫通珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "貫通弾・竜の矢強化": 1
+      }
+    },
+    {
+      "name": "散弾珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "散弾・剛射強化": 1
+      }
+    },
+    {
+      "name": "射法珠【１】",
+      "slot_size": 1,
+      "type": "weapon",
+      "skills": {
+        "弾導強化": 1
+      }
+    },
+    {
+      "name": "射法珠Ⅱ【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "弾導強化": 2
+      }
+    },
+    {
+      "name": "射法珠Ⅲ【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "弾導強化": 3
+      }
+    },
+    {
+      "name": "速射珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "速射強化": 1
+      }
+    },
+    {
+      "name": "初弾珠【１】",
+      "slot_size": 1,
+      "type": "weapon",
+      "skills": {
+        "ファーストショット": 1
+      }
+    },
+    {
+      "name": "初弾珠Ⅱ【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "ファーストショット": 2
+      }
+    },
+    {
+      "name": "初弾珠Ⅲ【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "ファーストショット": 3
+      }
+    },
+    {
+      "name": "初弾・火炎珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "ファーストショット": 3,
+        "火属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "初弾・流水珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "ファーストショット": 3,
+        "水属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "初弾・氷結珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "ファーストショット": 3,
+        "氷属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "初弾・雷光珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "ファーストショット": 3,
+        "雷属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "初弾・破龍珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "ファーストショット": 3,
+        "龍属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "初弾・射法珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "ファーストショット": 3,
+        "弾導強化": 1
+      }
+    },
+    {
+      "name": "初弾・鉄壁珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "ファーストショット": 3,
+        "ガード性能": 1
+      }
+    },
+    {
+      "name": "積弾珠【１】",
+      "slot_size": 1,
+      "type": "weapon",
+      "skills": {
+        "フォースショット": 1
+      }
+    },
+    {
+      "name": "積弾珠Ⅱ【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "フォースショット": 2
+      }
+    },
+    {
+      "name": "積弾珠Ⅲ【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "フォースショット": 3
+      }
+    },
+    {
+      "name": "積弾・火炎珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "フォースショット": 3,
+        "火属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "積弾・流水珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "フォースショット": 3,
+        "水属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "積弾・氷結珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "フォースショット": 3,
+        "氷属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "積弾・雷光珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "フォースショット": 3,
+        "雷属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "積弾・破龍珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "フォースショット": 3,
+        "龍属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "積弾・射法珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "フォースショット": 3,
+        "弾導強化": 1
+      }
+    },
+    {
+      "name": "積弾・鉄壁珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "フォースショット": 3,
+        "ガード性能": 1
+      }
+    },
+    {
+      "name": "特射珠【１】",
+      "slot_size": 1,
+      "type": "weapon",
+      "skills": {
+        "特殊射撃強化": 1
+      }
+    },
+    {
+      "name": "特射珠Ⅱ【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "特殊射撃強化": 2
+      }
+    },
+    {
+      "name": "毒瓶珠【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "毒ビン追加": 1
+      }
+    },
+    {
+      "name": "痺瓶珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "麻痺ビン追加": 1
+      }
+    },
+    {
+      "name": "眠瓶珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "睡眠ビン追加": 1
+      }
+    },
+    {
+      "name": "爆瓶珠【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "爆破ビン追加": 1
+      }
+    },
+    {
+      "name": "疲瓶珠【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "減気ビン追加": 1
+      }
+    },
+    {
+      "name": "防御珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "防御": 1
+      }
+    },
+    {
+      "name": "加護珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "精霊の加護": 1
+      }
+    },
+    {
+      "name": "耐火珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "火耐性": 1
+      }
+    },
+    {
+      "name": "耐水珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "水耐性": 1
+      }
+    },
+    {
+      "name": "耐雷珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "雷耐性": 1
+      }
+    },
+    {
+      "name": "耐氷珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "氷耐性": 1
+      }
+    },
+    {
+      "name": "耐龍珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "龍耐性": 1
+      }
+    },
+    {
+      "name": "耐毒珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "毒耐性": 1
+      }
+    },
+    {
+      "name": "耐麻珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "麻痺耐性": 1
+      }
+    },
+    {
+      "name": "耐眠珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "睡眠耐性": 1
+      }
+    },
+    {
+      "name": "耐防珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "防御力ＤＯＷＮ耐性": 1
+      }
+    },
+    {
+      "name": "耐絶珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "気絶耐性": 1
+      }
+    },
+    {
+      "name": "耐裂珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "裂傷耐性": 1
+      }
+    },
+    {
+      "name": "耐拘珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "拘束耐性": 1
+      }
+    },
+    {
+      "name": "耐爆珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "爆破やられ耐性": 1
+      }
+    },
+    {
+      "name": "耐臭珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "悪臭耐性": 1
+      }
+    },
+    {
+      "name": "適応珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "環境適応": 1
+      }
+    },
+    {
+      "name": "治癒珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "体力回復量ＵＰ": 1
+      }
+    },
+    {
+      "name": "早復珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "回復速度": 1
+      }
+    },
+    {
+      "name": "環境珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "環境利用の知識": 1
+      }
+    },
+    {
+      "name": "体術珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "体術": 1
+      }
+    },
+    {
+      "name": "早気珠【２】",
+      "slot_size": 2,
+      "type": "armor",
+      "skills": {
+        "スタミナ急速回復": 1
+      }
+    },
+    {
+      "name": "強走珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "ランナー": 1
+      }
+    },
+    {
+      "name": "無食珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "腹減り耐性": 1
+      }
+    },
+    {
+      "name": "挑戦珠【３】",
+      "slot_size": 3,
+      "type": "armor",
+      "skills": {
+        "挑戦者": 1
+      }
+    },
+    {
+      "name": "全開珠【３】",
+      "slot_size": 3,
+      "type": "armor",
+      "skills": {
+        "力の解放": 1
+      }
+    },
+    {
+      "name": "底力珠【２】",
+      "slot_size": 2,
+      "type": "armor",
+      "skills": {
+        "火事場力": 1
+      }
+    },
+    {
+      "name": "連撃珠【３】",
+      "slot_size": 3,
+      "type": "armor",
+      "skills": {
+        "連撃": 1
+      }
+    },
+    {
+      "name": "攻勢珠【３】",
+      "slot_size": 3,
+      "type": "armor",
+      "skills": {
+        "攻勢": 1
+      }
+    },
+    {
+      "name": "刺撃珠【３】",
+      "slot_size": 3,
+      "type": "armor",
+      "skills": {
+        "鎖刃刺撃": 1
+      }
+    },
+    {
+      "name": "集中珠【１】",
+      "slot_size": 1,
+      "type": "weapon",
+      "skills": {
+        "集中": 1
+      }
+    },
+    {
+      "name": "集中珠Ⅱ【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "集中": 2
+      }
+    },
+    {
+      "name": "集中珠Ⅲ【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "集中": 3
+      }
+    },
+    {
+      "name": "集中・火炎珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "集中": 3,
+        "火属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "集中・流水珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "集中": 3,
+        "水属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "集中・氷結珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "集中": 3,
+        "氷属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "集中・雷光珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "集中": 3,
+        "雷属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "集中・破龍珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "集中": 3,
+        "龍属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "集中・匠珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "集中": 3,
+        "匠": 1
+      }
+    },
+    {
+      "name": "集中・射法珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "集中": 3,
+        "弾導強化": 1
+      }
+    },
+    {
+      "name": "集中・ＫＯ珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "集中": 3,
+        "ＫＯ術": 1
+      }
+    },
+    {
+      "name": "昂揚珠【１】",
+      "slot_size": 1,
+      "type": "weapon",
+      "skills": {
+        "強化持続": 1
+      }
+    },
+    {
+      "name": "昂揚珠Ⅱ【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "強化持続": 2
+      }
+    },
+    {
+      "name": "昂揚珠Ⅲ【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "強化持続": 3
+      }
+    },
+    {
+      "name": "昂揚・火炎珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "強化持続": 3,
+        "火属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "昂揚・流水珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "強化持続": 3,
+        "水属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "昂揚・氷結珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "強化持続": 3,
+        "氷属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "昂揚・雷光珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "強化持続": 3,
+        "雷属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "昂揚・破龍珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "強化持続": 3,
+        "龍属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "昂揚・匠珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "強化持続": 3,
+        "匠": 1
+      }
+    },
+    {
+      "name": "抜打珠【１】",
+      "slot_size": 1,
+      "type": "weapon",
+      "skills": {
+        "抜刀術【力】": 1
+      }
+    },
+    {
+      "name": "抜打珠Ⅱ【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "抜刀術【力】": 2
+      }
+    },
+    {
+      "name": "抜打珠Ⅲ【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "抜刀術【力】": 3
+      }
+    },
+    {
+      "name": "抜打・匠珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "抜刀術【力】": 3,
+        "匠": 1
+      }
+    },
+    {
+      "name": "抜打・ＫＯ珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "抜刀術【力】": 3,
+        "ＫＯ術": 1
+      }
+    },
+    {
+      "name": "抜打・鉄壁珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "抜刀術【力】": 3,
+        "ガード性能": 1
+      }
+    },
+    {
+      "name": "ＫＯ珠【１】",
+      "slot_size": 1,
+      "type": "weapon",
+      "skills": {
+        "ＫＯ術": 1
+      }
+    },
+    {
+      "name": "ＫＯ珠Ⅱ【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "ＫＯ術": 2
+      }
+    },
+    {
+      "name": "ＫＯ珠Ⅲ【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "ＫＯ術": 3
+      }
+    },
+    {
+      "name": "奪気珠【１】",
+      "slot_size": 1,
+      "type": "weapon",
+      "skills": {
+        "スタミナ奪取": 1
+      }
+    },
+    {
+      "name": "奪気珠Ⅱ【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "スタミナ奪取": 2
+      }
+    },
+    {
+      "name": "奪気珠Ⅲ【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "スタミナ奪取": 3
+      }
+    },
+    {
+      "name": "砲術珠【１】",
+      "slot_size": 1,
+      "type": "weapon",
+      "skills": {
+        "砲術": 1
+      }
+    },
+    {
+      "name": "砲術珠Ⅱ【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "砲術": 2
+      }
+    },
+    {
+      "name": "砲術珠Ⅲ【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "砲術": 3
+      }
+    },
+    {
+      "name": "速変珠【１】",
+      "slot_size": 1,
+      "type": "weapon",
+      "skills": {
+        "高速変形": 1
+      }
+    },
+    {
+      "name": "速変珠Ⅱ【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "高速変形": 2
+      }
+    },
+    {
+      "name": "速変珠Ⅲ【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "高速変形": 3
+      }
+    },
+    {
+      "name": "速変・火炎珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "高速変形": 3,
+        "火属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "速変・流水珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "高速変形": 3,
+        "水属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "速変・氷結珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "高速変形": 3,
+        "氷属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "速変・雷光珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "高速変形": 3,
+        "雷属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "速変・破龍珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "高速変形": 3,
+        "龍属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "速変・匠珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "高速変形": 3,
+        "匠": 1
+      }
+    },
+    {
+      "name": "速変・ＫＯ珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "高速変形": 3,
+        "ＫＯ術": 1
+      }
+    },
+    {
+      "name": "速変・鉄壁珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "高速変形": 3,
+        "ガード性能": 1
+      }
+    },
+    {
+      "name": "重撃珠【２】",
+      "slot_size": 2,
+      "type": "armor",
+      "skills": {
+        "破壊王": 1
+      }
+    },
+    {
+      "name": "転福珠【２】",
+      "slot_size": 2,
+      "type": "armor",
+      "skills": {
+        "災禍転福": 1
+      }
+    },
+    {
+      "name": "急襲珠【２】",
+      "slot_size": 2,
+      "type": "armor",
+      "skills": {
+        "急襲": 1
+      }
+    },
+    {
+      "name": "抗狂珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "無我の境地": 1
+      }
+    },
+    {
+      "name": "鼓笛珠【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "笛吹き名人": 1
+      }
+    },
+    {
+      "name": "鼓笛・攻撃珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "笛吹き名人": 3,
+        "攻撃": 1
+      }
+    },
+    {
+      "name": "鼓笛・達人珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "笛吹き名人": 3,
+        "見切り": 1
+      }
+    },
+    {
+      "name": "鼓笛・抜刀珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "笛吹き名人": 3,
+        "抜刀術【技】": 1
+      }
+    },
+    {
+      "name": "鼓笛・匠珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "笛吹き名人": 3,
+        "匠": 1
+      }
+    },
+    {
+      "name": "鼓笛・ＫＯ珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "笛吹き名人": 3,
+        "ＫＯ術": 1
+      }
+    },
+    {
+      "name": "溜打珠【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "溜打強化": 1
+      }
+    },
+    {
+      "name": "溜打・攻撃珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "溜打強化": 3,
+        "攻撃": 1
+      }
+    },
+    {
+      "name": "溜打・達人珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "溜打強化": 3,
+        "見切り": 1
+      }
+    },
+    {
+      "name": "溜打・抜刀珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "溜打強化": 3,
+        "抜刀術【技】": 1
+      }
+    },
+    {
+      "name": "溜打・匠珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "溜打強化": 3,
+        "匠": 1
+      }
+    },
+    {
+      "name": "溜打・ＫＯ珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "溜打強化": 3,
+        "ＫＯ術": 1
+      }
+    },
+    {
+      "name": "飛燕珠【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "飛燕": 1
+      }
+    },
+    {
+      "name": "飛燕・攻撃珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "飛燕": 3,
+        "攻撃": 1
+      }
+    },
+    {
+      "name": "飛燕・達人珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "飛燕": 3,
+        "見切り": 1
+      }
+    },
+    {
+      "name": "飛燕・抜刀珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "飛燕": 3,
+        "抜刀術【技】": 1
+      }
+    },
+    {
+      "name": "飛燕・匠珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "飛燕": 3,
+        "匠": 1
+      }
+    },
+    {
+      "name": "研鑽珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "研鑽": 1
+      }
+    },
+    {
+      "name": "強毒珠【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "毒ダメージ強化": 1
+      }
+    },
+    {
+      "name": "強毒・攻撃珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "毒ダメージ強化": 3,
+        "攻撃": 1
+      }
+    },
+    {
+      "name": "強毒・達人珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "毒ダメージ強化": 3,
+        "見切り": 1
+      }
+    },
+    {
+      "name": "強毒・抜刀珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "毒ダメージ強化": 3,
+        "抜刀術【技】": 1
+      }
+    },
+    {
+      "name": "強毒・匠珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "毒ダメージ強化": 3,
+        "匠": 1
+      }
+    },
+    {
+      "name": "強毒・射法珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "毒ダメージ強化": 3,
+        "弾導強化": 1
+      }
+    },
+    {
+      "name": "強毒・ＫＯ珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "毒ダメージ強化": 3,
+        "ＫＯ術": 1
+      }
+    },
+    {
+      "name": "強毒・鉄壁珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "毒ダメージ強化": 3,
+        "ガード性能": 1
+      }
+    },
+    {
+      "name": "鉄壁珠【１】",
+      "slot_size": 1,
+      "type": "weapon",
+      "skills": {
+        "ガード性能": 1
+      }
+    },
+    {
+      "name": "鉄壁珠Ⅱ【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "ガード性能": 2
+      }
+    },
+    {
+      "name": "鉄壁珠Ⅲ【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "ガード性能": 3
+      }
+    },
+    {
+      "name": "回避珠【２】",
+      "slot_size": 2,
+      "type": "armor",
+      "skills": {
+        "回避性能": 1
+      }
+    },
+    {
+      "name": "跳躍珠【２】",
+      "slot_size": 2,
+      "type": "armor",
+      "skills": {
+        "回避距離ＵＰ": 1
+      }
+    },
+    {
+      "name": "防音珠【２】",
+      "slot_size": 2,
+      "type": "armor",
+      "skills": {
+        "耳栓": 1
+      }
+    },
+    {
+      "name": "強壁珠【１】",
+      "slot_size": 1,
+      "type": "weapon",
+      "skills": {
+        "ガード強化": 1
+      }
+    },
+    {
+      "name": "強壁珠Ⅱ【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "ガード強化": 2
+      }
+    },
+    {
+      "name": "強壁珠Ⅲ【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "ガード強化": 3
+      }
+    },
+    {
+      "name": "強壁・火炎珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "ガード強化": 3,
+        "火属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "強壁・流水珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "ガード強化": 3,
+        "水属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "強壁・氷結珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "ガード強化": 3,
+        "氷属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "強壁・雷光珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "ガード強化": 3,
+        "雷属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "強壁・破龍珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "ガード強化": 3,
+        "龍属性攻撃強化": 1
+      }
+    },
+    {
+      "name": "強壁・匠珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "ガード強化": 3,
+        "匠": 1
+      }
+    },
+    {
+      "name": "強壁・鉄壁珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "ガード強化": 3,
+        "ガード性能": 1
+      }
+    },
+    {
+      "name": "速納珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "納刀術": 1
+      }
+    },
+    {
+      "name": "防風珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "風圧耐性": 1
+      }
+    },
+    {
+      "name": "耐震珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "耐震": 1
+      }
+    },
+    {
+      "name": "耐衝珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "ひるみ軽減": 1
+      }
+    },
+    {
+      "name": "威嚇珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "威嚇": 1
+      }
+    },
+    {
+      "name": "早食珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "早食い": 1
+      }
+    },
+    {
+      "name": "増弾珠【１】",
+      "slot_size": 1,
+      "type": "weapon",
+      "skills": {
+        "砲弾装填": 1
+      }
+    },
+    {
+      "name": "増弾珠Ⅱ【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "砲弾装填": 2
+      }
+    },
+    {
+      "name": "増弾・攻撃珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "砲弾装填": 3,
+        "攻撃": 1
+      }
+    },
+    {
+      "name": "増弾・達人珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "砲弾装填": 3,
+        "見切り": 1
+      }
+    },
+    {
+      "name": "増弾・抜刀珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "砲弾装填": 3,
+        "抜刀術【技】": 1
+      }
+    },
+    {
+      "name": "増弾・匠珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "砲弾装填": 3,
+        "匠": 1
+      }
+    },
+    {
+      "name": "増弾・鉄壁珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "砲弾装填": 3,
+        "ガード性能": 1
+      }
+    },
+    {
+      "name": "沼渡珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "水場・油泥適応": 1
+      }
+    },
+    {
+      "name": "緩衝珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "緩衝": 1
+      }
+    },
+    {
+      "name": "飛込珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "飛び込み": 1
+      }
+    },
+    {
+      "name": "強跳珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "ジャンプ鉄人": 1
+      }
+    },
+    {
+      "name": "登壁珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "クライマー": 1
+      }
+    },
+    {
+      "name": "友愛珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "広域化": 1
+      }
+    },
+    {
+      "name": "整備珠【２】",
+      "slot_size": 2,
+      "type": "armor",
+      "skills": {
+        "整備": 1
+      }
+    },
+    {
+      "name": "爆師珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "ボマー": 1
+      }
+    },
+    {
+      "name": "茸好珠【２】",
+      "slot_size": 2,
+      "type": "armor",
+      "skills": {
+        "キノコ大好き": 1
+      }
+    },
+    {
+      "name": "持続珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "アイテム使用強化": 1
+      }
+    },
+    {
+      "name": "節食珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "満足感": 1
+      }
+    },
+    {
+      "name": "研磨珠【１】",
+      "slot_size": 1,
+      "type": "weapon",
+      "skills": {
+        "砥石使用高速化": 1
+      }
+    },
+    {
+      "name": "研磨珠Ⅱ【２】",
+      "slot_size": 2,
+      "type": "weapon",
+      "skills": {
+        "砥石使用高速化": 2
+      }
+    },
+    {
+      "name": "研磨・攻撃珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "砥石使用高速化": 3,
+        "攻撃": 1
+      }
+    },
+    {
+      "name": "研磨・達人珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "砥石使用高速化": 3,
+        "見切り": 1
+      }
+    },
+    {
+      "name": "研磨・抜刀珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "砥石使用高速化": 3,
+        "抜刀術【技】": 1
+      }
+    },
+    {
+      "name": "研磨・匠珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "砥石使用高速化": 3,
+        "匠": 1
+      }
+    },
+    {
+      "name": "研磨・ＫＯ珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "砥石使用高速化": 3,
+        "ＫＯ術": 1
+      }
+    },
+    {
+      "name": "研磨・鉄壁珠【３】",
+      "slot_size": 3,
+      "type": "weapon",
+      "skills": {
+        "砥石使用高速化": 3,
+        "ガード性能": 1
+      }
+    },
+    {
+      "name": "閃光珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "閃光強化": 1
+      }
+    },
+    {
+      "name": "植学珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "植生学": 1
+      }
+    },
+    {
+      "name": "地学珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "地質学": 1
+      }
+    },
+    {
+      "name": "標本珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "昆虫標本の達人": 1
+      }
+    },
+    {
+      "name": "狩人珠【１】",
+      "slot_size": 1,
+      "type": "armor",
+      "skills": {
+        "ハンター生活": 1
+      }
+    }
+  ],
+  "unresolved": []
+}
