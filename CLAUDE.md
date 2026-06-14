@@ -66,6 +66,15 @@ Python(`legacy/slot-icon-pipeline/pipeline.py`)でPoC済みのアルゴリズム
 - 「穴なし」スロットは対象外（ショップ購入護石のみに存在し、本チェッカーの対象護石には現れない）。
 - 2560x1440以外の解像度・16:9以外のアスペクト比は未検証。
 
+## テキストOCRロジック（実装済み）
+
+`CharmChecker.Core/Ocr/TextOcrReader.cs`で`Windows.Media.Ocr`を使ったテキスト認識を実装済み。
+
+- **OCRエンジン生成**: `OcrEngine.TryCreateFromLanguage(new Language("ja"))`。`null`の場合は例外（日本語OCR言語パック未導入）。
+- **画像読み込み**: `BitmapDecoder.GetSoftwareBitmapAsync(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied)`でデコード時に直接変換する。デコード後に`SoftwareBitmap.Convert`で変換する方式は、JPEGのアルファ値の扱いにより画像が壊れる可能性があるため避ける。
+- **CJK文字の認識仕様**: 漢字・かな等のCJK文字は1文字ずつ別の`Word`として認識され、`OcrLine.Text`/`OcrResult.Text`は文字間に半角スペースを挟んで結合される（例: `"栄世の護石"` → `"栄 世 の 護 石"`）。スキル名等と比較する際はスペースを除去してから行う。
+- **TFM要件**: `Windows.Media.Ocr`の利用には`CharmChecker.Core`/`CharmChecker.Tests`/`CharmChecker.App`すべてを`net10.0-windows10.0.22000.0`に統一する必要がある（プロジェクト間でTFMの具体度が揃わないとNU1201エラーになる）。
+
 ## コミット規約
 
 - Conventional Commits の prefix（`feat`/`fix`/`docs`/`chore`等）＋簡潔な1行件名
