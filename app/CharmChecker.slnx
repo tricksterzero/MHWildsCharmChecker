@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="CharmChecker.App/CharmChecker.App.csproj" />
+  <Project Path="CharmChecker.Core/CharmChecker.Core.csproj" />
+  <Project Path="CharmChecker.Tests/CharmChecker.Tests.csproj" />
+</Solution>
