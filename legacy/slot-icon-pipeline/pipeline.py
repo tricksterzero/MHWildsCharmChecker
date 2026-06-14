@@ -119,7 +119,7 @@ def scale_factors(img):
 
 # --- 参照バッジテンプレートの生成 ---
 def build_refs():
-    # buki ref: 20260614061441 右パネル frame1（剣バッジ確認済み）
+    # buki ref: 20260614061441 右パネル frames[0]（剣バッジ確認済み）
     img = cv2.imread(os.path.join(SRC, "20260614061441_1.jpg"))
     sx, sy = scale_factors(img)
     y0, y1, x0, x1 = panel_region(img)
