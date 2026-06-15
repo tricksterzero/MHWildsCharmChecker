@@ -5,8 +5,200 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:CharmChecker.App"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
+        Title="MHWilds 護石チェッカー" Height="450" Width="800">
+    <DockPanel>
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="データ(_D)">
+                <MenuItem Header="ローカルデータのエクスポート(_E)" />
+                <MenuItem Header="ローカルデータのインポート(_I)" />
+                <Separator />
+                <MenuItem Header="データの初期化(_R)" />
+            </MenuItem>
+            <MenuItem Header="設定(_S)" />
+            <MenuItem Header="ヘルプ(_H)">
+                <MenuItem Header="アプリ情報(_A)" />
+            </MenuItem>
+        </Menu>
+        <TabControl>
+            <TabItem Header="護石一覧">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" MinHeight="100" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="200" MinHeight="80" />
+                    </Grid.RowDefinitions>
 
-    </Grid>
+                    <!-- 圧縮テーブル -->
+                    <DataGrid x:Name="CharmDataGrid" Grid.Row="0"
+                              ItemsSource="{Binding CharmItems, RelativeSource={RelativeSource AncestorType=Window}}"
+                              AutoGenerateColumns="False" IsReadOnly="True"
+                              SelectionMode="Single"
+                              SelectionChanged="CharmDataGrid_SelectionChanged"
+                              HeadersVisibility="Column"
+                              CanUserSortColumns="True"
+                              CanUserResizeColumns="True"
+                              HorizontalScrollBarVisibility="Disabled"
+                              Margin="8">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="#" Binding="{Binding Id}" Width="50" />
+                            <DataGridTextColumn Header="スキル" Binding="{Binding SkillText}" Width="*" />
+                            <DataGridTextColumn Header="スロット" Binding="{Binding SlotText}" Width="140" />
+                            <DataGridTextColumn Header="取得日" Binding="{Binding DateText}" Width="100" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <GridSplitter Grid.Row="1" Height="4" HorizontalAlignment="Stretch"
+                                  Background="LightGray" />
+
+                    <!-- 詳細パネル -->
+                    <Border Grid.Row="2" BorderBrush="LightGray" BorderThickness="0,1,0,0">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="12,8">
+                            <StackPanel x:Name="DetailPanel">
+                                <TextBlock x:Name="DetailPlaceholder"
+                                           Text="護石を選択すると詳細が表示されます"
+                                           Foreground="Gray" />
+                                <StackPanel x:Name="DetailContent" Visibility="Collapsed">
+                                    <TextBlock Text="スキル" FontWeight="Bold" />
+                                    <TextBlock x:Name="DetailSkills" Margin="12,2,0,8" />
+
+                                    <TextBlock Text="スロット" FontWeight="Bold" />
+                                    <TextBlock x:Name="DetailSlots" Margin="12,2,0,8" />
+
+                                    <TextBlock Text="取得元" FontWeight="Bold" />
+                                    <TextBlock x:Name="DetailSource" Margin="12,2,0,8" />
+
+                                    <TextBlock Text="取得日時" FontWeight="Bold" />
+                                    <TextBlock x:Name="DetailDateTime" Margin="12,2,0,8" />
+
+                                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                        <Button Content="編集" Padding="16,4"
+                                                Click="EditCharm_Click" />
+                                        <Button Content="削除" Margin="8,0,0,0" Padding="16,4"
+                                                Click="DeleteCharm_Click" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
+            </TabItem>
+            <TabItem Header="スクショ読み取り">
+                <TextBlock Text="スクショ読み取り（未実装）" Margin="16" />
+            </TabItem>
+            <TabItem Header="CSVインポート・エクスポート">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="16" MaxWidth="600" HorizontalAlignment="Left">
+                        <!-- インポート -->
+                        <TextBlock Text="インポート" FontSize="16" FontWeight="Bold" />
+
+                        <TextBlock Text="入力方法" Margin="0,12,0,4" />
+                        <RadioButton x:Name="ImportFromFile" Content="ファイルから読み込み"
+                                     GroupName="ImportSource" IsChecked="True"
+                                     Checked="ImportSource_Changed" />
+                        <RadioButton x:Name="ImportFromText" Content="テキスト貼り付け"
+                                     GroupName="ImportSource" Margin="0,4,0,0"
+                                     Checked="ImportSource_Changed" />
+
+                        <!-- ファイル選択 -->
+                        <StackPanel x:Name="FileSelectPanel" Orientation="Horizontal" Margin="0,8,0,0">
+                            <TextBox x:Name="ImportFilePath" Width="400" IsReadOnly="True" />
+                            <Button Content="参照..." Margin="8,0,0,0" Padding="12,4"
+                                    Click="BrowseImportFile_Click" />
+                        </StackPanel>
+
+                        <!-- テキスト貼り付け -->
+                        <TextBox x:Name="ImportTextBox" Height="200"
+                                 AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
+                                 TextWrapping="NoWrap" Margin="0,8,0,0"
+                                 Visibility="Collapsed" />
+
+                        <TextBlock Text="モード" Margin="0,12,0,4" />
+                        <RadioButton x:Name="ModeDiffAdd" Content="差分追加（既存データに追加）"
+                                     GroupName="ImportMode" IsChecked="True" />
+                        <RadioButton x:Name="ModeOverwrite" Content="全件上書き（既存データを置換）"
+                                     GroupName="ImportMode" Margin="0,4,0,0" />
+
+                        <Button Content="インポート実行" Margin="0,12,0,0" Padding="16,6"
+                                HorizontalAlignment="Left" Click="ExecuteImport_Click" />
+
+                        <TextBlock x:Name="ImportResultText" Margin="0,8,0,0"
+                                   TextWrapping="Wrap" />
+
+                        <!-- 区切り線 -->
+                        <Separator Margin="0,20,0,12" />
+
+                        <!-- エクスポート -->
+                        <TextBlock Text="エクスポート" FontSize="16" FontWeight="Bold" />
+
+                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                            <Button Content="クリップボードへコピー" Padding="16,6"
+                                    Click="ExportClipboard_Click" />
+                            <Button Content="ファイルへ保存" Margin="12,0,0,0" Padding="16,6"
+                                    Click="ExportFile_Click" />
+                        </StackPanel>
+
+                        <TextBlock x:Name="ExportResultText" Margin="0,8,0,0"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+            <TabItem Header="重複チェック">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="16">
+                        <Button Content="チェック実行" Padding="16,6"
+                                HorizontalAlignment="Left"
+                                Click="ExecuteDuplicateCheck_Click" />
+
+                        <TextBlock x:Name="DupCheckSummary" Margin="0,8,0,0" />
+
+                        <!-- 完全同一セクション -->
+                        <StackPanel x:Name="DupIdenticalSection" Visibility="Collapsed"
+                                    Margin="0,16,0,0">
+                            <TextBlock Text="完全同一の護石" FontSize="16" FontWeight="Bold" />
+                            <ItemsControl x:Name="DupIdenticalList" Margin="0,8,0,0">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border BorderBrush="LightGray" BorderThickness="1"
+                                                Padding="12,8" Margin="0,0,0,8"
+                                                CornerRadius="4">
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Header}"
+                                                           FontWeight="SemiBold" />
+                                                <TextBlock Text="{Binding Detail}"
+                                                           Margin="12,4,0,0"
+                                                           Foreground="Gray" />
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+
+                        <!-- 上位互換ありセクション -->
+                        <StackPanel x:Name="DupInferiorSection" Visibility="Collapsed"
+                                    Margin="0,16,0,0">
+                            <TextBlock Text="上位互換がある護石" FontSize="16" FontWeight="Bold" />
+                            <ItemsControl x:Name="DupInferiorList" Margin="0,8,0,0">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border BorderBrush="LightGray" BorderThickness="1"
+                                                Padding="12,8" Margin="0,0,0,8"
+                                                CornerRadius="4">
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Header}"
+                                                           FontWeight="SemiBold" />
+                                                <TextBlock Text="{Binding Detail}"
+                                                           Margin="12,4,0,0"
+                                                           Foreground="Gray" />
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
 </Window>
