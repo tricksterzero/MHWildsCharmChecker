@@ -11,3 +11,6 @@
 - `resources/` — アプリが参照する正規化・検証用辞書（`skill-decoration-map.json`）
 - `charm-lists/` — 護石読み取り結果のCSV（本ツールの出力物）。ローカルのみ
 - `assets/` — OCR/CV検証用スクリーンショット。ローカルのみ
+
+## テスト起動用のコマンド
+`dotnet run --project app/CharmChecker.App`
