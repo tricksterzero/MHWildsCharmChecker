@@ -493,7 +493,7 @@ public partial class MainWindow : Window
             }
         }
 
-        return (armorSlots, weaponSlots);
+        return SlotValidation.Validate(armorSlots, weaponSlots);
     }
 
     private void AddReadingResult_Click(object sender, RoutedEventArgs e)
