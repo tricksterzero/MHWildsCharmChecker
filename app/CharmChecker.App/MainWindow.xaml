@@ -11,24 +11,64 @@
         ExtendsContentIntoTitleBar="True"
         WindowBackdropType="Mica">
     <DockPanel>
+        <DockPanel.Resources>
+            <SolidColorBrush x:Key="PanelBackground" Color="#FF2D2D2D" />
+            <SolidColorBrush x:Key="CardBackground" Color="#FF2A2A2A" />
+            <SolidColorBrush x:Key="SplitterColor" Color="#FF505050" />
+            <SolidColorBrush x:Key="SecondaryText" Color="#FF9E9E9E" />
+            <Style TargetType="TabItem">
+                <Setter Property="Padding" Value="16,8" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="Foreground" Value="{StaticResource SecondaryText}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="TabItem">
+                            <StackPanel Orientation="Horizontal">
+                                <Border x:Name="TabBorder" Padding="{TemplateBinding Padding}"
+                                        Background="Transparent"
+                                        BorderThickness="0,0,0,2" BorderBrush="Transparent">
+                                    <ContentPresenter ContentSource="Header"
+                                                      HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center" />
+                                </Border>
+                                <Border Width="1" Background="{StaticResource SplitterColor}"
+                                        Margin="0,6" />
+                            </StackPanel>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter TargetName="TabBorder" Property="BorderBrush" Value="#FF60CDFF" />
+                                    <Setter Property="Foreground" Value="White" />
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="TabBorder" Property="Background" Value="#20FFFFFF" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </DockPanel.Resources>
         <ui:TitleBar DockPanel.Dock="Top" Title="MHWilds 護石チェッカー">
             <ui:TitleBar.Icon>
                 <ui:ImageIcon Source="app.ico" />
             </ui:TitleBar.Icon>
         </ui:TitleBar>
-        <Menu DockPanel.Dock="Top">
-            <MenuItem Header="データ(_D)">
-                <MenuItem Header="ローカルデータのエクスポート(_E)" Click="ExportLocalDataMenu_Click" />
-                <MenuItem Header="ローカルデータのインポート(_I)" Click="ImportLocalDataMenu_Click" />
-                <Separator />
-                <MenuItem Header="データの初期化(_R)" Click="ResetDataMenu_Click" />
-            </MenuItem>
-            <MenuItem Header="設定(_S)" Click="SettingsMenu_Click" />
-            <MenuItem Header="ヘルプ(_H)">
-                <MenuItem Header="アプリ情報(_A)" Click="AboutMenu_Click" />
-            </MenuItem>
-        </Menu>
-        <TabControl>
+        <Border DockPanel.Dock="Top" BorderBrush="{StaticResource SplitterColor}"
+                BorderThickness="0,0,0,1">
+            <Menu Padding="4,0" Margin="0">
+                <MenuItem Header="データ(_D)">
+                    <MenuItem Header="ローカルデータのエクスポート(_E)" Click="ExportLocalDataMenu_Click" />
+                    <MenuItem Header="ローカルデータのインポート(_I)" Click="ImportLocalDataMenu_Click" />
+                    <Separator />
+                    <MenuItem Header="データの初期化(_R)" Click="ResetDataMenu_Click" />
+                </MenuItem>
+                <MenuItem Header="設定(_S)" Click="SettingsMenu_Click" />
+                <MenuItem Header="ヘルプ(_H)">
+                    <MenuItem Header="アプリ情報(_A)" Click="AboutMenu_Click" />
+                </MenuItem>
+            </Menu>
+        </Border>
+        <TabControl BorderBrush="{StaticResource SplitterColor}" BorderThickness="0,1,0,0">
             <TabItem Header="護石一覧">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -54,26 +94,77 @@
                               CanUserSortColumns="True"
                               CanUserResizeColumns="True"
                               HorizontalScrollBarVisibility="Disabled"
-                              Margin="8">
+                              RowHeight="28"
+                              AlternatingRowBackground="#FF2A2A2A"
+                              AlternationCount="2"
+                              GridLinesVisibility="Vertical"
+                              VerticalGridLinesBrush="{StaticResource SplitterColor}"
+                              Margin="8,8,8,0">
+                        <DataGrid.ColumnHeaderStyle>
+                            <Style TargetType="DataGridColumnHeader">
+                                <Setter Property="Background" Value="#FF333333" />
+                                <Setter Property="Foreground" Value="#FFD0D0D0" />
+                                <Setter Property="FontWeight" Value="SemiBold" />
+                                <Setter Property="Padding" Value="6,4" />
+                                <Setter Property="BorderBrush" Value="{StaticResource SplitterColor}" />
+                                <Setter Property="BorderThickness" Value="0,0,1,1" />
+                            </Style>
+                        </DataGrid.ColumnHeaderStyle>
+                        <DataGrid.RowStyle>
+                            <Style TargetType="DataGridRow">
+                                <Style.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter Property="Background" Value="#FF264F78" />
+                                        <Setter Property="Foreground" Value="White" />
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.RowStyle>
+                        <DataGrid.CellStyle>
+                            <Style TargetType="DataGridCell">
+                                <Setter Property="VerticalContentAlignment" Value="Center" />
+                                <Setter Property="BorderBrush" Value="Transparent" />
+                                <Setter Property="BorderThickness" Value="0" />
+                                <Style.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter Property="Background" Value="#FF264F78" />
+                                        <Setter Property="Foreground" Value="White" />
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.CellStyle>
+                        <DataGrid.Resources>
+                            <Style x:Key="CenteredCell" TargetType="TextBlock">
+                                <Setter Property="VerticalAlignment" Value="Center" />
+                                <Setter Property="Margin" Value="4,0" />
+                            </Style>
+                        </DataGrid.Resources>
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="#" Binding="{Binding Id}" Width="50" />
-                            <DataGridTextColumn Header="RARE" Binding="{Binding RarityText}" Width="50" />
-                            <DataGridTextColumn Header="スキル" Binding="{Binding SkillText}" Width="*" />
-                            <DataGridTextColumn Header="スロット" Binding="{Binding SlotText}" Width="140" />
-                            <DataGridTextColumn Header="取得日" Binding="{Binding DateText}" Width="100" />
+                            <DataGridTextColumn Header="#" Binding="{Binding Id}" Width="50"
+                                                ElementStyle="{StaticResource CenteredCell}" />
+                            <DataGridTextColumn Header="RARE" Binding="{Binding RarityText}" Width="50"
+                                                ElementStyle="{StaticResource CenteredCell}" />
+                            <DataGridTextColumn Header="スキル" Binding="{Binding SkillText}" Width="*"
+                                                ElementStyle="{StaticResource CenteredCell}" />
+                            <DataGridTextColumn Header="スロット" Binding="{Binding SlotText}" Width="140"
+                                                ElementStyle="{StaticResource CenteredCell}" />
+                            <DataGridTextColumn Header="取得日" Binding="{Binding DateText}" Width="100"
+                                                ElementStyle="{StaticResource CenteredCell}" />
                         </DataGrid.Columns>
                     </DataGrid>
 
-                    <GridSplitter Grid.Row="2" Height="4" HorizontalAlignment="Stretch"
-                                  Background="LightGray" />
+                    <GridSplitter Grid.Row="2" Height="5" HorizontalAlignment="Stretch"
+                                  Background="{StaticResource SplitterColor}" />
 
                     <!-- 詳細パネル -->
-                    <Border Grid.Row="3" BorderBrush="LightGray" BorderThickness="0,1,0,0">
+                    <Border Grid.Row="3"
+                            Background="{StaticResource CardBackground}"
+                            CornerRadius="4" Margin="8,4,8,8">
                         <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="12,8">
                             <StackPanel x:Name="DetailPanel">
                                 <TextBlock x:Name="DetailPlaceholder"
                                            Text="護石を選択すると詳細が表示されます"
-                                           Foreground="Gray" />
+                                           Foreground="{StaticResource SecondaryText}" />
                                 <StackPanel x:Name="DetailContent" Visibility="Collapsed">
                                     <TextBlock Text="レアリティ" FontWeight="Bold" />
                                     <TextBlock x:Name="DetailRarity" Margin="12,2,0,8" />
@@ -227,7 +318,7 @@
                             <ItemsControl x:Name="DupIdenticalList" Margin="0,8,0,0">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border BorderBrush="LightGray" BorderThickness="1"
+                                        <Border Background="{StaticResource CardBackground}"
                                                 Padding="12,8" Margin="0,0,0,8"
                                                 CornerRadius="4">
                                             <StackPanel>
@@ -235,7 +326,7 @@
                                                            FontWeight="SemiBold" />
                                                 <TextBlock Text="{Binding Detail}"
                                                            Margin="12,4,0,0"
-                                                           Foreground="Gray" />
+                                                           Foreground="{StaticResource SecondaryText}" />
                                             </StackPanel>
                                         </Border>
                                     </DataTemplate>
@@ -250,7 +341,7 @@
                             <ItemsControl x:Name="DupInferiorList" Margin="0,8,0,0">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border BorderBrush="LightGray" BorderThickness="1"
+                                        <Border Background="{StaticResource CardBackground}"
                                                 Padding="12,8" Margin="0,0,0,8"
                                                 CornerRadius="4">
                                             <StackPanel>
@@ -258,7 +349,7 @@
                                                            FontWeight="SemiBold" />
                                                 <TextBlock Text="{Binding Detail}"
                                                            Margin="12,4,0,0"
-                                                           Foreground="Gray" />
+                                                           Foreground="{StaticResource SecondaryText}" />
                                             </StackPanel>
                                         </Border>
                                     </DataTemplate>
