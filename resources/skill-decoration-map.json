@@ -1,7 +1,7 @@
 {
   "_meta": {
     "description": "MHWilds 装飾品マスターデータ（フラット構造）",
-    "source": "https://mhwilds.wiki-db.com/decorations/ をパース、スキル名は短縮名辞書で正規スキル名へ解決",
+    "source": "スキル名はゲーム内スキル一覧から列挙・照合（resources/skill-name-checklist.md 参照）。装飾品名・構成情報は https://mhwilds.wiki-db.com/sim/ とのCSVインポート/エクスポート互換のため同サイトと名前のすりあわせを行い作成（ゲーム内での確認は今後実施予定）",
     "schema": {
       "name": "装飾品名（例: 攻撃珠【１】）",
       "slot_size": "装着に必要なスロットサイズ (1, 2, 3)",
