@@ -5,6 +5,7 @@
         Title="護石の編集" Height="460" Width="560"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
+        FontFamily="BIZ UDGothic" FontSize="16"
         ExtendsContentIntoTitleBar="True"
         WindowBackdropType="Mica">
     <Grid>

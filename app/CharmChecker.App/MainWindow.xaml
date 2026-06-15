@@ -8,6 +8,7 @@
         mc:Ignorable="d"
         Title="MHWilds 護石チェッカー" Height="450" Width="800" MinHeight="400" MinWidth="640"
         Icon="app.ico"
+        FontFamily="BIZ UDGothic" FontSize="16"
         ExtendsContentIntoTitleBar="True"
         WindowBackdropType="Mica">
     <DockPanel>
@@ -62,8 +63,9 @@
                     <Separator />
                     <MenuItem Header="データの初期化(_R)" Click="ResetDataMenu_Click" />
                 </MenuItem>
-                <MenuItem Header="設定(_S)" Click="SettingsMenu_Click" />
                 <MenuItem Header="ヘルプ(_H)">
+                    <MenuItem Header="設定(_S)" Click="SettingsMenu_Click" />
+                    <Separator />
                     <MenuItem Header="アプリ情報(_A)" Click="AboutMenu_Click" />
                 </MenuItem>
             </Menu>
