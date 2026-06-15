@@ -14,7 +14,7 @@
                 <Separator />
                 <MenuItem Header="データの初期化(_R)" Click="ResetDataMenu_Click" />
             </MenuItem>
-            <MenuItem Header="設定(_S)" />
+            <MenuItem Header="設定(_S)" Click="SettingsMenu_Click" />
             <MenuItem Header="ヘルプ(_H)">
                 <MenuItem Header="アプリ情報(_A)" Click="AboutMenu_Click" />
             </MenuItem>
@@ -25,7 +25,7 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*" MinHeight="100" />
                         <RowDefinition Height="Auto" />
-                        <RowDefinition Height="200" MinHeight="80" />
+                        <RowDefinition x:Name="DetailRowDef" Height="318" MinHeight="80" />
                     </Grid.RowDefinitions>
 
                     <!-- 圧縮テーブル -->

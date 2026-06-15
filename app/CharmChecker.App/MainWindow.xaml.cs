@@ -90,6 +90,10 @@ public class AppSettings
     public double WindowLeft { get; set; } = double.NaN;
     [JsonPropertyName("windowTop")]
     public double WindowTop { get; set; } = double.NaN;
+    [JsonPropertyName("screenshotFolder")]
+    public string ScreenshotFolder { get; set; } = "";
+    [JsonPropertyName("detailPanelHeight")]
+    public double DetailPanelHeight { get; set; } = double.NaN;
 }
 
 public partial class MainWindow : Window
@@ -138,9 +142,16 @@ public partial class MainWindow : Window
                 Left = settings.WindowLeft;
                 Top = settings.WindowTop;
             }
+            _screenshotFolder = settings.ScreenshotFolder;
+            if (!string.IsNullOrEmpty(_screenshotFolder))
+                ScreenshotFolderPath.Text = _screenshotFolder;
+            if (!double.IsNaN(settings.DetailPanelHeight) && settings.DetailPanelHeight >= 80)
+                DetailRowDef.Height = new GridLength(settings.DetailPanelHeight);
         }
         catch { }
     }
+
+    private string _screenshotFolder = "";
 
     private void SaveSettings()
     {
@@ -150,6 +161,8 @@ public partial class MainWindow : Window
             WindowHeight = Height,
             WindowLeft = Left,
             WindowTop = Top,
+            ScreenshotFolder = _screenshotFolder,
+            DetailPanelHeight = DetailRowDef.ActualHeight,
         };
         var json = JsonSerializer.Serialize(settings, JsonOptions);
         File.WriteAllText(SettingsFilePath, json);
@@ -282,6 +295,8 @@ public partial class MainWindow : Window
     private void BrowseScreenshotFolder_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new Microsoft.Win32.OpenFolderDialog();
+        if (!string.IsNullOrEmpty(_screenshotFolder))
+            dialog.InitialDirectory = _screenshotFolder;
         if (dialog.ShowDialog() == true)
             ScreenshotFolderPath.Text = dialog.FolderName;
     }
@@ -714,6 +729,17 @@ public partial class MainWindow : Window
         var text = CharmCsvConverter.ToText(AllCharms);
         File.WriteAllText(dialog.FileName, text);
         ExportResultText.Text = $"ファイルに保存しました。（{CharmItems.Count}件 → {dialog.FileName}）";
+    }
+
+    private void SettingsMenu_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new SettingsWindow(_screenshotFolder) { Owner = this };
+        if (dialog.ShowDialog() == true)
+        {
+            _screenshotFolder = dialog.ScreenshotFolder;
+            ScreenshotFolderPath.Text = _screenshotFolder;
+            SaveSettings();
+        }
     }
 
     private void ImportLocalDataMenu_Click(object sender, RoutedEventArgs e)

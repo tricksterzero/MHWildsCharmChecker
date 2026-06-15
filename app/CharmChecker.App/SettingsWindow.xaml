@@ -1,0 +1,23 @@
+<Window x:Class="CharmChecker.App.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="設定" Height="180" Width="500"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize">
+    <StackPanel Margin="16">
+        <TextBlock Text="スクリーンショットフォルダ" FontWeight="Bold" />
+        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+            <TextBox x:Name="FolderPathBox" Width="360" IsReadOnly="True" />
+            <Button Content="参照..." Margin="8,0,0,0" Padding="12,4"
+                    Click="BrowseFolder_Click" />
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
+                    Margin="0,20,0,0">
+            <Button Content="OK" Width="80" Padding="4" IsDefault="True"
+                    Click="OkButton_Click" />
+            <Button Content="キャンセル" Width="80" Margin="8,0,0,0" Padding="4"
+                    IsCancel="True" />
+        </StackPanel>
+    </StackPanel>
+</Window>
