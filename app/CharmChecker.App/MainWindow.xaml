@@ -41,6 +41,7 @@
                               Margin="8">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="#" Binding="{Binding Id}" Width="50" />
+                            <DataGridTextColumn Header="RARE" Binding="{Binding RarityText}" Width="50" />
                             <DataGridTextColumn Header="スキル" Binding="{Binding SkillText}" Width="*" />
                             <DataGridTextColumn Header="スロット" Binding="{Binding SlotText}" Width="140" />
                             <DataGridTextColumn Header="取得日" Binding="{Binding DateText}" Width="100" />
@@ -58,6 +59,9 @@
                                            Text="護石を選択すると詳細が表示されます"
                                            Foreground="Gray" />
                                 <StackPanel x:Name="DetailContent" Visibility="Collapsed">
+                                    <TextBlock Text="レアリティ" FontWeight="Bold" />
+                                    <TextBlock x:Name="DetailRarity" Margin="12,2,0,8" />
+
                                     <TextBlock Text="スキル" FontWeight="Bold" />
                                     <TextBlock x:Name="DetailSkills" Margin="12,2,0,8" />
 

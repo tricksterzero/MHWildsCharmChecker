@@ -15,6 +15,7 @@ public class CharmListItem
 {
     public int Id { get; }
     public Charm Charm { get; }
+    public string RarityText { get; }
     public string SkillText { get; }
     public string SlotText { get; }
     public string DateText { get; }
@@ -24,6 +25,8 @@ public class CharmListItem
     {
         Id = id;
         Charm = charm;
+
+        RarityText = charm.Rarity.HasValue ? charm.Rarity.Value.ToString() : "-";
 
         SkillText = charm.Skills.Count > 0
             ? string.Join(" / ", charm.Skills.Select(s => $"{s.Name} Lv{s.Lv}"))
@@ -214,6 +217,8 @@ public partial class MainWindow : Window
             DetailContent.Visibility = Visibility.Visible;
 
             var charm = item.Charm;
+
+            DetailRarity.Text = charm.Rarity.HasValue ? $"RARE {charm.Rarity.Value}" : "不明";
 
             DetailSkills.Text = charm.Skills.Count > 0
                 ? string.Join("\n", charm.Skills.Select(s => $"{s.Name} Lv{s.Lv}"))
