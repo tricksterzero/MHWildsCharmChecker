@@ -1,0 +1,6 @@
+[
+  { "name": "未解の護石", "rarity": 5, "hasWeaponSlot": false },
+  { "name": "史伝の護石", "rarity": 6, "hasWeaponSlot": false },
+  { "name": "秘歴の護石", "rarity": 7, "hasWeaponSlot": false },
+  { "name": "栄世の護石", "rarity": 8, "hasWeaponSlot": true }
+]

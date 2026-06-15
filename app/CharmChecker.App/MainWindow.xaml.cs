@@ -59,6 +59,8 @@ public class CharmJson
     public List<int> ArmorSlots { get; set; } = [];
     [JsonPropertyName("weaponSlots")]
     public List<int> WeaponSlots { get; set; } = [];
+    [JsonPropertyName("rarity")]
+    public int? Rarity { get; set; }
     [JsonPropertyName("source")]
     public string Source { get; set; } = "";
     [JsonPropertyName("sourceTimestamp")]
@@ -166,6 +168,7 @@ public partial class MainWindow : Window
                     Skills = cj.Skills.Select(s => new CharmSkill(s.Name, s.Lv)).ToList(),
                     ArmorSlots = cj.ArmorSlots,
                     WeaponSlots = cj.WeaponSlots,
+                    Rarity = cj.Rarity,
                     Source = Enum.TryParse<CharmSource>(cj.Source, out var src) ? src : CharmSource.CsvImport,
                     SourceTimestamp = cj.SourceTimestamp,
                     Version = Enum.TryParse<GameVersion>(cj.Version, out var ver) ? ver : GameVersion.Wilds,
@@ -186,6 +189,7 @@ public partial class MainWindow : Window
                 Skills = c.Skills.Select(s => new SkillJson { Name = s.Name, Lv = s.Lv }).ToList(),
                 ArmorSlots = c.ArmorSlots,
                 WeaponSlots = c.WeaponSlots,
+                Rarity = c.Rarity,
                 Source = c.Source.ToString(),
                 SourceTimestamp = c.SourceTimestamp,
                 Version = c.Version.ToString(),
@@ -321,6 +325,7 @@ public partial class MainWindow : Window
         _readingResults = null;
 
         var knownSkills = SkillNameLoader.LoadFromEmbeddedResource();
+        var charmTypes = CharmTypeLoader.LoadFromEmbeddedResource();
 
         var results = new List<(Charm Charm, string FileName)>();
         int processed = 0;
@@ -344,14 +349,15 @@ public partial class MainWindow : Window
 
                 if (validSkills.Count == 0) continue;
 
-                bool hasWeaponSlot = readResult.CharmName == "栄世の護石";
-                var slots = ReadSlots(file, hasWeaponSlot);
+                var charmType = CharmTypeLoader.Lookup(readResult.CharmName, charmTypes);
+                var slots = ReadSlots(file, charmType?.HasWeaponSlot ?? false);
 
                 var charm = new Charm
                 {
                     Skills = validSkills,
                     ArmorSlots = slots.ArmorSlots,
                     WeaponSlots = slots.WeaponSlots,
+                    Rarity = charmType?.Rarity,
                     Source = CharmSource.Screenshot,
                     SourceTimestamp = File.GetLastWriteTime(file),
                 };

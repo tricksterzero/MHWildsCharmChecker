@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="..\..\resources\skill-decoration-map.json" Link="Resources\skill-decoration-map.json" />
+    <EmbeddedResource Include="..\..\resources\charm-types.json" Link="Resources\charm-types.json" />
   </ItemGroup>
 
 </Project>
