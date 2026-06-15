@@ -1,0 +1,1015 @@
+[
+  {
+    "rarity": 5,
+    "skillGroups": [
+      1,
+      6,
+      6
+    ],
+    "slots": [
+      {
+        "armor": [
+          1,
+          1
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          2,
+          0
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          2,
+          1
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          3,
+          0
+        ],
+        "weapon": []
+      }
+    ]
+  },
+  {
+    "rarity": 5,
+    "skillGroups": [
+      1,
+      7
+    ],
+    "slots": [
+      {
+        "armor": [
+          1,
+          1
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          2,
+          0
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          2,
+          1
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          3,
+          0
+        ],
+        "weapon": []
+      }
+    ]
+  },
+  {
+    "rarity": 5,
+    "skillGroups": [
+      1,
+      8,
+      6
+    ],
+    "slots": [
+      {
+        "armor": [
+          1,
+          1
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          2,
+          0
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          2,
+          1
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          3,
+          0
+        ],
+        "weapon": []
+      }
+    ]
+  },
+  {
+    "rarity": 5,
+    "skillGroups": [
+      1,
+      8,
+      8
+    ],
+    "slots": [
+      {
+        "armor": [
+          1,
+          1
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          2,
+          0
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          2,
+          1
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          3,
+          0
+        ],
+        "weapon": []
+      }
+    ]
+  },
+  {
+    "rarity": 5,
+    "skillGroups": [
+      1,
+      9
+    ],
+    "slots": [
+      {
+        "armor": [
+          1,
+          1
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          2,
+          0
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          2,
+          1
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          3,
+          0
+        ],
+        "weapon": []
+      }
+    ]
+  },
+  {
+    "rarity": 5,
+    "skillGroups": [
+      1,
+      10
+    ],
+    "slots": [
+      {
+        "armor": [
+          1,
+          1
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          2,
+          0
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          2,
+          1
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          3,
+          0
+        ],
+        "weapon": []
+      }
+    ]
+  },
+  {
+    "rarity": 6,
+    "skillGroups": [
+      1,
+      1,
+      7
+    ],
+    "slots": [
+      {
+        "armor": [
+          1,
+          0
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          1,
+          1
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          2,
+          0
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          2,
+          1
+        ],
+        "weapon": []
+      }
+    ]
+  },
+  {
+    "rarity": 6,
+    "skillGroups": [
+      1,
+      1,
+      10
+    ],
+    "slots": [
+      {
+        "armor": [
+          1,
+          0
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          1,
+          1
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          2,
+          0
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          2,
+          1
+        ],
+        "weapon": []
+      }
+    ]
+  },
+  {
+    "rarity": 6,
+    "skillGroups": [
+      2,
+      6,
+      6
+    ],
+    "slots": [
+      {
+        "armor": [
+          1,
+          0
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          1,
+          1
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          2,
+          0
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          2,
+          1
+        ],
+        "weapon": []
+      }
+    ]
+  },
+  {
+    "rarity": 6,
+    "skillGroups": [
+      2,
+      8,
+      6
+    ],
+    "slots": [
+      {
+        "armor": [
+          1,
+          0
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          1,
+          1
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          2,
+          0
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          2,
+          1
+        ],
+        "weapon": []
+      }
+    ]
+  },
+  {
+    "rarity": 6,
+    "skillGroups": [
+      2,
+      8,
+      8
+    ],
+    "slots": [
+      {
+        "armor": [
+          1,
+          0
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          1,
+          1
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          2,
+          0
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          2,
+          1
+        ],
+        "weapon": []
+      }
+    ]
+  },
+  {
+    "rarity": 6,
+    "skillGroups": [
+      2,
+      9
+    ],
+    "slots": [
+      {
+        "armor": [
+          1,
+          0
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          1,
+          1
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          2,
+          0
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          2,
+          1
+        ],
+        "weapon": []
+      }
+    ]
+  },
+  {
+    "rarity": 6,
+    "skillGroups": [
+      2,
+      10
+    ],
+    "slots": [
+      {
+        "armor": [
+          1,
+          0
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          1,
+          1
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          2,
+          0
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          2,
+          1
+        ],
+        "weapon": []
+      }
+    ]
+  },
+  {
+    "rarity": 7,
+    "skillGroups": [
+      2,
+      1,
+      7
+    ],
+    "slots": [
+      {
+        "armor": [
+          1,
+          0
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          1,
+          1
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          2,
+          0
+        ],
+        "weapon": []
+      }
+    ]
+  },
+  {
+    "rarity": 7,
+    "skillGroups": [
+      2,
+      1,
+      8
+    ],
+    "slots": [
+      {
+        "armor": [
+          1,
+          1
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          2,
+          0
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          3,
+          0
+        ],
+        "weapon": []
+      }
+    ]
+  },
+  {
+    "rarity": 7,
+    "skillGroups": [
+      2,
+      1,
+      10
+    ],
+    "slots": [
+      {
+        "armor": [
+          1,
+          0
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          1,
+          1
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          2,
+          0
+        ],
+        "weapon": []
+      }
+    ]
+  },
+  {
+    "rarity": 7,
+    "skillGroups": [
+      3,
+      6,
+      5
+    ],
+    "slots": [
+      {
+        "armor": [
+          1,
+          0
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          1,
+          1
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          2,
+          0
+        ],
+        "weapon": []
+      }
+    ]
+  },
+  {
+    "rarity": 7,
+    "skillGroups": [
+      3,
+      7
+    ],
+    "slots": [
+      {
+        "armor": [
+          1,
+          0
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          1,
+          1
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          2,
+          0
+        ],
+        "weapon": []
+      }
+    ]
+  },
+  {
+    "rarity": 7,
+    "skillGroups": [
+      3,
+      8,
+      5
+    ],
+    "slots": [
+      {
+        "armor": [
+          1,
+          0
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          1,
+          1
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          2,
+          0
+        ],
+        "weapon": []
+      }
+    ]
+  },
+  {
+    "rarity": 7,
+    "skillGroups": [
+      3,
+      10
+    ],
+    "slots": [
+      {
+        "armor": [
+          1,
+          0
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          1,
+          1
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          2,
+          0
+        ],
+        "weapon": []
+      }
+    ]
+  },
+  {
+    "rarity": 7,
+    "skillGroups": [
+      4,
+      1,
+      1
+    ],
+    "slots": [
+      {
+        "armor": [
+          1,
+          0
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          1,
+          1
+        ],
+        "weapon": []
+      },
+      {
+        "armor": [
+          2,
+          0
+        ],
+        "weapon": []
+      }
+    ]
+  },
+  {
+    "rarity": 8,
+    "skillGroups": [
+      2,
+      1,
+      7
+    ],
+    "slots": [
+      {
+        "armor": [
+          0
+        ],
+        "weapon": [
+          1
+        ]
+      },
+      {
+        "armor": [
+          1
+        ],
+        "weapon": [
+          1
+        ]
+      },
+      {
+        "armor": [
+          1,
+          1
+        ],
+        "weapon": [
+          1
+        ]
+      }
+    ]
+  },
+  {
+    "rarity": 8,
+    "skillGroups": [
+      2,
+      1,
+      8
+    ],
+    "slots": [
+      {
+        "armor": [
+          0
+        ],
+        "weapon": [
+          1
+        ]
+      },
+      {
+        "armor": [
+          1
+        ],
+        "weapon": [
+          1
+        ]
+      },
+      {
+        "armor": [
+          1,
+          1
+        ],
+        "weapon": [
+          1
+        ]
+      }
+    ]
+  },
+  {
+    "rarity": 8,
+    "skillGroups": [
+      2,
+      1,
+      10
+    ],
+    "slots": [
+      {
+        "armor": [
+          0
+        ],
+        "weapon": [
+          1
+        ]
+      },
+      {
+        "armor": [
+          1
+        ],
+        "weapon": [
+          1
+        ]
+      },
+      {
+        "armor": [
+          1,
+          1
+        ],
+        "weapon": [
+          1
+        ]
+      }
+    ]
+  },
+  {
+    "rarity": 8,
+    "skillGroups": [
+      3,
+      6,
+      5
+    ],
+    "slots": [
+      {
+        "armor": [
+          0
+        ],
+        "weapon": [
+          1
+        ]
+      },
+      {
+        "armor": [
+          1
+        ],
+        "weapon": [
+          1
+        ]
+      },
+      {
+        "armor": [
+          1,
+          1
+        ],
+        "weapon": [
+          1
+        ]
+      }
+    ]
+  },
+  {
+    "rarity": 8,
+    "skillGroups": [
+      3,
+      7
+    ],
+    "slots": [
+      {
+        "armor": [
+          0
+        ],
+        "weapon": [
+          1
+        ]
+      },
+      {
+        "armor": [
+          1
+        ],
+        "weapon": [
+          1
+        ]
+      },
+      {
+        "armor": [
+          1,
+          1
+        ],
+        "weapon": [
+          1
+        ]
+      }
+    ]
+  },
+  {
+    "rarity": 8,
+    "skillGroups": [
+      3,
+      8,
+      5
+    ],
+    "slots": [
+      {
+        "armor": [
+          0
+        ],
+        "weapon": [
+          1
+        ]
+      },
+      {
+        "armor": [
+          1
+        ],
+        "weapon": [
+          1
+        ]
+      },
+      {
+        "armor": [
+          1,
+          1
+        ],
+        "weapon": [
+          1
+        ]
+      }
+    ]
+  },
+  {
+    "rarity": 8,
+    "skillGroups": [
+      3,
+      10
+    ],
+    "slots": [
+      {
+        "armor": [
+          0
+        ],
+        "weapon": [
+          1
+        ]
+      },
+      {
+        "armor": [
+          1
+        ],
+        "weapon": [
+          1
+        ]
+      },
+      {
+        "armor": [
+          1,
+          1
+        ],
+        "weapon": [
+          1
+        ]
+      }
+    ]
+  },
+  {
+    "rarity": 8,
+    "skillGroups": [
+      4,
+      1,
+      1
+    ],
+    "slots": [
+      {
+        "armor": [
+          0
+        ],
+        "weapon": [
+          1
+        ]
+      },
+      {
+        "armor": [
+          1
+        ],
+        "weapon": [
+          1
+        ]
+      },
+      {
+        "armor": [
+          1,
+          1
+        ],
+        "weapon": [
+          1
+        ]
+      }
+    ]
+  }
+]

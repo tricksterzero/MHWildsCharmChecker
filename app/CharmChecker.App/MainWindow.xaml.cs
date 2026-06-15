@@ -621,6 +621,7 @@ public partial class MainWindow : Window
             }
 
             var parsed = CharmCsvConverter.ParseText(csvText);
+            InferRarityBatch(parsed);
 
             if (ModeOverwrite.IsChecked == true)
             {
@@ -698,6 +699,17 @@ public partial class MainWindow : Window
     }
 
     private IEnumerable<Charm> AllCharms => CharmItems.Select(i => i.Charm);
+
+    private static void InferRarityBatch(List<Charm> charms)
+    {
+        var skillGroups = RarityInference.LoadSkillGroups();
+        var combinations = RarityInference.LoadCombinations();
+        foreach (var charm in charms)
+        {
+            if (charm.Rarity is null)
+                charm.Rarity = RarityInference.Infer(charm, skillGroups, combinations);
+        }
+    }
 
     private void ExportClipboard_Click(object sender, RoutedEventArgs e)
     {

@@ -20,7 +20,7 @@ public class Charm
     public List<CharmSkill> Skills { get; init; } = [];
     public List<int> ArmorSlots { get; init; } = [];
     public List<int> WeaponSlots { get; init; } = [];
-    public int? Rarity { get; init; }
+    public int? Rarity { get; set; }
     public CharmSource Source { get; init; }
     public DateTime SourceTimestamp { get; init; }
     public GameVersion Version { get; init; }

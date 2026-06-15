@@ -1,0 +1,124 @@
+using System.Text.Json;
+
+namespace CharmChecker.Core.Model;
+
+public record SkillGroupEntry(string Name, int Level, int[] Groups);
+
+public record CharmCombinationSlot(int[] Armor, int[] Weapon);
+
+public record CharmCombination(int Rarity, int[] SkillGroups, CharmCombinationSlot[] Slots);
+
+public static class RarityInference
+{
+    private static IReadOnlyList<SkillGroupEntry>? _skillGroups;
+    private static IReadOnlyList<CharmCombination>? _combinations;
+
+    public static IReadOnlyList<SkillGroupEntry> LoadSkillGroups()
+    {
+        if (_skillGroups is not null) return _skillGroups;
+        _skillGroups = LoadEmbeddedResource<SkillGroupEntry[]>("skill-groups.json",
+            ParseSkillGroups);
+        return _skillGroups;
+    }
+
+    public static IReadOnlyList<CharmCombination> LoadCombinations()
+    {
+        if (_combinations is not null) return _combinations;
+        _combinations = LoadEmbeddedResource<CharmCombination[]>("charm-combinations.json",
+            ParseCombinations);
+        return _combinations;
+    }
+
+    public static int? Infer(Charm charm)
+    {
+        var skillGroups = LoadSkillGroups();
+        var combinations = LoadCombinations();
+        return Infer(charm, skillGroups, combinations);
+    }
+
+    public static int? Infer(
+        Charm charm,
+        IReadOnlyList<SkillGroupEntry> skillGroups,
+        IReadOnlyList<CharmCombination> combinations)
+    {
+        if (charm.WeaponSlots.Any(v => v > 0))
+            return 8;
+
+        if (charm.Skills.Count == 0)
+            return null;
+
+        var possibleGroupsPerSkill = new List<int[]>();
+        foreach (var skill in charm.Skills)
+        {
+            var entry = skillGroups.FirstOrDefault(e =>
+                e.Name == skill.Name && e.Level == skill.Lv);
+            if (entry is null)
+                return null;
+            possibleGroupsPerSkill.Add(entry.Groups);
+        }
+
+        var matchedRarities = new HashSet<int>();
+        foreach (var combo in combinations)
+        {
+            if (combo.SkillGroups.Length != charm.Skills.Count)
+                continue;
+            if (MatchesGroupPattern(possibleGroupsPerSkill, combo.SkillGroups))
+                matchedRarities.Add(combo.Rarity);
+        }
+
+        if (matchedRarities.Count == 1)
+            return matchedRarities.First();
+
+        if (matchedRarities.Contains(7) && matchedRarities.Contains(8))
+        {
+            matchedRarities.Remove(8);
+            if (matchedRarities.Count == 1)
+                return matchedRarities.First();
+        }
+
+        return null;
+    }
+
+    private static bool MatchesGroupPattern(List<int[]> possibleGroups, int[] pattern)
+    {
+        if (possibleGroups.Count != pattern.Length) return false;
+        for (int i = 0; i < pattern.Length; i++)
+        {
+            if (!possibleGroups[i].Contains(pattern[i]))
+                return false;
+        }
+        return true;
+    }
+
+    private static T LoadEmbeddedResource<T>(string resourceName, Func<string, T> parser)
+    {
+        var asm = typeof(RarityInference).Assembly;
+        using var stream = asm.GetManifestResourceStream($"CharmChecker.Core.Resources.{resourceName}")
+            ?? throw new InvalidOperationException($"埋め込みリソース '{resourceName}' が見つかりません。");
+        using var reader = new StreamReader(stream);
+        return parser(reader.ReadToEnd());
+    }
+
+    private static SkillGroupEntry[] ParseSkillGroups(string json)
+    {
+        using var doc = JsonDocument.Parse(json);
+        return doc.RootElement.EnumerateArray().Select(e => new SkillGroupEntry(
+            e.GetProperty("name").GetString()!,
+            e.GetProperty("level").GetInt32(),
+            e.GetProperty("groups").EnumerateArray().Select(g => g.GetInt32()).ToArray()
+        )).ToArray();
+    }
+
+    private static CharmCombination[] ParseCombinations(string json)
+    {
+        using var doc = JsonDocument.Parse(json);
+        return doc.RootElement.EnumerateArray().Select(e => new CharmCombination(
+            e.GetProperty("rarity").GetInt32(),
+            e.GetProperty("skillGroups").EnumerateArray().Select(g => g.GetInt32()).ToArray(),
+            e.GetProperty("slots").EnumerateArray().Select(s => new CharmCombinationSlot(
+                s.GetProperty("armor").EnumerateArray().Select(a => a.GetInt32()).ToArray(),
+                s.GetProperty("weapon").EnumerateArray().Select(w => w.GetInt32()).ToArray()
+            )).ToArray()
+        )).ToArray();
+    }
+}
