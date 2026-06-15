@@ -266,10 +266,38 @@ public partial class MainWindow : Window
         }
     }
 
+    private void ManualAddCharm_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new CharmEditWindow() { Owner = this };
+        if (dialog.ShowDialog() != true || dialog.ResultCharm is null) return;
+
+        AddCharm(dialog.ResultCharm);
+        SaveCharms();
+    }
+
     private void EditCharm_Click(object sender, RoutedEventArgs e)
     {
-        // 編集機能は後で実装
-        MessageBox.Show("編集機能は未実装です。", "未実装");
+        if (CharmDataGrid.SelectedItem is not CharmListItem item) return;
+
+        var dialog = new CharmEditWindow(item.Charm) { Owner = this };
+        if (dialog.ShowDialog() != true || dialog.ResultCharm is null) return;
+
+        var edited = dialog.ResultCharm;
+        var newCharm = new Charm
+        {
+            Skills = edited.Skills,
+            ArmorSlots = edited.ArmorSlots,
+            WeaponSlots = edited.WeaponSlots,
+            Rarity = edited.Rarity,
+            Source = item.Charm.Source,
+            SourceTimestamp = item.Charm.SourceTimestamp,
+            Version = item.Charm.Version,
+        };
+
+        var index = CharmItems.IndexOf(item);
+        CharmItems[index] = new CharmListItem(item.Id, newCharm);
+        CharmDataGrid.SelectedIndex = index;
+        SaveCharms();
     }
 
     private void DeleteCharm_Click(object sender, RoutedEventArgs e)

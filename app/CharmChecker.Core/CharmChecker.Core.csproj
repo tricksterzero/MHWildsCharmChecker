@@ -16,6 +16,7 @@
     <EmbeddedResource Include="..\..\resources\charm-types.json" Link="Resources\charm-types.json" />
     <EmbeddedResource Include="..\..\resources\skill-groups.json" Link="Resources\skill-groups.json" />
     <EmbeddedResource Include="..\..\resources\charm-combinations.json" Link="Resources\charm-combinations.json" />
+    <EmbeddedResource Include="..\..\resources\skill-order.json" Link="Resources\skill-order.json" />
   </ItemGroup>
 
 </Project>

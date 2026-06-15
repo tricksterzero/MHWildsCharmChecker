@@ -23,13 +23,20 @@
             <TabItem Header="護石一覧">
                 <Grid>
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" MinHeight="100" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition x:Name="DetailRowDef" Height="318" MinHeight="80" />
                     </Grid.RowDefinitions>
 
+                    <!-- ツールバー -->
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="8,4,8,0">
+                        <Button Content="手動入力" Padding="12,4"
+                                Click="ManualAddCharm_Click" />
+                    </StackPanel>
+
                     <!-- 圧縮テーブル -->
-                    <DataGrid x:Name="CharmDataGrid" Grid.Row="0"
+                    <DataGrid x:Name="CharmDataGrid" Grid.Row="1"
                               ItemsSource="{Binding CharmItems, RelativeSource={RelativeSource AncestorType=Window}}"
                               AutoGenerateColumns="False" IsReadOnly="True"
                               SelectionMode="Single"
@@ -48,11 +55,11 @@
                         </DataGrid.Columns>
                     </DataGrid>
 
-                    <GridSplitter Grid.Row="1" Height="4" HorizontalAlignment="Stretch"
+                    <GridSplitter Grid.Row="2" Height="4" HorizontalAlignment="Stretch"
                                   Background="LightGray" />
 
                     <!-- 詳細パネル -->
-                    <Border Grid.Row="2" BorderBrush="LightGray" BorderThickness="0,1,0,0">
+                    <Border Grid.Row="3" BorderBrush="LightGray" BorderThickness="0,1,0,0">
                         <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="12,8">
                             <StackPanel x:Name="DetailPanel">
                                 <TextBlock x:Name="DetailPlaceholder"
