@@ -7,6 +7,12 @@ public enum CharmSource
     Manual,
 }
 
+public enum GameVersion
+{
+    Wilds,
+    Ascendance,
+}
+
 public readonly record struct CharmSkill(string Name, int Lv);
 
 public class Charm
@@ -16,4 +22,5 @@ public class Charm
     public List<int> WeaponSlots { get; init; } = [];
     public CharmSource Source { get; init; }
     public DateTime SourceTimestamp { get; init; }
+    public GameVersion Version { get; init; }
 }
