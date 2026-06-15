@@ -175,101 +175,6 @@ public static class SlotIconAnalyzer
         return new LevelClassification(level, n, ratios);
     }
 
-    /// <summary>
-    /// 枠右上のバッジ領域を明るさ(閾値150)で検出し、最大の明部を(32,32)に正規化して返す。
-    /// 検出できなければnull。
-    /// </summary>
-    public static Mat? ExtractBadge(Mat img, Rect frame, double sx, double sy)
-    {
-        int y0 = Math.Max(0, (int)(frame.Y + SlotIconConstants.BadgeOffsetTop * sy));
-        int y1 = (int)(frame.Y + SlotIconConstants.BadgeOffsetBottom * sy);
-        int x0 = (int)(frame.X + frame.Width + SlotIconConstants.BadgeOffsetLeft * sx);
-        int x1 = (int)(frame.X + frame.Width + SlotIconConstants.BadgeOffsetRight * sx);
-
-        using var region = new Mat(img, new Rect(x0, y0, x1 - x0, y1 - y0));
-        using var gray = new Mat();
-        Cv2.CvtColor(region, gray, ColorConversionCodes.BGR2GRAY);
-        using var mask = new Mat();
-        Cv2.Threshold(gray, mask, 150, 255, ThresholdTypes.Binary);
-
-        Cv2.FindContours(mask, out Point[][] contours, out _,
-            RetrievalModes.External, ContourApproximationModes.ApproxSimple);
-        if (contours.Length == 0) return null;
-
-        var biggest = contours.OrderByDescending(c => Cv2.ContourArea(c)).First();
-        var badgeRect = Cv2.BoundingRect(biggest);
-        if (badgeRect.Width == 0 || badgeRect.Height == 0) return null;
-
-        using var badge = new Mat(region, badgeRect);
-        using var badgeGray = new Mat();
-        Cv2.CvtColor(badge, badgeGray, ColorConversionCodes.BGR2GRAY);
-
-        var resized = new Mat();
-        Cv2.Resize(badgeGray, resized, new Size(32, 32));
-        return resized;
-    }
-
-    /// <summary>
-    /// バッジ画像を武器/防具の参照テンプレートとmatchTemplateで比較し、相関の高い方を種別と判定する。
-    /// </summary>
-    public static TypeClassification ClassifyType(Mat? badge, Mat refBuki, Mat refBougu)
-    {
-        if (badge is null)
-        {
-            return new TypeClassification(SlotType.Unknown, null, null);
-        }
-
-        using var resultBuki = new Mat();
-        Cv2.MatchTemplate(badge, refBuki, resultBuki, TemplateMatchModes.CCoeffNormed);
-        Cv2.MinMaxLoc(resultBuki, out _, out double cBuki);
-
-        using var resultBougu = new Mat();
-        Cv2.MatchTemplate(badge, refBougu, resultBougu, TemplateMatchModes.CCoeffNormed);
-        Cv2.MinMaxLoc(resultBougu, out _, out double cBougu);
-
-        var type = cBuki > cBougu ? SlotType.Weapon : SlotType.Armor;
-        return new TypeClassification(type, cBuki, cBougu);
-    }
-
-    /// <summary>
-    /// 埋め込みリソースから武器/防具バッジの参照テンプレートを読み込む。
-    /// </summary>
-    public static (Mat RefBuki, Mat RefBougu) LoadEmbeddedRefs()
-    {
-        var asm = typeof(SlotIconAnalyzer).Assembly;
-        var refBuki = LoadMatFromResource(asm, "CharmChecker.Core.SlotIcon.Resources.ref_weapon.png");
-        var refBougu = LoadMatFromResource(asm, "CharmChecker.Core.SlotIcon.Resources.ref_armor.png");
-        return (refBuki, refBougu);
-    }
-
-    private static Mat LoadMatFromResource(System.Reflection.Assembly asm, string resourceName)
-    {
-        using var stream = asm.GetManifestResourceStream(resourceName)
-            ?? throw new InvalidOperationException($"埋め込みリソース '{resourceName}' が見つかりません。");
-        using var ms = new MemoryStream();
-        stream.CopyTo(ms);
-        return Cv2.ImDecode(ms.ToArray(), ImreadModes.Grayscale);
-    }
-
-    /// <summary>
-    /// 既知のスクリーンショットから武器/防具バッジの参照テンプレートを生成する。
-    /// </summary>
-    /// <param name="assetsDir">スクリーンショットを格納したディレクトリ(assets/)。</param>
-    public static (Mat RefBuki, Mat RefBougu) BuildRefs(string assetsDir)
-    {
-        // buki ref: 20260614061441 右パネル frames[0]（剣バッジ確認済み）
-        var refBuki = ExtractBadgeFromAsset(assetsDir, "20260614061441_1.jpg", frameIndex: 0);
-        // bougu ref: 20260614061312 右パネル frame0（兜バッジ・Lv3確認済み）
-        var refBougu = ExtractBadgeFromAsset(assetsDir, "20260614061312_1.jpg", frameIndex: 0);
-
-        if (refBuki is null || refBougu is null)
-        {
-            throw new InvalidOperationException("参照バッジテンプレートの生成に失敗しました。");
-        }
-
-        return (refBuki, refBougu);
-    }
-
     private static List<Rect> MergeOverlapping(List<Rect> sorted, double threshold)
     {
         if (sorted.Count <= 1) return sorted;
@@ -308,14 +213,4 @@ public static class SlotIconAnalyzer
         return frames.Where(f => bestSet.Contains(f)).ToList();
     }
 
-    private static Mat? ExtractBadgeFromAsset(string assetsDir, string fileName, int frameIndex)
-    {
-        using var img = Cv2.ImRead(Path.Combine(assetsDir, fileName));
-        var (sx, sy) = ScaleFactors(img);
-        using var region = new Mat(img, PanelRegion(img));
-        using var gray = new Mat();
-        Cv2.CvtColor(region, gray, ColorConversionCodes.BGR2GRAY);
-        var frames = DetectFrames(gray, sx, sy);
-        return ExtractBadge(region, frames[frameIndex], sx, sy);
-    }
 }

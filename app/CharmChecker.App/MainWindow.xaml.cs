@@ -321,55 +321,46 @@ public partial class MainWindow : Window
         _readingResults = null;
 
         var knownSkills = SkillNameLoader.LoadFromEmbeddedResource();
-        var (refBuki, refBougu) = SlotIconAnalyzer.LoadEmbeddedRefs();
 
         var results = new List<(Charm Charm, string FileName)>();
         int processed = 0;
         int detected = 0;
 
-        try
+        foreach (var file in targetFiles)
         {
-            foreach (var file in targetFiles)
+            processed++;
+            ReadingProgressBar.Value = processed;
+            ReadingProgressText.Text = $"{processed} / {targetFiles.Count} 処理中...";
+
+            try
             {
-                processed++;
-                ReadingProgressBar.Value = processed;
-                ReadingProgressText.Text = $"{processed} / {targetFiles.Count} 処理中...";
+                var readResult = await SkillReadingPipeline.ReadWithMetadataAsync(file, knownSkills);
+                if (readResult is null) continue;
 
-                try
+                var validSkills = readResult.Skills
+                    .Where(s => s.Name is not null && s.Lv is not null)
+                    .Select(s => new CharmSkill(s.Name!, s.Lv!.Value))
+                    .ToList();
+
+                if (validSkills.Count == 0) continue;
+
+                bool hasWeaponSlot = readResult.CharmName == "栄世の護石";
+                var slots = ReadSlots(file, hasWeaponSlot);
+
+                var charm = new Charm
                 {
-                    var readResult = await SkillReadingPipeline.ReadWithMetadataAsync(file, knownSkills);
-                    if (readResult is null) continue;
-
-                    var validSkills = readResult.Skills
-                        .Where(s => s.Name is not null && s.Lv is not null)
-                        .Select(s => new CharmSkill(s.Name!, s.Lv!.Value))
-                        .ToList();
-
-                    if (validSkills.Count == 0) continue;
-
-                    bool hasWeaponSlot = readResult.CharmName == "栄世の護石";
-                    var slots = ReadSlots(file, refBuki, refBougu, hasWeaponSlot);
-
-                    var charm = new Charm
-                    {
-                        Skills = validSkills,
-                        ArmorSlots = slots.ArmorSlots,
-                        WeaponSlots = slots.WeaponSlots,
-                        Source = CharmSource.Screenshot,
-                        SourceTimestamp = File.GetLastWriteTime(file),
-                    };
-                    results.Add((charm, Path.GetFileName(file)));
-                    detected++;
-                }
-                catch { }
-
-                await Task.Yield();
+                    Skills = validSkills,
+                    ArmorSlots = slots.ArmorSlots,
+                    WeaponSlots = slots.WeaponSlots,
+                    Source = CharmSource.Screenshot,
+                    SourceTimestamp = File.GetLastWriteTime(file),
+                };
+                results.Add((charm, Path.GetFileName(file)));
+                detected++;
             }
-        }
-        finally
-        {
-            refBuki.Dispose();
-            refBougu.Dispose();
+            catch { }
+
+            await Task.Yield();
         }
 
         ReadingProgressText.Text = "完了";
@@ -392,58 +383,53 @@ public partial class MainWindow : Window
     }
 
     private static (List<int> ArmorSlots, List<int> WeaponSlots) ReadSlots(
-        string imagePath, OpenCvSharp.Mat refBuki, OpenCvSharp.Mat refBougu, bool hasWeaponSlot)
+        string imagePath, bool hasWeaponSlot)
     {
         using var img = OpenCvSharp.Cv2.ImRead(imagePath);
         var (sx, sy) = SlotIconAnalyzer.ScaleFactors(img);
 
-        // 両方の領域で検出し、フレーム数が多い方を採用
-        var (boxFrames, boxPanel, boxGray) = DetectInRegion(img, SlotIconAnalyzer.PanelRegion(img), sx, sy);
-        var (detFrames, detPanel, detGray) = DetectInRegion(img, SlotIconAnalyzer.DetailPanelRegion(img), sx, sy);
+        var (boxFrames, boxGray) = DetectInRegion(img, SlotIconAnalyzer.PanelRegion(img), sx, sy);
+        var (detFrames, detGray) = DetectInRegion(img, SlotIconAnalyzer.DetailPanelRegion(img), sx, sy);
 
         List<OpenCvSharp.Rect> frames;
-        OpenCvSharp.Mat panel, gray;
-        OpenCvSharp.Mat disposePanel, disposeGray;
+        OpenCvSharp.Mat gray;
+        OpenCvSharp.Mat disposeGray;
 
         if (boxFrames.Count > detFrames.Count && boxFrames.Count > 0)
         {
-            frames = boxFrames; panel = boxPanel; gray = boxGray;
-            disposePanel = detPanel; disposeGray = detGray;
+            frames = boxFrames; gray = boxGray;
+            disposeGray = detGray;
         }
         else
         {
-            frames = detFrames; panel = detPanel; gray = detGray;
-            disposePanel = boxPanel; disposeGray = boxGray;
+            frames = detFrames; gray = detGray;
+            disposeGray = boxGray;
         }
 
-        disposePanel.Dispose();
         disposeGray.Dispose();
 
         try
         {
-            return ClassifyFrames(frames, panel, gray, sx, sy, refBuki, refBougu, hasWeaponSlot);
+            return ClassifyFrames(frames, gray, hasWeaponSlot);
         }
         finally
         {
-            panel.Dispose();
             gray.Dispose();
         }
     }
 
-    private static (List<OpenCvSharp.Rect> Frames, OpenCvSharp.Mat Panel, OpenCvSharp.Mat Gray) DetectInRegion(
+    private static (List<OpenCvSharp.Rect> Frames, OpenCvSharp.Mat Gray) DetectInRegion(
         OpenCvSharp.Mat img, OpenCvSharp.Rect region, double sx, double sy)
     {
-        var panel = new OpenCvSharp.Mat(img, region);
+        using var panel = new OpenCvSharp.Mat(img, region);
         var gray = new OpenCvSharp.Mat();
         OpenCvSharp.Cv2.CvtColor(panel, gray, OpenCvSharp.ColorConversionCodes.BGR2GRAY);
         var frames = SlotIconAnalyzer.DetectFrames(gray, sx, sy);
-        return (frames, panel, gray);
+        return (frames, gray);
     }
 
     private static (List<int> ArmorSlots, List<int> WeaponSlots) ClassifyFrames(
-        List<OpenCvSharp.Rect> frames, OpenCvSharp.Mat panel, OpenCvSharp.Mat gray,
-        double sx, double sy, OpenCvSharp.Mat refBuki, OpenCvSharp.Mat refBougu,
-        bool hasWeaponSlot)
+        List<OpenCvSharp.Rect> frames, OpenCvSharp.Mat gray, bool hasWeaponSlot)
     {
         var armorSlots = new List<int> { 0, 0, 0 };
         var weaponSlots = new List<int> { 0, 0, 0 };

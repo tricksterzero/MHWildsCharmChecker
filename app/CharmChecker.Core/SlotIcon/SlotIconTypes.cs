@@ -9,14 +9,6 @@ public enum SlotLevel
     Lv3,
 }
 
-/// <summary>スロットの種別（バッジアイコンで判定）。</summary>
-public enum SlotType
-{
-    Unknown,
-    Weapon,
-    Armor,
-}
-
 /// <summary>
 /// レベル判定の結果。PeakCount/ValleyRatios はチューニング・デバッグ用の中間値。
 /// </summary>
@@ -26,13 +18,7 @@ public enum SlotType
 public record LevelClassification(SlotLevel Level, int PeakCount, IReadOnlyList<double?> ValleyRatios);
 
 /// <summary>
-/// 種別判定の結果。BukiScore/BouguScore は武器/防具の参照テンプレートとの一致度（TM_CCOEFF_NORMED）。
-/// </summary>
-public record TypeClassification(SlotType Type, double? BukiScore, double? BouguScore);
-
-/// <summary>
-/// pipeline.py で検証済みの判定パラメータ。
-/// 基準解像度2560x1440に対する比率・px値として定義し、実画像サイズに応じてスケーリングする。
+/// 判定パラメータ。基準解像度2560x1440に対する比率・px値として定義し、実画像サイズに応じてスケーリングする。
 /// </summary>
 public static class SlotIconConstants
 {
@@ -51,12 +37,6 @@ public static class SlotIconConstants
     public const double FrameHeightMin = 20;
     public const double FrameHeightMax = 45;
     public const double FrameYMin = 10;
-
-    // バッジ探索領域（枠基準のオフセット、基準解像度でのpx）
-    public const double BadgeOffsetLeft = -15;
-    public const double BadgeOffsetRight = 25;
-    public const double BadgeOffsetTop = -35;
-    public const double BadgeOffsetBottom = 8;
 
     // 単一護石詳細画面のスロットアイコン探索領域（基準解像度に対する比率）
     public const double DetailPanelY0Frac = 310.0 / RefHeight;

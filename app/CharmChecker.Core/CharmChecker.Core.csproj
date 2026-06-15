@@ -12,8 +12,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="SlotIcon\Resources\ref_weapon.png" />
-    <EmbeddedResource Include="SlotIcon\Resources\ref_armor.png" />
     <EmbeddedResource Include="..\..\resources\skill-decoration-map.json" Link="Resources\skill-decoration-map.json" />
   </ItemGroup>
 
