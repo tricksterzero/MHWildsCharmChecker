@@ -122,6 +122,7 @@
                                   Visibility="Collapsed"
                                   MaxHeight="300">
                             <DataGrid.Columns>
+                                <DataGridTextColumn Header="RARE" Binding="{Binding RarityText}" Width="50" />
                                 <DataGridTextColumn Header="スキル" Binding="{Binding SkillText}" Width="*" />
                                 <DataGridTextColumn Header="スロット" Binding="{Binding SlotText}" Width="140" />
                                 <DataGridTextColumn Header="ファイル名" Binding="{Binding FileName}" Width="200" />

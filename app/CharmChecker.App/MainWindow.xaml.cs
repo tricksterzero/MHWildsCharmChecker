@@ -403,6 +403,7 @@ public partial class MainWindow : Window
             _readingResults = results;
             ReadingResultGrid.ItemsSource = results.Select(r => new
             {
+                RarityText = r.Charm.Rarity.HasValue ? r.Charm.Rarity.Value.ToString() : "-",
                 SkillText = string.Join(" / ", r.Charm.Skills.Select(s => $"{s.Name} Lv{s.Lv}")),
                 SlotText = CharmListItem.FormatSlotsStatic(r.Charm),
                 r.FileName,
@@ -545,7 +546,7 @@ public partial class MainWindow : Window
                 var sample = CharmItems[g.Indices[0]];
                 return new
                 {
-                    Header = $"{sample.SkillText}  {sample.SlotText}（{g.Indices.Count}個）",
+                    Header = $"[RARE {sample.RarityText}] {sample.SkillText}  {sample.SlotText}（{g.Indices.Count}個）",
                     Detail = $"対象: {string.Join(", ", ids)}",
                 };
             }).ToList();
@@ -565,7 +566,7 @@ public partial class MainWindow : Window
                     .Select(i => $"#{CharmItems[i].Id}（{CharmItems[i].SkillText}  {CharmItems[i].SlotText}）");
                 return new
                 {
-                    Header = $"処分候補: #{target.Id}（{target.SkillText}  {target.SlotText}）",
+                    Header = $"処分候補: #{target.Id}（[RARE {target.RarityText}] {target.SkillText}  {target.SlotText}）",
                     Detail = $"上位互換: {string.Join(", ", superiors)}",
                 };
             }).ToList();
