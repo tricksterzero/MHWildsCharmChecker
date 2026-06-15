@@ -2,7 +2,7 @@ using System.Windows;
 
 namespace CharmChecker.App;
 
-public partial class SettingsWindow : Window
+public partial class SettingsWindow : Wpf.Ui.Controls.FluentWindow
 {
     public string ScreenshotFolder { get; private set; } = "";
 

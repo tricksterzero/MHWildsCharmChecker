@@ -1,10 +1,19 @@
-<Window x:Class="CharmChecker.App.CharmEditWindow"
+<ui:FluentWindow x:Class="CharmChecker.App.CharmEditWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         Title="護石の編集" Height="400" Width="500"
         WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize">
-    <Grid Margin="16">
+        ResizeMode="NoResize"
+        ExtendsContentIntoTitleBar="True"
+        WindowBackdropType="Mica">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <ui:TitleBar Grid.Row="0" Title="護石の編集" />
+        <Grid Grid.Row="1" Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -110,5 +119,6 @@
             <Button Content="キャンセル" Width="80" Margin="8,0,0,0" Padding="4"
                     IsCancel="True" />
         </StackPanel>
+        </Grid>
     </Grid>
-</Window>
+</ui:FluentWindow>

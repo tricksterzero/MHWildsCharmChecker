@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace CharmChecker.App;
 
-public partial class CharmEditWindow : Window
+public partial class CharmEditWindow : Wpf.Ui.Controls.FluentWindow
 {
     private readonly IReadOnlyList<string> _skillNames;
     public Charm? ResultCharm { get; private set; }

@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Windows;
 using System.Windows.Controls;
+using Wpf.Ui.Appearance;
 using CharmChecker.Core.Model;
 using CharmChecker.Core.Skill;
 using CharmChecker.Core.SlotIcon;
@@ -96,7 +97,7 @@ public class AppSettings
     public double DetailPanelHeight { get; set; } = double.NaN;
 }
 
-public partial class MainWindow : Window
+public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
 {
     public ObservableCollection<CharmListItem> CharmItems { get; } = [];
     private int _nextId = 1;
@@ -114,6 +115,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        SystemThemeWatcher.Watch(this);
         LoadSettings();
         LoadCharms();
         Closing += MainWindow_Closing;
@@ -886,17 +888,20 @@ public partial class MainWindow : Window
         MessageBox.Show("護石データを初期化しました。", "データの初期化");
     }
 
-    private void AboutMenu_Click(object sender, RoutedEventArgs e)
+    private async void AboutMenu_Click(object sender, RoutedEventArgs e)
     {
         var version = typeof(MainWindow).Assembly.GetName().Version;
         var versionText = version is not null ? $"{version.Major}.{version.Minor}.{version.Build}" : "不明";
-        MessageBox.Show(
-            $"MHWilds 護石チェッカー Ver.{versionText}\n\n"
-            + "使用ライブラリ:\n"
-            + "  OpenCvSharp4 4.13.0.20260602\n"
-            + "  Windows.Media.Ocr (Windows 組み込み)",
-            "アプリ情報",
-            MessageBoxButton.OK,
-            MessageBoxImage.Information);
+        var dialog = new Wpf.Ui.Controls.MessageBox
+        {
+            Title = "アプリ情報",
+            Content = $"MHWilds 護石チェッカー Ver.{versionText}\n\n"
+                + "使用ライブラリ:\n"
+                + "  OpenCvSharp4 4.13.0.20260602\n"
+                + "  WPF-UI 4.3.0\n"
+                + "  Windows.Media.Ocr (Windows 組み込み)",
+            CloseButtonText = "OK",
+        };
+        await dialog.ShowDialogAsync();
     }
 }
