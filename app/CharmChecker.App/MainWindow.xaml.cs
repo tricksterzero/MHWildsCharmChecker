@@ -1,5 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.IO;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Windows;
 using System.Windows.Controls;
 using CharmChecker.Core.Model;
@@ -47,14 +49,148 @@ public class CharmListItem
     }
 }
 
+public class CharmJson
+{
+    [JsonPropertyName("skills")]
+    public List<SkillJson> Skills { get; set; } = [];
+    [JsonPropertyName("armorSlots")]
+    public List<int> ArmorSlots { get; set; } = [];
+    [JsonPropertyName("weaponSlots")]
+    public List<int> WeaponSlots { get; set; } = [];
+    [JsonPropertyName("source")]
+    public string Source { get; set; } = "";
+    [JsonPropertyName("sourceTimestamp")]
+    public DateTime SourceTimestamp { get; set; }
+    [JsonPropertyName("version")]
+    public string Version { get; set; } = "";
+}
+
+public class SkillJson
+{
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = "";
+    [JsonPropertyName("lv")]
+    public int Lv { get; set; }
+}
+
+public class AppSettings
+{
+    [JsonPropertyName("windowWidth")]
+    public double WindowWidth { get; set; } = 800;
+    [JsonPropertyName("windowHeight")]
+    public double WindowHeight { get; set; } = 450;
+    [JsonPropertyName("windowLeft")]
+    public double WindowLeft { get; set; } = double.NaN;
+    [JsonPropertyName("windowTop")]
+    public double WindowTop { get; set; } = double.NaN;
+}
+
 public partial class MainWindow : Window
 {
     public ObservableCollection<CharmListItem> CharmItems { get; } = [];
     private int _nextId = 1;
 
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        WriteIndented = true,
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+    };
+
+    private static string DataDir => AppDomain.CurrentDomain.BaseDirectory;
+    private static string CharmsFilePath => Path.Combine(DataDir, "charms.json");
+    private static string SettingsFilePath => Path.Combine(DataDir, "settings.json");
+
     public MainWindow()
     {
         InitializeComponent();
+        LoadSettings();
+        LoadCharms();
+        Closing += MainWindow_Closing;
+    }
+
+    private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
+    {
+        SaveSettings();
+        SaveCharms();
+    }
+
+    private void LoadSettings()
+    {
+        try
+        {
+            if (!File.Exists(SettingsFilePath)) return;
+            var json = File.ReadAllText(SettingsFilePath);
+            var settings = JsonSerializer.Deserialize<AppSettings>(json);
+            if (settings is null) return;
+
+            Width = settings.WindowWidth;
+            Height = settings.WindowHeight;
+            if (!double.IsNaN(settings.WindowLeft) && !double.IsNaN(settings.WindowTop))
+            {
+                WindowStartupLocation = WindowStartupLocation.Manual;
+                Left = settings.WindowLeft;
+                Top = settings.WindowTop;
+            }
+        }
+        catch { }
+    }
+
+    private void SaveSettings()
+    {
+        var settings = new AppSettings
+        {
+            WindowWidth = Width,
+            WindowHeight = Height,
+            WindowLeft = Left,
+            WindowTop = Top,
+        };
+        var json = JsonSerializer.Serialize(settings, JsonOptions);
+        File.WriteAllText(SettingsFilePath, json);
+    }
+
+    private void LoadCharms()
+    {
+        try
+        {
+            if (!File.Exists(CharmsFilePath)) return;
+            var json = File.ReadAllText(CharmsFilePath);
+            var items = JsonSerializer.Deserialize<List<CharmJson>>(json);
+            if (items is null) return;
+
+            foreach (var cj in items)
+            {
+                var charm = new Charm
+                {
+                    Skills = cj.Skills.Select(s => new CharmSkill(s.Name, s.Lv)).ToList(),
+                    ArmorSlots = cj.ArmorSlots,
+                    WeaponSlots = cj.WeaponSlots,
+                    Source = Enum.TryParse<CharmSource>(cj.Source, out var src) ? src : CharmSource.CsvImport,
+                    SourceTimestamp = cj.SourceTimestamp,
+                    Version = Enum.TryParse<GameVersion>(cj.Version, out var ver) ? ver : GameVersion.Wilds,
+                };
+                AddCharm(charm);
+            }
+        }
+        catch { }
+    }
+
+    private void SaveCharms()
+    {
+        var items = CharmItems.Select(i =>
+        {
+            var c = i.Charm;
+            return new CharmJson
+            {
+                Skills = c.Skills.Select(s => new SkillJson { Name = s.Name, Lv = s.Lv }).ToList(),
+                ArmorSlots = c.ArmorSlots,
+                WeaponSlots = c.WeaponSlots,
+                Source = c.Source.ToString(),
+                SourceTimestamp = c.SourceTimestamp,
+                Version = c.Version.ToString(),
+            };
+        }).ToList();
+        var json = JsonSerializer.Serialize(items, JsonOptions);
+        File.WriteAllText(CharmsFilePath, json);
     }
 
     private CharmListItem AddCharm(Charm charm)
