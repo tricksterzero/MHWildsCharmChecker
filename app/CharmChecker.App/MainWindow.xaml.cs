@@ -5,6 +5,8 @@ using System.Text.Json.Serialization;
 using System.Windows;
 using System.Windows.Controls;
 using CharmChecker.Core.Model;
+using CharmChecker.Core.Skill;
+using CharmChecker.Core.SlotIcon;
 using Microsoft.Win32;
 
 namespace CharmChecker.App;
@@ -27,13 +29,13 @@ public class CharmListItem
             ? string.Join(" / ", charm.Skills.Select(s => $"{s.Name} Lv{s.Lv}"))
             : "（なし）";
 
-        SlotText = FormatSlots(charm);
+        SlotText = FormatSlotsStatic(charm);
 
         DateText = charm.SourceTimestamp.ToString("yyyy-MM-dd");
         DateTimeText = charm.SourceTimestamp.ToString("yyyy-MM-dd HH:mm:ss");
     }
 
-    private static string FormatSlots(Charm charm)
+    public static string FormatSlotsStatic(Charm charm)
     {
         var parts = new List<string>();
 
@@ -257,6 +259,235 @@ public partial class MainWindow : Window
 
         if (result == MessageBoxResult.Yes)
             CharmItems.Remove(item);
+    }
+
+    private static readonly string[] ImageExtensions = [".jpg", ".jpeg", ".png", ".bmp"];
+    private List<(Charm Charm, string FileName)>? _readingResults;
+
+    private void BrowseScreenshotFolder_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.OpenFolderDialog();
+        if (dialog.ShowDialog() == true)
+            ScreenshotFolderPath.Text = dialog.FolderName;
+    }
+
+    private async void StartReading_Click(object sender, RoutedEventArgs e)
+    {
+        var folder = ScreenshotFolderPath.Text;
+        if (string.IsNullOrWhiteSpace(folder) || !Directory.Exists(folder))
+        {
+            ReadingSummaryText.Text = "フォルダを選択してください。";
+            return;
+        }
+
+        var allFiles = Directory.GetFiles(folder)
+            .Where(f => ImageExtensions.Contains(Path.GetExtension(f).ToLowerInvariant()))
+            .ToList();
+
+        var latestScreenshot = CharmItems
+            .Where(i => i.Charm.Source == CharmSource.Screenshot)
+            .Select(i => i.Charm.SourceTimestamp)
+            .DefaultIfEmpty(DateTime.MinValue)
+            .Max();
+
+        var targetFiles = allFiles
+            .Where(f => File.GetLastWriteTime(f) > latestScreenshot)
+            .OrderBy(f => File.GetLastWriteTime(f))
+            .ToList();
+
+        if (targetFiles.Count == 0)
+        {
+            ReadingSummaryText.Text = $"フォルダ内に{allFiles.Count}枚の画像がありますが、新規ファイルはありません。";
+            return;
+        }
+
+        if (targetFiles.Count >= 500)
+        {
+            var confirm = MessageBox.Show(
+                $"対象ファイルが{targetFiles.Count}枚あります。処理しますか？",
+                "確認",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+            if (confirm != MessageBoxResult.Yes) return;
+        }
+
+        StartReadingButton.IsEnabled = false;
+        ReadingProgressPanel.Visibility = Visibility.Visible;
+        ReadingProgressBar.Maximum = targetFiles.Count;
+        ReadingProgressBar.Value = 0;
+        ReadingSummaryText.Text = "";
+        ReadingResultGrid.Visibility = Visibility.Collapsed;
+        AddReadingResultButton.Visibility = Visibility.Collapsed;
+        _readingResults = null;
+
+        var knownSkills = SkillNameLoader.LoadFromEmbeddedResource();
+        var (refBuki, refBougu) = SlotIconAnalyzer.LoadEmbeddedRefs();
+
+        var results = new List<(Charm Charm, string FileName)>();
+        int processed = 0;
+        int detected = 0;
+
+        try
+        {
+            foreach (var file in targetFiles)
+            {
+                processed++;
+                ReadingProgressBar.Value = processed;
+                ReadingProgressText.Text = $"{processed} / {targetFiles.Count} 処理中...";
+
+                try
+                {
+                    var readResult = await SkillReadingPipeline.ReadWithMetadataAsync(file, knownSkills);
+                    if (readResult is null) continue;
+
+                    var validSkills = readResult.Skills
+                        .Where(s => s.Name is not null && s.Lv is not null)
+                        .Select(s => new CharmSkill(s.Name!, s.Lv!.Value))
+                        .ToList();
+
+                    if (validSkills.Count == 0) continue;
+
+                    bool hasWeaponSlot = readResult.CharmName == "栄世の護石";
+                    var slots = ReadSlots(file, refBuki, refBougu, hasWeaponSlot);
+
+                    var charm = new Charm
+                    {
+                        Skills = validSkills,
+                        ArmorSlots = slots.ArmorSlots,
+                        WeaponSlots = slots.WeaponSlots,
+                        Source = CharmSource.Screenshot,
+                        SourceTimestamp = File.GetLastWriteTime(file),
+                    };
+                    results.Add((charm, Path.GetFileName(file)));
+                    detected++;
+                }
+                catch { }
+
+                await Task.Yield();
+            }
+        }
+        finally
+        {
+            refBuki.Dispose();
+            refBougu.Dispose();
+        }
+
+        ReadingProgressText.Text = "完了";
+        ReadingSummaryText.Text = $"{allFiles.Count}枚中 新規{targetFiles.Count}枚を処理、{detected}枚から護石を検出";
+
+        if (results.Count > 0)
+        {
+            _readingResults = results;
+            ReadingResultGrid.ItemsSource = results.Select(r => new
+            {
+                SkillText = string.Join(" / ", r.Charm.Skills.Select(s => $"{s.Name} Lv{s.Lv}")),
+                SlotText = CharmListItem.FormatSlotsStatic(r.Charm),
+                r.FileName,
+            }).ToList();
+            ReadingResultGrid.Visibility = Visibility.Visible;
+            AddReadingResultButton.Visibility = Visibility.Visible;
+        }
+
+        StartReadingButton.IsEnabled = true;
+    }
+
+    private static (List<int> ArmorSlots, List<int> WeaponSlots) ReadSlots(
+        string imagePath, OpenCvSharp.Mat refBuki, OpenCvSharp.Mat refBougu, bool hasWeaponSlot)
+    {
+        using var img = OpenCvSharp.Cv2.ImRead(imagePath);
+        var (sx, sy) = SlotIconAnalyzer.ScaleFactors(img);
+
+        // 両方の領域で検出し、フレーム数が多い方を採用
+        var (boxFrames, boxPanel, boxGray) = DetectInRegion(img, SlotIconAnalyzer.PanelRegion(img), sx, sy);
+        var (detFrames, detPanel, detGray) = DetectInRegion(img, SlotIconAnalyzer.DetailPanelRegion(img), sx, sy);
+
+        List<OpenCvSharp.Rect> frames;
+        OpenCvSharp.Mat panel, gray;
+        OpenCvSharp.Mat disposePanel, disposeGray;
+
+        if (boxFrames.Count > detFrames.Count && boxFrames.Count > 0)
+        {
+            frames = boxFrames; panel = boxPanel; gray = boxGray;
+            disposePanel = detPanel; disposeGray = detGray;
+        }
+        else
+        {
+            frames = detFrames; panel = detPanel; gray = detGray;
+            disposePanel = boxPanel; disposeGray = boxGray;
+        }
+
+        disposePanel.Dispose();
+        disposeGray.Dispose();
+
+        try
+        {
+            return ClassifyFrames(frames, panel, gray, sx, sy, refBuki, refBougu, hasWeaponSlot);
+        }
+        finally
+        {
+            panel.Dispose();
+            gray.Dispose();
+        }
+    }
+
+    private static (List<OpenCvSharp.Rect> Frames, OpenCvSharp.Mat Panel, OpenCvSharp.Mat Gray) DetectInRegion(
+        OpenCvSharp.Mat img, OpenCvSharp.Rect region, double sx, double sy)
+    {
+        var panel = new OpenCvSharp.Mat(img, region);
+        var gray = new OpenCvSharp.Mat();
+        OpenCvSharp.Cv2.CvtColor(panel, gray, OpenCvSharp.ColorConversionCodes.BGR2GRAY);
+        var frames = SlotIconAnalyzer.DetectFrames(gray, sx, sy);
+        return (frames, panel, gray);
+    }
+
+    private static (List<int> ArmorSlots, List<int> WeaponSlots) ClassifyFrames(
+        List<OpenCvSharp.Rect> frames, OpenCvSharp.Mat panel, OpenCvSharp.Mat gray,
+        double sx, double sy, OpenCvSharp.Mat refBuki, OpenCvSharp.Mat refBougu,
+        bool hasWeaponSlot)
+    {
+        var armorSlots = new List<int> { 0, 0, 0 };
+        var weaponSlots = new List<int> { 0, 0, 0 };
+        int armorIdx = 0;
+        bool weaponAssigned = false;
+
+        for (int i = 0; i < frames.Count; i++)
+        {
+            var frame = frames[i];
+            var levelResult = SlotIconAnalyzer.ClassifyLevel(gray, frame);
+
+            int lv = levelResult.Level switch
+            {
+                SlotLevel.Lv1 => 1,
+                SlotLevel.Lv2 => 2,
+                SlotLevel.Lv3 => 3,
+                _ => 0,
+            };
+
+            // 栄世の護石: 1つ目のフレームが武器スロット
+            if (hasWeaponSlot && !weaponAssigned && i == 0)
+            {
+                weaponSlots[0] = lv;
+                weaponAssigned = true;
+            }
+            else if (armorIdx < 3)
+            {
+                armorSlots[armorIdx++] = lv;
+            }
+        }
+
+        return (armorSlots, weaponSlots);
+    }
+
+    private void AddReadingResult_Click(object sender, RoutedEventArgs e)
+    {
+        if (_readingResults is null || _readingResults.Count == 0) return;
+
+        foreach (var (charm, _) in _readingResults)
+            AddCharm(charm);
+
+        ReadingSummaryText.Text += $"\n{_readingResults.Count}件を護石一覧に追加しました。";
+        _readingResults = null;
+        AddReadingResultButton.Visibility = Visibility.Collapsed;
     }
 
     private void ExecuteDuplicateCheck_Click(object sender, RoutedEventArgs e)

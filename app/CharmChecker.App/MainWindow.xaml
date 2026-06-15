@@ -83,7 +83,55 @@
                 </Grid>
             </TabItem>
             <TabItem Header="スクショ読み取り">
-                <TextBlock Text="スクショ読み取り（未実装）" Margin="16" />
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="16" MaxWidth="700" HorizontalAlignment="Left">
+                        <!-- フォルダ選択 -->
+                        <TextBlock Text="スクリーンショットフォルダ" FontWeight="Bold" />
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <TextBox x:Name="ScreenshotFolderPath" Width="500" IsReadOnly="True" />
+                            <Button Content="参照..." Margin="8,0,0,0" Padding="12,4"
+                                    Click="BrowseScreenshotFolder_Click" />
+                        </StackPanel>
+
+                        <!-- 実行 -->
+                        <Button x:Name="StartReadingButton" Content="読み取り開始"
+                                Margin="0,12,0,0" Padding="16,6"
+                                HorizontalAlignment="Left"
+                                Click="StartReading_Click" />
+
+                        <!-- プログレスバー -->
+                        <StackPanel x:Name="ReadingProgressPanel" Visibility="Collapsed"
+                                    Margin="0,12,0,0">
+                            <ProgressBar x:Name="ReadingProgressBar" Height="20" Minimum="0" />
+                            <TextBlock x:Name="ReadingProgressText" Margin="0,4,0,0" />
+                        </StackPanel>
+
+                        <!-- サマリー -->
+                        <TextBlock x:Name="ReadingSummaryText" Margin="0,8,0,0"
+                                   TextWrapping="Wrap" />
+
+                        <!-- 結果リスト -->
+                        <DataGrid x:Name="ReadingResultGrid" Margin="0,8,0,0"
+                                  AutoGenerateColumns="False" IsReadOnly="True"
+                                  HeadersVisibility="Column"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  Visibility="Collapsed"
+                                  MaxHeight="300">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="スキル" Binding="{Binding SkillText}" Width="*" />
+                                <DataGridTextColumn Header="スロット" Binding="{Binding SlotText}" Width="140" />
+                                <DataGridTextColumn Header="ファイル名" Binding="{Binding FileName}" Width="200" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <!-- 一覧に追加 -->
+                        <Button x:Name="AddReadingResultButton" Content="全件を護石一覧に追加"
+                                Margin="0,8,0,0" Padding="16,6"
+                                HorizontalAlignment="Left"
+                                Visibility="Collapsed"
+                                Click="AddReadingResult_Click" />
+                    </StackPanel>
+                </ScrollViewer>
             </TabItem>
             <TabItem Header="CSVインポート・エクスポート">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">

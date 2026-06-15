@@ -40,10 +40,10 @@ public static class SlotIconConstants
     public const int RefHeight = 1440;
 
     // 装備BOX側スロットアイコンの探索領域（基準解像度に対する比率）
-    public const double PanelY0Frac = 320.0 / RefHeight;
-    public const double PanelY1Frac = 400.0 / RefHeight;
-    public const double PanelX0Frac = 2340.0 / RefWidth;
-    public const double PanelX1Frac = 2480.0 / RefWidth;
+    public const double PanelY0Frac = 280.0 / RefHeight;
+    public const double PanelY1Frac = 420.0 / RefHeight;
+    public const double PanelX0Frac = 2200.0 / RefWidth;
+    public const double PanelX1Frac = 2500.0 / RefWidth;
 
     // ソケット枠検出のサイズフィルタ（基準解像度でのpx範囲）
     public const double FrameWidthMin = 30;
@@ -57,4 +57,10 @@ public static class SlotIconConstants
     public const double BadgeOffsetRight = 25;
     public const double BadgeOffsetTop = -35;
     public const double BadgeOffsetBottom = 8;
+
+    // 単一護石詳細画面のスロットアイコン探索領域（基準解像度に対する比率）
+    public const double DetailPanelY0Frac = 310.0 / RefHeight;
+    public const double DetailPanelY1Frac = 410.0 / RefHeight;
+    public const double DetailPanelX0Frac = 1400.0 / RefWidth;
+    public const double DetailPanelX1Frac = 1650.0 / RefWidth;
 }

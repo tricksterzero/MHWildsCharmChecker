@@ -14,6 +14,18 @@ public static class SlotIconAnalyzer
         return ((double)img.Width / SlotIconConstants.RefWidth, (double)img.Height / SlotIconConstants.RefHeight);
     }
 
+    /// <summary>単一護石詳細画面のスロットアイコン探索領域を、実画像サイズに合わせて切り出す矩形。</summary>
+    public static Rect DetailPanelRegion(Mat img)
+    {
+        int w = img.Width;
+        int h = img.Height;
+        int y0 = (int)(SlotIconConstants.DetailPanelY0Frac * h);
+        int y1 = (int)(SlotIconConstants.DetailPanelY1Frac * h);
+        int x0 = (int)(SlotIconConstants.DetailPanelX0Frac * w);
+        int x1 = (int)(SlotIconConstants.DetailPanelX1Frac * w);
+        return new Rect(x0, y0, x1 - x0, y1 - y0);
+    }
+
     /// <summary>装備BOX側スロットアイコンの探索領域を、実画像サイズに合わせて切り出す矩形。</summary>
     public static Rect PanelRegion(Mat img)
     {
@@ -43,7 +55,7 @@ public static class SlotIconAnalyzer
         Cv2.FindContours(edges, out Point[][] contours, out _,
             RetrievalModes.External, ContourApproximationModes.ApproxSimple);
 
-        var frames = new List<Rect>();
+        var raw = new List<Rect>();
         foreach (var contour in contours)
         {
             var rect = Cv2.BoundingRect(contour);
@@ -51,11 +63,13 @@ public static class SlotIconAnalyzer
                 && rect.Height > hLo && rect.Height < hHi
                 && rect.Y >= yMin)
             {
-                frames.Add(rect);
+                raw.Add(rect);
             }
         }
 
-        return frames.OrderBy(f => f.X).ToList();
+        raw.Sort((a, b) => a.X.CompareTo(b.X));
+        var merged = MergeOverlapping(raw, 20 * sx);
+        return FilterYCluster(merged, 15 * sy);
     }
 
     /// <summary>
@@ -137,11 +151,15 @@ public static class SlotIconAnalyzer
 
         int n = groups.Count;
         SlotLevel level;
-        if (n == 2 && ratios[0] is double r0 && r0 < 0.5)
+        if (n == 1)
         {
             level = SlotLevel.Lv1;
         }
-        else if (n == 2 && ratios[0] is double r1 && r1 >= 0.55)
+        else if (n == 2 && ratios[0] is double r0 && r0 < 0.5)
+        {
+            level = SlotLevel.Lv1;
+        }
+        else if (n == 2 && ratios[0] is double r1 && r1 >= 0.50)
         {
             level = SlotLevel.Lv2;
         }
@@ -214,6 +232,26 @@ public static class SlotIconAnalyzer
     }
 
     /// <summary>
+    /// 埋め込みリソースから武器/防具バッジの参照テンプレートを読み込む。
+    /// </summary>
+    public static (Mat RefBuki, Mat RefBougu) LoadEmbeddedRefs()
+    {
+        var asm = typeof(SlotIconAnalyzer).Assembly;
+        var refBuki = LoadMatFromResource(asm, "CharmChecker.Core.SlotIcon.Resources.ref_weapon.png");
+        var refBougu = LoadMatFromResource(asm, "CharmChecker.Core.SlotIcon.Resources.ref_armor.png");
+        return (refBuki, refBougu);
+    }
+
+    private static Mat LoadMatFromResource(System.Reflection.Assembly asm, string resourceName)
+    {
+        using var stream = asm.GetManifestResourceStream(resourceName)
+            ?? throw new InvalidOperationException($"埋め込みリソース '{resourceName}' が見つかりません。");
+        using var ms = new MemoryStream();
+        stream.CopyTo(ms);
+        return Cv2.ImDecode(ms.ToArray(), ImreadModes.Grayscale);
+    }
+
+    /// <summary>
     /// 既知のスクリーンショットから武器/防具バッジの参照テンプレートを生成する。
     /// </summary>
     /// <param name="assetsDir">スクリーンショットを格納したディレクトリ(assets/)。</param>
@@ -230,6 +268,44 @@ public static class SlotIconAnalyzer
         }
 
         return (refBuki, refBougu);
+    }
+
+    private static List<Rect> MergeOverlapping(List<Rect> sorted, double threshold)
+    {
+        if (sorted.Count <= 1) return sorted;
+        var merged = new List<Rect> { sorted[0] };
+        for (int i = 1; i < sorted.Count; i++)
+        {
+            var prev = merged[^1];
+            var cur = sorted[i];
+            if (cur.X - prev.X < threshold)
+            {
+                if (cur.Width * cur.Height > prev.Width * prev.Height)
+                    merged[^1] = cur;
+            }
+            else
+            {
+                merged.Add(cur);
+            }
+        }
+        return merged;
+    }
+
+    private static List<Rect> FilterYCluster(List<Rect> frames, double yThreshold)
+    {
+        if (frames.Count <= 1) return frames;
+        var sortedByY = frames.OrderBy(f => f.Y).ToList();
+        var groups = new List<List<Rect>> { new() { sortedByY[0] } };
+        for (int i = 1; i < sortedByY.Count; i++)
+        {
+            if (sortedByY[i].Y - groups[^1][^1].Y < yThreshold)
+                groups[^1].Add(sortedByY[i]);
+            else
+                groups.Add(new() { sortedByY[i] });
+        }
+        var best = groups.MaxBy(g => (g.Count, g.Sum(f => f.Width * f.Height)))!;
+        var bestSet = new HashSet<Rect>(best);
+        return frames.Where(f => bestSet.Contains(f)).ToList();
     }
 
     private static Mat? ExtractBadgeFromAsset(string assetsDir, string fileName, int frameIndex)

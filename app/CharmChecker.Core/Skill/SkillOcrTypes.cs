@@ -9,3 +9,8 @@ public readonly record struct OcrTextItem(string Text, double X0, double Y0, dou
 /// 読み取ったスキル1件（名前 + Lv）。名前やLvが読み取れなかった場合はnull。
 /// </summary>
 public readonly record struct SkillEntry(string? Name, int? Lv);
+
+/// <summary>
+/// スキル読み取りパイプラインの結果。スキル一覧と護石名を含む。
+/// </summary>
+public record SkillReadResult(IReadOnlyList<SkillEntry> Skills, string? CharmName);

@@ -18,6 +18,16 @@ public static class SkillReadingPipeline
     /// </summary>
     public static async Task<IReadOnlyList<SkillEntry>?> ReadAsync(string imagePath, IReadOnlyList<string> knownSkills)
     {
+        var result = await ReadWithMetadataAsync(imagePath, knownSkills);
+        return result?.Skills;
+    }
+
+    /// <summary>
+    /// スクリーンショットからスキル一覧と護石名を読み取る。
+    /// 護石パネルが見つからない場合はnullを返す。
+    /// </summary>
+    public static async Task<SkillReadResult?> ReadWithMetadataAsync(string imagePath, IReadOnlyList<string> knownSkills)
+    {
         var fullOcr = await TextOcrReader.RecognizeAsync(imagePath);
         var anchor = FindAnchor(fullOcr);
         if (anchor is null)
@@ -27,13 +37,16 @@ public static class SkillReadingPipeline
         if (!IsCharmPanel(fullOcr, ax, ay))
             return null;
 
+        var charmName = ExtractCharmName(fullOcr);
+
         using var img = Cv2.ImRead(imagePath);
         var crop = CropSkillArea(img, ax, ay);
 
         var variants = ImageVariantFactory.Create(crop);
         try
         {
-            return await RunVariantsAndMerge(variants, knownSkills);
+            var skills = await RunVariantsAndMerge(variants, knownSkills);
+            return new SkillReadResult(skills, charmName);
         }
         finally
         {
@@ -41,6 +54,20 @@ public static class SkillReadingPipeline
                 v.Image.Dispose();
             crop.Dispose();
         }
+    }
+
+    internal static string? ExtractCharmName(OcrResult ocrResult)
+    {
+        foreach (var line in ocrResult.Lines)
+        {
+            var text = line.Text.Replace(" ", "");
+            if (text.Contains("の護石"))
+            {
+                var idx = text.IndexOf("の護石");
+                return text[..idx] + "の護石";
+            }
+        }
+        return null;
     }
 
     internal static (double X, double Y)? FindAnchor(OcrResult ocrResult)

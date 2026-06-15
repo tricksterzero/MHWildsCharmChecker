@@ -4,30 +4,34 @@ using OpenCvSharp;
 namespace CharmChecker.Tests;
 
 /// <summary>
-/// legacy/slot-icon-pipeline/pipeline.py のend-to-endテスト（9パネル全て正解）の移植。
-/// 「装備の確認・売却」画面の装備BOX側(右パネル)のスロットアイコンを対象とする。
+/// スロットアイコン検出+レベル判定のend-to-endテスト。
+/// BOXパネル(2護石比較画面の右側)とDetailパネル(単一護石詳細画面)の両方を対象とする。
+/// 種別(武器/防具)の判定は護石名ベースで行うため、ここではレベルのみ検証する。
 /// </summary>
 public class SlotIconPipelineTests
 {
-    private static readonly (Mat RefBuki, Mat RefBougu) Refs =
-        SlotIconAnalyzer.BuildRefs(TestPaths.FindAssetsDir());
-
-    public static IEnumerable<object[]> PanelCases()
+    public static IEnumerable<object[]> BoxPanelCases()
     {
-        yield return new object[] { "20260614061312_1.jpg", new[] { (SlotLevel.Lv3, SlotType.Armor) } };
-        yield return new object[] { "20260614061337_1.jpg", new[] { (SlotLevel.Lv3, SlotType.Armor) } };
-        yield return new object[] { "20260614061353_1.jpg", new[] { (SlotLevel.Lv2, SlotType.Armor), (SlotLevel.Lv1, SlotType.Armor) } };
-        yield return new object[] { "20260614061357_1.jpg", new[] { (SlotLevel.Lv2, SlotType.Armor), (SlotLevel.Lv1, SlotType.Armor) } };
-        yield return new object[] { "20260614061411_1.jpg", new[] { (SlotLevel.Lv2, SlotType.Armor) } };
-        yield return new object[] { "20260614061416_1.jpg", new[] { (SlotLevel.Lv2, SlotType.Armor) } };
-        yield return new object[] { "20260614061441_1.jpg", new[] { (SlotLevel.Lv1, SlotType.Weapon), (SlotLevel.Lv1, SlotType.Armor) } };
-        yield return new object[] { "20260614061456_1.jpg", new[] { (SlotLevel.Lv1, SlotType.Weapon), (SlotLevel.Lv1, SlotType.Armor) } };
-        yield return new object[] { "20260614022239_1.jpg", new[] { (SlotLevel.Lv3, SlotType.Armor) } };
+        yield return new object[] { "20260614061312_1.jpg", new[] { SlotLevel.Lv3 } };
+        yield return new object[] { "20260614061337_1.jpg", new[] { SlotLevel.Lv3 } };
+        yield return new object[] { "20260614061353_1.jpg", new[] { SlotLevel.Lv2, SlotLevel.Lv1 } };
+        yield return new object[] { "20260614061357_1.jpg", new[] { SlotLevel.Lv2, SlotLevel.Lv1 } };
+        yield return new object[] { "20260614061411_1.jpg", new[] { SlotLevel.Lv2 } };
+        yield return new object[] { "20260614061416_1.jpg", new[] { SlotLevel.Lv2 } };
+        yield return new object[] { "20260614061441_1.jpg", new[] { SlotLevel.Lv1, SlotLevel.Lv1, SlotLevel.Lv1 } };
+        yield return new object[] { "20260614061456_1.jpg", new[] { SlotLevel.Lv1, SlotLevel.Lv1, SlotLevel.Lv1 } };
+        yield return new object[] { "20260614022239_1.jpg", new[] { SlotLevel.Lv3 } };
+    }
+
+    public static IEnumerable<object[]> DetailPanelCases()
+    {
+        yield return new object[] { "20260604111556_1.jpg", new[] { SlotLevel.Lv1, SlotLevel.Lv1, SlotLevel.Lv1 } };
+        yield return new object[] { "20260612192419_1.jpg", new[] { SlotLevel.Lv1 } };
     }
 
     [Theory]
-    [MemberData(nameof(PanelCases))]
-    public void RightPanel_SlotIcons_AreClassifiedCorrectly(string fileName, (SlotLevel Level, SlotType Type)[] expected)
+    [MemberData(nameof(BoxPanelCases))]
+    public void BoxPanel_DetectAndClassifyLevel(string fileName, SlotLevel[] expected)
     {
         var path = Path.Combine(TestPaths.FindAssetsDir(), fileName);
         using var img = Cv2.ImRead(path);
@@ -42,12 +46,57 @@ public class SlotIconPipelineTests
 
         for (int i = 0; i < frames.Count; i++)
         {
-            var levelResult = SlotIconAnalyzer.ClassifyLevel(gray, frames[i]);
-            using var badge = SlotIconAnalyzer.ExtractBadge(region, frames[i], sx, sy);
-            var typeResult = SlotIconAnalyzer.ClassifyType(badge, Refs.RefBuki, Refs.RefBougu);
-
-            Assert.Equal(expected[i].Level, levelResult.Level);
-            Assert.Equal(expected[i].Type, typeResult.Type);
+            var result = SlotIconAnalyzer.ClassifyLevel(gray, frames[i]);
+            Assert.Equal(expected[i], result.Level);
         }
+    }
+
+    [Theory]
+    [MemberData(nameof(DetailPanelCases))]
+    public void DetailPanel_DetectAndClassifyLevel(string fileName, SlotLevel[] expected)
+    {
+        var path = Path.Combine(TestPaths.FindAssetsDir(), fileName);
+        using var img = Cv2.ImRead(path);
+        var (sx, sy) = SlotIconAnalyzer.ScaleFactors(img);
+
+        using var region = new Mat(img, SlotIconAnalyzer.DetailPanelRegion(img));
+        using var gray = new Mat();
+        Cv2.CvtColor(region, gray, ColorConversionCodes.BGR2GRAY);
+
+        var frames = SlotIconAnalyzer.DetectFrames(gray, sx, sy);
+        Assert.Equal(expected.Length, frames.Count);
+
+        for (int i = 0; i < frames.Count; i++)
+        {
+            var result = SlotIconAnalyzer.ClassifyLevel(gray, frames[i]);
+            Assert.Equal(expected[i], result.Level);
+        }
+    }
+
+    [Theory]
+    [InlineData("20260614061441_1.jpg", 3, 0)]
+    [InlineData("20260614061353_1.jpg", 2, 1)]
+    [InlineData("20260604111556_1.jpg", 0, 3)]
+    public void DualRegion_PicksRegionWithMoreFrames(string fileName, int expectedBox, int expectedDetail)
+    {
+        var path = Path.Combine(TestPaths.FindAssetsDir(), fileName);
+        using var img = Cv2.ImRead(path);
+        var (sx, sy) = SlotIconAnalyzer.ScaleFactors(img);
+
+        using var boxRegion = new Mat(img, SlotIconAnalyzer.PanelRegion(img));
+        using var boxGray = new Mat();
+        Cv2.CvtColor(boxRegion, boxGray, ColorConversionCodes.BGR2GRAY);
+        var boxFrames = SlotIconAnalyzer.DetectFrames(boxGray, sx, sy);
+
+        using var detRegion = new Mat(img, SlotIconAnalyzer.DetailPanelRegion(img));
+        using var detGray = new Mat();
+        Cv2.CvtColor(detRegion, detGray, ColorConversionCodes.BGR2GRAY);
+        var detFrames = SlotIconAnalyzer.DetectFrames(detGray, sx, sy);
+
+        Assert.Equal(expectedBox, boxFrames.Count);
+        Assert.Equal(expectedDetail, detFrames.Count);
+
+        var chosen = boxFrames.Count > detFrames.Count ? boxFrames : detFrames;
+        Assert.Equal(Math.Max(expectedBox, expectedDetail), chosen.Count);
     }
 }
