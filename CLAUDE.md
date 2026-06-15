@@ -4,15 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## プロジェクト概要
 
-モンスターハンターワイルズの護石（スキル構成・スロット情報）をスクリーンショットから読み取ってCSV化し、重複・下位互換護石を検出するツール。現在はClaude Vision + Node.jsで読み取り・チェックを行っているが、C# (WPF) + Windows.Media.Ocr + OpenCvSharpによるローカル動作のWindowsアプリへ移行中（`app/`が移行先の置き場所、現状は空）。
+モンスターハンターワイルズの護石（スキル構成・スロット情報）をスクリーンショットから読み取ってCSV化し、重複・下位互換護石を検出するツール。現在はClaude Vision + Node.jsで読み取り・チェックを行っているが、C# (WPF) + Windows.Media.Ocr + OpenCvSharpによるローカル動作のWindowsアプリへ移行中。`app/`配下にC#プロジェクトを構築し、スロットアイコン判定・テキストOCRラッパーまで実装済み。スキル名・Lv読み取りパイプラインと重複チェッカーのC#移植が残タスク。
 
 ## フォルダ構成
 
-- `app/` — 移行先のC# WPFアプリ本体（未着手）
+- `app/` — C# WPFアプリ本体（CharmChecker.App / CharmChecker.Core / CharmChecker.Tests）
 - `legacy/` — 旧アプローチ一式。C#移植時のロジック・仕様の参照元
   - `charm-duplicate-checker.js` — 重複・上位互換チェッカー
   - `charm_reader_prompt.md` / `charm_reader_prompt_for_cowork.md` — スクショ読み取り手順（Vision向けプロンプト）
-- `resources/skill-decoration-map.json` — 装飾品マスターデータ。スキル名正規化（117種）の正解候補として使う
+- `resources/skill-decoration-map.json` — 装飾品マスターデータ + 装飾品なしスキル。スキル名正規化（121種）の正解候補として使う
+- `resources/skill-name-checklist.md` — ゲーム内スキル一覧との突き合わせチェックリスト
 - `charm-lists/` — 護石読み取り結果CSV（出力物。ローカルのみ、`.gitignore`対象）
 - `assets/` — OCR/CV検証用スクリーンショット（ローカルのみ、`.gitignore`対象）
 
@@ -32,7 +33,7 @@ CSVを読み込み、完全同一の重複と完全上位互換による処分�
 
 - スキルが3つ未満の場合、空きは名前を空欄・Lvを`0`とする
 - スロットは各位置のレベルを`0/1/2/3`で記録する（穴なし=0）
-- スキル名は`resources/skill-decoration-map.json`の`decorations[].skills`キーに含まれる正規名のみが有効（正規化ルールは`legacy/charm_reader_prompt.md`を参照）
+- スキル名は`resources/skill-decoration-map.json`の`decorations[].skills`キー + `extra_skills`配列に含まれる正規名（計121種）のみが有効（正規化ルールは`legacy/charm_reader_prompt.md`を参照）
 
 ## 護石の優劣判定ロジック（`legacy/charm-duplicate-checker.js`）
 
@@ -49,7 +50,7 @@ CSVを読み込み、完全同一の重複と完全上位互換による処分�
 
 ## スロットアイコン判定ロジック（検証済み仕様）
 
-Python(`legacy/slot-icon-pipeline/pipeline.py`)でPoC済みのアルゴリズム。C#移植時はこのロジックを移す。
+Python(`legacy/slot-icon-pipeline/pipeline.py`)でPoC済み、`CharmChecker.Core/SlotIcon/`にC#移植済み（9パネルのend-to-endテスト合格）。
 
 - **基準解像度**: `REF_W=2560, REF_H=1440`。実画像サイズとの比率(`scale_factors`)で全座標をスケーリング。
 - **パネル領域**: `PANEL_REGION_FRAC`（基準解像度に対する比率のy0,y1,x0,x1）で、装備BOX側スロットアイコンの探索領域を切り出す。
@@ -103,7 +104,7 @@ Python(`C:\tmp\ClaudeCode\charm_ocr\skill_ocr_test.py`)でPoC済み。15画像�
 - gray(グレースケールのみ, lv_x_thresh=300)
 
 ### スキル名正規化
-- `skill-decoration-map.json`の117種 + EXTRA_SKILLS(JSON未収録の既知スキル)を正解候補とする
+- `skill-decoration-map.json`の`decorations[].skills`(117種) + `extra_skills`(4種)の計121種を正解候補とする
 - 長い名前から優先的に部分一致（先頭のゴミ文字を無視）
 - **濁点フォールバック**: 通常マッチ失敗時に濁点を除去して再マッチ（OCRの「ガ→カ」等の誤認対応）
 
@@ -119,7 +120,7 @@ Python(`C:\tmp\ClaudeCode\charm_ocr\skill_ocr_test.py`)でPoC済み。15画像�
 - 非護石画像の棄却テスト: 30枚で偽陽性ゼロ
 - 1280x720設定(スクショは2560x1440): 正常動作確認済み
 - **21:9は未対応**(パネル幅が異なりLv検出不可。将来課題)
-- `skill-decoration-map.json`に未収録のスキルが存在する（「属性吸収」等）
+- ~~`skill-decoration-map.json`に未収録のスキルが存在する~~ → `extra_skills`として追加済み（属性吸収・属性変換・属性やられ耐性・オトモへの采配）
 
 ## コミット規約
 
