@@ -161,25 +161,28 @@ public partial class MainWindow : Window
         {
             if (!File.Exists(CharmsFilePath)) return;
             var json = File.ReadAllText(CharmsFilePath);
-            var items = JsonSerializer.Deserialize<List<CharmJson>>(json);
-            if (items is null) return;
-
-            foreach (var cj in items)
-            {
-                var charm = new Charm
-                {
-                    Skills = cj.Skills.Select(s => new CharmSkill(s.Name, s.Lv)).ToList(),
-                    ArmorSlots = cj.ArmorSlots,
-                    WeaponSlots = cj.WeaponSlots,
-                    Rarity = cj.Rarity,
-                    Source = Enum.TryParse<CharmSource>(cj.Source, out var src) ? src : CharmSource.CsvImport,
-                    SourceTimestamp = cj.SourceTimestamp,
-                    Version = Enum.TryParse<GameVersion>(cj.Version, out var ver) ? ver : GameVersion.Wilds,
-                };
+            var charms = ParseCharmsJson(json);
+            foreach (var charm in charms)
                 AddCharm(charm);
-            }
         }
         catch { }
+    }
+
+    private static List<Charm> ParseCharmsJson(string json)
+    {
+        var items = JsonSerializer.Deserialize<List<CharmJson>>(json);
+        if (items is null) return [];
+
+        return items.Select(cj => new Charm
+        {
+            Skills = cj.Skills.Select(s => new CharmSkill(s.Name, s.Lv)).ToList(),
+            ArmorSlots = cj.ArmorSlots,
+            WeaponSlots = cj.WeaponSlots,
+            Rarity = cj.Rarity,
+            Source = Enum.TryParse<CharmSource>(cj.Source, out var src) ? src : CharmSource.CsvImport,
+            SourceTimestamp = cj.SourceTimestamp,
+            Version = Enum.TryParse<GameVersion>(cj.Version, out var ver) ? ver : GameVersion.Wilds,
+        }).ToList();
     }
 
     private void SaveCharms()
@@ -267,7 +270,10 @@ public partial class MainWindow : Window
             MessageBoxImage.Question);
 
         if (result == MessageBoxResult.Yes)
+        {
             CharmItems.Remove(item);
+            SaveCharms();
+        }
     }
 
     private static readonly string[] ImageExtensions = [".jpg", ".jpeg", ".png", ".bmp"];
@@ -482,6 +488,7 @@ public partial class MainWindow : Window
         foreach (var (charm, _) in _readingResults)
             AddCharm(charm);
 
+        SaveCharms();
         ReadingSummaryText.Text += $"\n{_readingResults.Count}件を護石一覧に追加しました。";
         _readingResults = null;
         AddReadingResultButton.Visibility = Visibility.Collapsed;
@@ -615,6 +622,7 @@ public partial class MainWindow : Window
                 foreach (var charm in parsed)
                     AddCharm(charm);
 
+                SaveCharms();
                 ImportResultText.Text = $"{parsed.Count}件をインポートしました。";
             }
             else
@@ -634,6 +642,7 @@ public partial class MainWindow : Window
                     }
                 }
 
+                SaveCharms();
                 ImportResultText.Text = $"{added}件を追加、{skipped}件をスキップしました。（既存{CharmItems.Count}件）";
             }
         }
@@ -705,5 +714,122 @@ public partial class MainWindow : Window
         var text = CharmCsvConverter.ToText(AllCharms);
         File.WriteAllText(dialog.FileName, text);
         ExportResultText.Text = $"ファイルに保存しました。（{CharmItems.Count}件 → {dialog.FileName}）";
+    }
+
+    private void ImportLocalDataMenu_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFileDialog
+        {
+            Filter = "JSONファイル (*.json)|*.json|すべてのファイル (*.*)|*.*",
+        };
+        if (dialog.ShowDialog() != true) return;
+
+        List<Charm> parsed;
+        try
+        {
+            var json = File.ReadAllText(dialog.FileName);
+            parsed = ParseCharmsJson(json);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"読み込みエラー: {ex.Message}", "インポート", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
+        if (parsed.Count == 0)
+        {
+            MessageBox.Show("インポート対象の護石データがありません。", "インポート");
+            return;
+        }
+
+        var mode = MessageBox.Show(
+            $"インポートデータ: {parsed.Count}件\n既存データ: {CharmItems.Count}件\n\n"
+            + "「はい」→ 差分追加（既存データに追加）\n"
+            + "「いいえ」→ 全件上書き（既存データを置換）",
+            "インポートモード",
+            MessageBoxButton.YesNoCancel,
+            MessageBoxImage.Question);
+
+        if (mode == MessageBoxResult.Cancel) return;
+
+        if (mode == MessageBoxResult.No)
+        {
+            CharmItems.Clear();
+            _nextId = 1;
+            foreach (var charm in parsed)
+                AddCharm(charm);
+            SaveCharms();
+            MessageBox.Show($"{parsed.Count}件をインポートしました。（全件上書き）", "インポート");
+        }
+        else
+        {
+            int added = 0, skipped = 0;
+            foreach (var charm in parsed)
+            {
+                if (IsExactDuplicate(charm))
+                    skipped++;
+                else
+                {
+                    AddCharm(charm);
+                    added++;
+                }
+            }
+            SaveCharms();
+            MessageBox.Show($"{added}件を追加、{skipped}件をスキップしました。（差分追加）", "インポート");
+        }
+    }
+
+    private void ExportLocalDataMenu_Click(object sender, RoutedEventArgs e)
+    {
+        if (CharmItems.Count == 0)
+        {
+            MessageBox.Show("護石データがありません。", "エクスポート");
+            return;
+        }
+
+        var dialog = new SaveFileDialog
+        {
+            Filter = "JSONファイル (*.json)|*.json|すべてのファイル (*.*)|*.*",
+            FileName = "charms.json",
+        };
+        if (dialog.ShowDialog() != true) return;
+
+        File.Copy(CharmsFilePath, dialog.FileName, overwrite: true);
+        MessageBox.Show($"{CharmItems.Count}件の護石データをエクスポートしました。", "エクスポート");
+    }
+
+    private void ResetDataMenu_Click(object sender, RoutedEventArgs e)
+    {
+        if (CharmItems.Count == 0)
+        {
+            MessageBox.Show("護石データがありません。", "データの初期化");
+            return;
+        }
+
+        var result = MessageBox.Show(
+            $"護石データ（{CharmItems.Count}件）をすべて削除します。\nこの操作は取り消せません。よろしいですか？",
+            "データの初期化",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+
+        if (result != MessageBoxResult.Yes) return;
+
+        CharmItems.Clear();
+        SaveCharms();
+        MessageBox.Show("護石データを初期化しました。", "データの初期化");
+    }
+
+    private void AboutMenu_Click(object sender, RoutedEventArgs e)
+    {
+        var version = typeof(MainWindow).Assembly.GetName().Version;
+        var versionText = version is not null ? $"{version.Major}.{version.Minor}.{version.Build}" : "不明";
+        MessageBox.Show(
+            $"MHWilds 護石チェッカー Ver.{versionText}\n\n"
+            + "使用ライブラリ:\n"
+            + "  OpenCvSharp4 4.13.0.20260602\n"
+            + "  Windows.Media.Ocr (Windows 組み込み)",
+            "アプリ情報",
+            MessageBoxButton.OK,
+            MessageBoxImage.Information);
     }
 }

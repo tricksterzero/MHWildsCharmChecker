@@ -9,14 +9,14 @@
     <DockPanel>
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="データ(_D)">
-                <MenuItem Header="ローカルデータのエクスポート(_E)" />
-                <MenuItem Header="ローカルデータのインポート(_I)" />
+                <MenuItem Header="ローカルデータのエクスポート(_E)" Click="ExportLocalDataMenu_Click" />
+                <MenuItem Header="ローカルデータのインポート(_I)" Click="ImportLocalDataMenu_Click" />
                 <Separator />
-                <MenuItem Header="データの初期化(_R)" />
+                <MenuItem Header="データの初期化(_R)" Click="ResetDataMenu_Click" />
             </MenuItem>
             <MenuItem Header="設定(_S)" />
             <MenuItem Header="ヘルプ(_H)">
-                <MenuItem Header="アプリ情報(_A)" />
+                <MenuItem Header="アプリ情報(_A)" Click="AboutMenu_Click" />
             </MenuItem>
         </Menu>
         <TabControl>
