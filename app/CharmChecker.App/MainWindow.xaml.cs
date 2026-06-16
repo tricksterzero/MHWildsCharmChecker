@@ -116,6 +116,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     {
         InitializeComponent();
         SystemThemeWatcher.Watch(this);
+        ErrorLogger.LogStartup();
         LoadSettings();
         LoadCharms();
         Closing += MainWindow_Closing;
@@ -182,6 +183,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         }
         catch (Exception ex)
         {
+            ErrorLogger.Log("LoadCharms", CharmsFilePath, ex);
             MessageBox.Show(
                 $"護石データの読み込みに失敗しました。\n\nファイル: {CharmsFilePath}\n{ex.Message}",
                 "読み込みエラー",
@@ -230,6 +232,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         }
         catch (Exception ex)
         {
+            ErrorLogger.Log("SaveCharms", CharmsFilePath, ex);
             MessageBox.Show(
                 $"護石データの保存に失敗しました。\n\nファイル: {CharmsFilePath}\n{ex.Message}",
                 "保存エラー",
@@ -439,7 +442,11 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
                 results.Add((charm, Path.GetFileName(file)));
                 detected++;
             }
-            catch { failed++; }
+            catch (Exception ex)
+            {
+                ErrorLogger.Log("ReadScreenshot", Path.GetFileName(file), ex);
+                failed++;
+            }
 
             await Task.Yield();
         }
@@ -738,6 +745,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         }
         catch (Exception ex)
         {
+            ErrorLogger.Log("ExportCsv", dialog.FileName, ex);
             ExportResultText.Text = $"保存に失敗しました: {ex.Message}";
         }
     }
