@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## プロジェクト概要
 
-モンスターハンターワイルズの護石（スキル構成・スロット情報）をスクリーンショットから読み取ってCSV化し、重複・下位互換護石を検出するWindowsデスクトップアプリ。C# (WPF) + Windows.Media.Ocr + OpenCvSharpでローカル動作する。Core機能・UI共に実装済み、残タスクは公開準備（ライセンス・README・配布形式）。
+モンスターハンターワイルズの護石（スキル構成・スロット情報）をスクリーンショットから読み取ってCSV化し、重複・下位互換護石を検出するWindowsデスクトップアプリ。C# (WPF) + Windows.Media.Ocr + OpenCvSharpでローカル動作する。Core機能・UI共に実装済み、ライセンス対応済み（MIT + THIRD-PARTY-NOTICES）。残タスクはREADME作成と配布形式の検討。
 
 ## フォルダ構成
 
@@ -19,8 +19,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - `charm-combinations.json` — グループ組み合わせ→RARE値のパターンテーブル。RARE推定に使用
   - `charm-types.json` — 護石名→武器スロット有無のテーブル。スロット種別判定に使用
   - `skill-name-checklist.md` — ゲーム内スキル一覧との突き合わせチェックリスト
+  - `deco_checklist.txt` — ゲーム内装飾品一覧との突き合わせチェックリスト（361件照合済み）
 - `charm-lists/` — 護石読み取り結果CSV（出力物。ローカルのみ、`.gitignore`対象）
 - `assets/` — OCR/CV検証用スクリーンショット（ローカルのみ、`.gitignore`対象）
+- `LICENSE` — MIT License
+- `THIRD-PARTY-NOTICES` — 依存ライブラリのライセンス表示（OpenCvSharp4/OpenCV/WPF-UI）
 
 ## コマンド
 
@@ -93,7 +96,7 @@ node legacy/charm-duplicate-checker.js <CSVパス>
 - スタック: C#/.NET 10.0 (WPF) + Windows.Media.Ocr（テキスト: スキル名・Lv）+ OpenCvSharp4（スロットアイコンの判定）+ WPF-UI 4.3.0（Fluentテーマ）
 - スロット判定: ソケット枠を`findContours`で検出し、列プロファイル解析でレベル判定。種別は護石名ベースで判定（バッジテンプレートマッチングは不安定なため廃止）
 - 基準解像度2560x1440に対する比率ベースで座標を扱う（解像度非依存対応は将来課題、現状は自環境での動作を優先）
-- 当初は個人利用。機能が揃った段階で公開予定（このリポジトリのpush含む）
+- 公開準備中。ライセンス対応済み、README作成・配布形式検討が残タスク
 
 ## スロットアイコン判定ロジック（`CharmChecker.Core/SlotIcon/`）
 
