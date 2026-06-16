@@ -13,6 +13,11 @@
             <SolidColorBrush x:Key="SecondaryText" Color="#FF9E9E9E" />
         </DockPanel.Resources>
         <ui:TitleBar DockPanel.Dock="Top" Title="重複チェック" />
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
+                    HorizontalAlignment="Right" Margin="16,0,16,12">
+            <Button x:Name="SaveButton" Content="テキストファイルに保存" Padding="12,4"
+                    Visibility="Collapsed" Click="Save_Click" />
+        </StackPanel>
         <ScrollViewer VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="16">
                 <TextBlock x:Name="DupCheckSummary" TextWrapping="Wrap" />
