@@ -193,6 +193,9 @@ public static class SkillReadingPipeline
             allResults.Add((v.Name, names, lvs));
         }
 
+        if (allResults.Count == 0)
+            return [];
+
         var bestNames = allResults.MaxBy(r => r.Names.Count)!.Names;
         var bestLvs = allResults.MaxBy(r => r.Lvs.Count)!.Lvs;
 

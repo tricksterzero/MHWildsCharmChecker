@@ -180,7 +180,14 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
             foreach (var charm in charms)
                 AddCharm(charm);
         }
-        catch { }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"護石データの読み込みに失敗しました。\n\nファイル: {CharmsFilePath}\n{ex.Message}",
+                "読み込みエラー",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
     }
 
     private static List<Charm> ParseCharmsJson(string json)
@@ -386,6 +393,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         var results = new List<(Charm Charm, string FileName)>();
         int processed = 0;
         int detected = 0;
+        int failed = 0;
 
         foreach (var file in targetFiles)
         {
@@ -420,13 +428,16 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
                 results.Add((charm, Path.GetFileName(file)));
                 detected++;
             }
-            catch { }
+            catch { failed++; }
 
             await Task.Yield();
         }
 
         ReadingProgressText.Text = "完了";
-        ReadingSummaryText.Text = $"{allFiles.Count}枚中 新規{targetFiles.Count}枚を処理、{detected}枚から護石を検出";
+        var summary = $"{allFiles.Count}枚中 新規{targetFiles.Count}枚を処理、{detected}枚から護石を検出";
+        if (failed > 0)
+            summary += $"（{failed}枚で処理エラー）";
+        ReadingSummaryText.Text = summary;
 
         if (results.Count > 0)
         {
