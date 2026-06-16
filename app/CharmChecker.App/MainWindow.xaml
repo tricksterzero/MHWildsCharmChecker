@@ -84,6 +84,8 @@
                     <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="8,4,8,0">
                         <Button Content="手動入力" Padding="12,4"
                                 Click="ManualAddCharm_Click" />
+                        <Button Content="重複チェック" Margin="8,0,0,0" Padding="12,4"
+                                Click="DuplicateCheck_Click" />
                     </StackPanel>
 
                     <!-- 圧縮テーブル -->
@@ -96,7 +98,8 @@
                               CanUserSortColumns="True"
                               CanUserResizeColumns="True"
                               HorizontalScrollBarVisibility="Disabled"
-                              RowHeight="28"
+                              FontFamily="BIZ UDGothic" FontSize="14"
+                              RowHeight="32"
                               AlternatingRowBackground="#FF2A2A2A"
                               AlternationCount="2"
                               GridLinesVisibility="Vertical"
@@ -163,7 +166,7 @@
                             Background="{StaticResource CardBackground}"
                             CornerRadius="4" Margin="8,4,8,8">
                         <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="12,8">
-                            <StackPanel x:Name="DetailPanel">
+                            <StackPanel x:Name="DetailPanel" TextElement.FontSize="16">
                                 <TextBlock x:Name="DetailPlaceholder"
                                            Text="護石を選択すると詳細が表示されます"
                                            Foreground="{StaticResource SecondaryText}" />
@@ -228,6 +231,8 @@
                                   AutoGenerateColumns="False" IsReadOnly="True"
                                   HeadersVisibility="Column"
                                   HorizontalScrollBarVisibility="Disabled"
+                                  FontFamily="BIZ UDGothic" FontSize="14"
+                                  RowHeight="32"
                                   Visibility="Collapsed"
                                   MaxHeight="300">
                             <DataGrid.Columns>
@@ -301,63 +306,6 @@
 
                         <TextBlock x:Name="ExportResultText" Margin="0,8,0,0"
                                    TextWrapping="Wrap" />
-                    </StackPanel>
-                </ScrollViewer>
-            </TabItem>
-            <TabItem Header="重複チェック">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="16">
-                        <Button Content="チェック実行" Padding="16,6"
-                                HorizontalAlignment="Left"
-                                Click="ExecuteDuplicateCheck_Click" />
-
-                        <TextBlock x:Name="DupCheckSummary" Margin="0,8,0,0" />
-
-                        <!-- 完全同一セクション -->
-                        <StackPanel x:Name="DupIdenticalSection" Visibility="Collapsed"
-                                    Margin="0,16,0,0">
-                            <TextBlock Text="完全同一の護石" FontSize="16" FontWeight="Bold" />
-                            <ItemsControl x:Name="DupIdenticalList" Margin="0,8,0,0">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border Background="{StaticResource CardBackground}"
-                                                Padding="12,8" Margin="0,0,0,8"
-                                                CornerRadius="4">
-                                            <StackPanel>
-                                                <TextBlock Text="{Binding Header}"
-                                                           FontWeight="SemiBold" />
-                                                <TextBlock Text="{Binding Detail}"
-                                                           Margin="12,4,0,0"
-                                                           Foreground="{StaticResource SecondaryText}" />
-                                            </StackPanel>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
-
-                        <!-- 上位互換ありセクション -->
-                        <StackPanel x:Name="DupInferiorSection" Visibility="Collapsed"
-                                    Margin="0,16,0,0">
-                            <TextBlock Text="上位互換がある護石" FontSize="16" FontWeight="Bold" />
-                            <ItemsControl x:Name="DupInferiorList" Margin="0,8,0,0">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border Background="{StaticResource CardBackground}"
-                                                Padding="12,8" Margin="0,0,0,8"
-                                                CornerRadius="4">
-                                            <StackPanel>
-                                                <TextBlock Text="{Binding Header}"
-                                                           FontWeight="SemiBold" />
-                                                <TextBlock Text="{Binding Detail}"
-                                                           Margin="12,4,0,0"
-                                                           Foreground="{StaticResource SecondaryText}" />
-                                            </StackPanel>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>

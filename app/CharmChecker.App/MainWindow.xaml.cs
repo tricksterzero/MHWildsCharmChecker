@@ -540,71 +540,10 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         AddReadingResultButton.Visibility = Visibility.Collapsed;
     }
 
-    private void ExecuteDuplicateCheck_Click(object sender, RoutedEventArgs e)
+    private void DuplicateCheck_Click(object sender, RoutedEventArgs e)
     {
-        if (CharmItems.Count == 0)
-        {
-            DupCheckSummary.Text = "護石データがありません。";
-            DupIdenticalSection.Visibility = Visibility.Collapsed;
-            DupInferiorSection.Visibility = Visibility.Collapsed;
-            return;
-        }
-
-        var charms = CharmItems.Select(i => i.Charm).ToList();
-        var result = DuplicateChecker.Check(charms);
-
-        var identicalCount = result.DuplicateGroups.Count;
-        var inferiorCount = result.Inferiors.Count;
-
-        if (identicalCount == 0 && inferiorCount == 0)
-        {
-            DupCheckSummary.Text = $"{CharmItems.Count}件をチェックしました。重複・上位互換は見つかりませんでした。";
-            DupIdenticalSection.Visibility = Visibility.Collapsed;
-            DupInferiorSection.Visibility = Visibility.Collapsed;
-            return;
-        }
-
-        DupCheckSummary.Text = $"{CharmItems.Count}件をチェックしました。"
-            + $"完全同一: {identicalCount}グループ、上位互換あり: {inferiorCount}件";
-
-        if (identicalCount > 0)
-        {
-            DupIdenticalSection.Visibility = Visibility.Visible;
-            DupIdenticalList.ItemsSource = result.DuplicateGroups.Select(g =>
-            {
-                var ids = g.Indices.Select(i => $"#{CharmItems[i].Id}");
-                var sample = CharmItems[g.Indices[0]];
-                return new
-                {
-                    Header = $"[RARE {sample.RarityText}] {sample.SkillText}  {sample.SlotText}（{g.Indices.Count}個）",
-                    Detail = $"対象: {string.Join(", ", ids)}",
-                };
-            }).ToList();
-        }
-        else
-        {
-            DupIdenticalSection.Visibility = Visibility.Collapsed;
-        }
-
-        if (inferiorCount > 0)
-        {
-            DupInferiorSection.Visibility = Visibility.Visible;
-            DupInferiorList.ItemsSource = result.Inferiors.Select(inf =>
-            {
-                var target = CharmItems[inf.TargetIndex];
-                var superiors = inf.SuperiorIndices
-                    .Select(i => $"#{CharmItems[i].Id}（{CharmItems[i].SkillText}  {CharmItems[i].SlotText}）");
-                return new
-                {
-                    Header = $"処分候補: #{target.Id}（[RARE {target.RarityText}] {target.SkillText}  {target.SlotText}）",
-                    Detail = $"上位互換: {string.Join(", ", superiors)}",
-                };
-            }).ToList();
-        }
-        else
-        {
-            DupInferiorSection.Visibility = Visibility.Collapsed;
-        }
+        var window = new DuplicateCheckWindow(CharmItems) { Owner = this };
+        window.ShowDialog();
     }
 
     private void ImportSource_Changed(object sender, RoutedEventArgs e)
