@@ -12,7 +12,7 @@
             <SolidColorBrush x:Key="CardBackground" Color="#FF2A2A2A" />
             <SolidColorBrush x:Key="SecondaryText" Color="#FF9E9E9E" />
         </DockPanel.Resources>
-        <ui:TitleBar DockPanel.Dock="Top" Title="重複チェック" />
+        <ui:TitleBar DockPanel.Dock="Top" Title="重複チェック" FontFamily="BIZ UDGothic" FontSize="16" />
         <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
                     HorizontalAlignment="Right" Margin="16,0,16,12">
             <Button x:Name="SaveButton" Content="テキストファイルに保存" Padding="12,4"

@@ -49,7 +49,8 @@
                 </Setter>
             </Style>
         </DockPanel.Resources>
-        <ui:TitleBar DockPanel.Dock="Top" Title="MHWilds 護石チェッカー">
+        <ui:TitleBar DockPanel.Dock="Top" Title="MHWilds 護石チェッカー"
+                     FontFamily="BIZ UDGothic" FontSize="16">
             <ui:TitleBar.Icon>
                 <ui:ImageIcon Source="app.ico" />
             </ui:TitleBar.Icon>

@@ -9,7 +9,7 @@
         ExtendsContentIntoTitleBar="True"
         WindowBackdropType="Mica">
     <DockPanel>
-        <ui:TitleBar DockPanel.Dock="Top" Title="設定" />
+        <ui:TitleBar DockPanel.Dock="Top" Title="設定" FontFamily="BIZ UDGothic" FontSize="16" />
         <StackPanel Margin="16">
         <TextBlock Text="スクリーンショットフォルダ" FontWeight="Bold" />
         <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
