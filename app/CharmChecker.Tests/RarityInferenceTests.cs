@@ -10,7 +10,7 @@ public class RarityInferenceTests
     {
         var charm = new Charm
         {
-            Skills = [new("攻撃", 2), new("KO術", 1)],
+            Skills = [new("攻撃", 2), new("ＫＯ術", 1)],
             WeaponSlots = [1, 0, 0],
             ArmorSlots = [0, 0, 0],
         };
@@ -23,7 +23,7 @@ public class RarityInferenceTests
         // Group 1 skill + Group 6 skills → RARE 5
         var charm = new Charm
         {
-            Skills = [new("KO術", 1), new("アイテム使用強化", 2), new("ボマー", 2)],
+            Skills = [new("ＫＯ術", 1), new("アイテム使用強化", 2), new("ボマー", 2)],
             ArmorSlots = [3, 0, 0],
             WeaponSlots = [0, 0, 0],
         };
@@ -36,7 +36,7 @@ public class RarityInferenceTests
         // Group 2 + Group 6 → RARE 6
         var charm = new Charm
         {
-            Skills = [new("KO術", 2), new("アイテム使用強化", 2), new("ボマー", 2)],
+            Skills = [new("ＫＯ術", 2), new("アイテム使用強化", 2), new("ボマー", 2)],
             ArmorSlots = [2, 1, 0],
             WeaponSlots = [0, 0, 0],
         };
@@ -49,7 +49,7 @@ public class RarityInferenceTests
         // Group 1 + Group 1 + Group 7 → RARE 6
         var charm = new Charm
         {
-            Skills = [new("KO術", 1), new("攻撃", 1), new("アイテム使用強化", 3)],
+            Skills = [new("ＫＯ術", 1), new("攻撃", 1), new("アイテム使用強化", 3)],
             ArmorSlots = [1, 1, 0],
             WeaponSlots = [0, 0, 0],
         };
@@ -62,7 +62,7 @@ public class RarityInferenceTests
         // Group 3 skill → RARE 7 (armor slots only, not 8)
         var charm = new Charm
         {
-            Skills = [new("KO術", 3), new("アイテム使用強化", 2), new("アイテム使用強化", 1)],
+            Skills = [new("ＫＯ術", 3), new("アイテム使用強化", 2), new("アイテム使用強化", 1)],
             ArmorSlots = [2, 0, 0],
             WeaponSlots = [0, 0, 0],
         };

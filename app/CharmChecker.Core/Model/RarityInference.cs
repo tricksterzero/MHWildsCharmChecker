@@ -44,6 +44,9 @@ public static class RarityInference
         if (charm.WeaponSlots.Any(v => v > 0))
             return 8;
 
+        if (charm.Skills.Any(s => s.Name == "研鑽"))
+            return 5;
+
         if (charm.Skills.Count == 0)
             return null;
 
