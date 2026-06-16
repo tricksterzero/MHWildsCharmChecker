@@ -224,7 +224,18 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
             };
         }).ToList();
         var json = JsonSerializer.Serialize(items, JsonOptions);
-        File.WriteAllText(CharmsFilePath, json);
+        try
+        {
+            File.WriteAllText(CharmsFilePath, json);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"護石データの保存に失敗しました。\n\nファイル: {CharmsFilePath}\n{ex.Message}",
+                "保存エラー",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
     }
 
     private CharmListItem AddCharm(Charm charm)
@@ -720,8 +731,15 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         if (dialog.ShowDialog() != true) return;
 
         var text = CharmCsvConverter.ToText(AllCharms);
-        File.WriteAllText(dialog.FileName, text);
-        ExportResultText.Text = $"ファイルに保存しました。（{CharmItems.Count}件 → {dialog.FileName}）";
+        try
+        {
+            File.WriteAllText(dialog.FileName, text);
+            ExportResultText.Text = $"ファイルに保存しました。（{CharmItems.Count}件 → {dialog.FileName}）";
+        }
+        catch (Exception ex)
+        {
+            ExportResultText.Text = $"保存に失敗しました: {ex.Message}";
+        }
     }
 
     private void SettingsMenu_Click(object sender, RoutedEventArgs e)

@@ -25,18 +25,18 @@ public static class ImageVariantFactory
         variants.Add(new Variant("trim60", trimmedClone, 240));
 
         // (3) Otsu二値化
-        var gray = new Mat();
+        using var gray = new Mat();
         Cv2.CvtColor(crop, gray, ColorConversionCodes.BGR2GRAY);
-        var binarized = new Mat();
+        using var binarized = new Mat();
         Cv2.Threshold(gray, binarized, 0, 255, ThresholdTypes.Binary | ThresholdTypes.Otsu);
         var binBgr = new Mat();
         Cv2.CvtColor(binarized, binBgr, ColorConversionCodes.GRAY2BGR);
         variants.Add(new Variant("otsu", binBgr, 300));
 
         // (4) トリミング + 二値化
-        var grayT = new Mat();
+        using var grayT = new Mat();
         Cv2.CvtColor(trimmedClone, grayT, ColorConversionCodes.BGR2GRAY);
-        var binT = new Mat();
+        using var binT = new Mat();
         Cv2.Threshold(grayT, binT, 0, 255, ThresholdTypes.Binary | ThresholdTypes.Otsu);
         var binTBgr = new Mat();
         Cv2.CvtColor(binT, binTBgr, ColorConversionCodes.GRAY2BGR);
@@ -46,12 +46,6 @@ public static class ImageVariantFactory
         var grayBgr = new Mat();
         Cv2.CvtColor(gray, grayBgr, ColorConversionCodes.GRAY2BGR);
         variants.Add(new Variant("gray", grayBgr, 300));
-
-        // 中間Matの解放
-        binarized.Dispose();
-        grayT.Dispose();
-        binT.Dispose();
-        gray.Dispose();
 
         return variants;
     }

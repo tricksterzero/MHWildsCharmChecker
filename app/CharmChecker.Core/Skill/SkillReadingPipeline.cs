@@ -40,7 +40,7 @@ public static class SkillReadingPipeline
         var charmName = ExtractCharmName(fullOcr);
 
         using var img = Cv2.ImRead(imagePath);
-        var crop = CropSkillArea(img, ax, ay);
+        using var crop = CropSkillArea(img, ax, ay);
 
         var variants = ImageVariantFactory.Create(crop);
         try
@@ -52,7 +52,6 @@ public static class SkillReadingPipeline
         {
             foreach (var v in variants)
                 v.Image.Dispose();
-            crop.Dispose();
         }
     }
 
