@@ -38,6 +38,13 @@ public static class SlotIconConstants
     public const double FrameHeightMax = 45;
     public const double FrameYMin = 10;
 
+    // x近接統合・yクラスタリングの閾値（基準解像度でのpx）
+    public const double MergeXThreshold = 20;
+    public const double ClusterYThreshold = 15;
+
+    // レベル判定に使う枠下部の割合
+    public const double LevelCropTopFraction = 0.45;
+
     // 単一護石詳細画面のスロットアイコン探索領域（基準解像度に対する比率）
     public const double DetailPanelY0Frac = 310.0 / RefHeight;
     public const double DetailPanelY1Frac = 410.0 / RefHeight;

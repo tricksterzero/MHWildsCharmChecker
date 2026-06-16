@@ -68,8 +68,8 @@ public static class SlotIconAnalyzer
         }
 
         raw.Sort((a, b) => a.X.CompareTo(b.X));
-        var merged = MergeOverlapping(raw, 20 * sx);
-        return FilterYCluster(merged, 15 * sy);
+        var merged = MergeOverlapping(raw, SlotIconConstants.MergeXThreshold * sx);
+        return FilterYCluster(merged, SlotIconConstants.ClusterYThreshold * sy);
     }
 
     /// <summary>
@@ -78,7 +78,7 @@ public static class SlotIconAnalyzer
     /// </summary>
     public static LevelClassification ClassifyLevel(Mat gray, Rect frame)
     {
-        int y0 = frame.Y + (int)(frame.Height * 0.45);
+        int y0 = frame.Y + (int)(frame.Height * SlotIconConstants.LevelCropTopFraction);
         var cropRect = new Rect(frame.X, y0, frame.Width, frame.Y + frame.Height - y0);
         using var crop = new Mat(gray, cropRect);
         using var resized = new Mat();
