@@ -4,26 +4,40 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## プロジェクト概要
 
-モンスターハンターワイルズの護石（スキル構成・スロット情報）をスクリーンショットから読み取ってCSV化し、重複・下位互換護石を検出するツール。現在はClaude Vision + Node.jsで読み取り・チェックを行っているが、C# (WPF) + Windows.Media.Ocr + OpenCvSharpによるローカル動作のWindowsアプリへ移行中。`app/`配下にC#プロジェクトを構築し、スロットアイコン判定・テキストOCRラッパーまで実装済み。スキル名・Lv読み取りパイプラインと重複チェッカーのC#移植が残タスク。
+モンスターハンターワイルズの護石（スキル構成・スロット情報）をスクリーンショットから読み取ってCSV化し、重複・下位互換護石を検出するWindowsデスクトップアプリ。C# (WPF) + Windows.Media.Ocr + OpenCvSharpでローカル動作する。Core機能・UI共に実装済み、残タスクは公開準備（ライセンス・README・配布形式）。
 
 ## フォルダ構成
 
 - `app/` — C# WPFアプリ本体（CharmChecker.App / CharmChecker.Core / CharmChecker.Tests）
-- `legacy/` — 旧アプローチ一式。C#移植時のロジック・仕様の参照元
-  - `charm-duplicate-checker.js` — 重複・上位互換チェッカー
+- `legacy/` — 旧アプローチ一式（Node.js + Claude Vision）。C#移植時のロジック・仕様の参照元として保持
+  - `charm-duplicate-checker.js` — 重複・上位互換チェッカー（C#移植済み）
   - `charm_reader_prompt.md` / `charm_reader_prompt_for_cowork.md` — スクショ読み取り手順（Vision向けプロンプト）
-- `resources/skill-decoration-map.json` — 装飾品マスターデータ + 装飾品なしスキル。スキル名正規化（121種）の正解候補として使う
-- `resources/skill-name-checklist.md` — ゲーム内スキル一覧との突き合わせチェックリスト
+- `resources/` — アプリが参照するデータファイル群
+  - `skill-decoration-map.json` — 装飾品マスターデータ + 装飾品なしスキル。スキル名正規化（121種）の正解候補として使う
+  - `skill-order.json` — ゲーム内表示順のスキル名リスト。ComboBox表示順に使用
+  - `skill-groups.json` — スキル→グループ番号のマッピング。RARE推定に使用
+  - `charm-combinations.json` — グループ組み合わせ→RARE値のパターンテーブル。RARE推定に使用
+  - `charm-types.json` — 護石名→武器スロット有無のテーブル。スロット種別判定に使用
+  - `skill-name-checklist.md` — ゲーム内スキル一覧との突き合わせチェックリスト
 - `charm-lists/` — 護石読み取り結果CSV（出力物。ローカルのみ、`.gitignore`対象）
 - `assets/` — OCR/CV検証用スクリーンショット（ローカルのみ、`.gitignore`対象）
 
 ## コマンド
 
+### C#アプリ（メイン）
+
+```
+cd app
+dotnet build
+dotnet run --project CharmChecker.App
+dotnet test --project CharmChecker.Tests
+```
+
+### legacy（参考用）
+
 ```
 node legacy/charm-duplicate-checker.js <CSVパス>
 ```
-
-CSVを読み込み、完全同一の重複と完全上位互換による処分候補を標準出力にレポートする（原本CSVは変更しない）。
 
 ## CSVフォーマット（12列、1行=護石1個）
 
@@ -34,23 +48,56 @@ CSVを読み込み、完全同一の重複と完全上位互換による処分�
 - スキルが3つ未満の場合、空きは名前を空欄・Lvを`0`とする
 - スロットは各位置のレベルを`0/1/2/3`で記録する（穴なし=0）
 - スキル名は`resources/skill-decoration-map.json`の`decorations[].skills`キー + `extra_skills`配列に含まれる正規名（計121種）のみが有効（正規化ルールは`legacy/charm_reader_prompt.md`を参照）
+- mhwilds.wiki-db.comのスキルシミュレータとのインポート・エクスポート互換を意図した形式
 
-## 護石の優劣判定ロジック（`legacy/charm-duplicate-checker.js`）
+## スキル名の正規名と照合時の注意
+
+- **正規名の単一ソース**: `resources/skill-decoration-map.json`の`decorations[].skills`キー + `extra_skills`（計121種）
+- `skill-groups.json`・`skill-order.json`等のスキル名は正規名と完全一致している必要がある
+- **全角半角の不一致に注意**: 正規名は`ＫＯ術`（全角）・`攻撃力ＵＰ`（全角）等を使う。`KO術`（半角）や`攻撃力UP`（半角）では照合に失敗する
+- スキル名を含むリソースファイルを編集する際は、必ず`skill-decoration-map.json`の表記と突き合わせること
+
+## 護石の優劣判定ロジック（`CharmChecker.Core/Model/DuplicateChecker.cs`）
 
 - **完全同一**: スキル構成（名前+Lv）とスロット構成（防具・武器それぞれ降順ソート後）が両方一致
-- **完全上位互換**: スキルは全項目でA≥B、スロットも防具・武器それぞれ降順ソート後の各位置でA≥B、かつ全項目で完全同一ではない
+- **完全上位互換**: スキルは全項目でA>=B、スロットも防具・武器それぞれ降順ソート後の各位置でA>=B、かつ全項目で完全同一ではない
 - スキル名の集合が異なる護石同士は比較不能（incomparable）として扱う
+
+## RARE推定ロジック（`CharmChecker.Core/Model/RarityInference.cs`）
+
+- `skill-groups.json`でスキル名→グループ番号に変換し、`charm-combinations.json`のパターンテーブルからRARE値を決定
+- 特殊ケース: 研鑽スキル（希望の護石固有）→ RARE 5 固定
+
+## WPF UI構成
+
+### ウィンドウ構成（全4ウィンドウ、FluentWindow + Mica backdrop）
+- `MainWindow` — メインウィンドウ（3タブ: 護石一覧 / スクショ読み取り / CSVインポート・エクスポート）
+- `DuplicateCheckWindow` — 重複チェック結果ダイアログ（護石一覧タブのボタンから起動）
+- `CharmEditWindow` — 護石編集・手動入力ダイアログ
+- `SettingsWindow` — 設定ダイアログ
+
+### フォント
+- ウィンドウ既定: BIZ UDGothic 16px
+- DataGrid: 14px（明示設定）
+- TitleBar: 16px（明示設定）
+
+### wpfui TitleBar・DataGridのフォント非継承
+**wpfui TitleBarはウィンドウのFontFamily/FontSizeを継承しない。** DataGridも同様。新しいウィンドウを追加する際は、TitleBarとDataGridに`FontFamily="BIZ UDGothic" FontSize="..."`を明示的に設定すること。設定を忘れるとシステムフォント（Yu Gothic UI等）にフォールバックし、見た目が不統一になる。
+
+### テーマ
+- ダーク固定。wpfui標準のDynamicResourceはダークモードで視認性が極端に低いため、カスタムカラーリソース（PanelBackground/CardBackground/SplitterColor/SecondaryText）で明示的に上書きしている
+- ライトテーマ対応は将来タスク（カスタムカラーのDynamicResource化が必要）
 
 ## C#移行の方針
 
-- スタック: C#/.NET (WPF) + Windows.Media.Ocr（テキスト: スキル名・Lv）+ OpenCvSharp（スロットアイコンの判定）
-- スロット判定: ソケット枠を`findContours`で検出し、相対オフセットでバッジ領域(種別)・三角領域(レベル)を切り出してテンプレートマッチング
+- スタック: C#/.NET 10.0 (WPF) + Windows.Media.Ocr（テキスト: スキル名・Lv）+ OpenCvSharp4（スロットアイコンの判定）+ WPF-UI 4.3.0（Fluentテーマ）
+- スロット判定: ソケット枠を`findContours`で検出し、列プロファイル解析でレベル判定。種別は護石名ベースで判定（バッジテンプレートマッチングは不安定なため廃止）
 - 基準解像度2560x1440に対する比率ベースで座標を扱う（解像度非依存対応は将来課題、現状は自環境での動作を優先）
 - 当初は個人利用。機能が揃った段階で公開予定（このリポジトリのpush含む）
 
-## スロットアイコン判定ロジック（検証済み仕様）
+## スロットアイコン判定ロジック（`CharmChecker.Core/SlotIcon/`）
 
-Python(`legacy/slot-icon-pipeline/pipeline.py`)でPoC済み、`CharmChecker.Core/SlotIcon/`にC#移植済み。
+PythonでPoC済み、C#移植済み。
 
 - **基準解像度**: `REF_W=2560, REF_H=1440`。実画像サイズとの比率(`scale_factors`)で全座標をスケーリング。
 - **パネル領域**: BOXパネル(2護石比較画面の右側, y:280-420, x:2200-2500)とDetailパネル(単一護石詳細画面, y:310-410, x:1400-1650)の2領域で検出し、フレーム数が多い方を採用。
@@ -60,7 +107,7 @@ Python(`legacy/slot-icon-pipeline/pipeline.py`)でPoC済み、`CharmChecker.Core
   - `n==2`かつ谷比率`<0.5` → Lv1
   - `n==2`かつ谷比率`>=0.5` → Lv2
   - `n>=3` → Lv3
-- **種別判定(武器/防具)**: 護石名ベース。`SkillReadingPipeline.ReadWithMetadataAsync`で護石名を取得し、「栄世の護石」なら1つ目が武器スロット、それ以外は全て防具スロット。バッジテンプレートマッチングは不安定なため廃止。
+- **種別判定(武器/防具)**: 護石名ベース。`SkillReadingPipeline.ReadWithMetadataAsync`で護石名を取得し、「栄世の護石」なら1つ目が武器スロット、それ以外は全て防具スロット。
 
 ### 検証範囲・制約
 - BOXパネル(2護石比較画面の右側): 11パネルでLv全問正解。Detailパネル(単一護石詳細画面): 2パネルで全問正解。装備中側(左パネル)は装飾品装着で色が変わるため判定対象外。
@@ -69,18 +116,18 @@ Python(`legacy/slot-icon-pipeline/pipeline.py`)でPoC済み、`CharmChecker.Core
 - 「穴なし」スロットは対象外（ショップ購入護石のみに存在し、本チェッカーの対象護石には現れない）。
 - 2560x1440以外の解像度・16:9以外のアスペクト比は未検証。
 
-## テキストOCRロジック（実装済み）
+## テキストOCRロジック（`CharmChecker.Core/Ocr/TextOcrReader.cs`）
 
-`CharmChecker.Core/Ocr/TextOcrReader.cs`で`Windows.Media.Ocr`を使ったテキスト認識を実装済み。
+`Windows.Media.Ocr`を使ったテキスト認識。
 
 - **OCRエンジン生成**: `OcrEngine.TryCreateFromLanguage(new Language("ja"))`。`null`の場合は例外（日本語OCR言語パック未導入）。
 - **画像読み込み**: `BitmapDecoder.GetSoftwareBitmapAsync(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied)`でデコード時に直接変換する。デコード後に`SoftwareBitmap.Convert`で変換する方式は、JPEGのアルファ値の扱いにより画像が壊れる可能性があるため避ける。
 - **CJK文字の認識仕様**: 漢字・かな等のCJK文字は1文字ずつ別の`Word`として認識され、`OcrLine.Text`/`OcrResult.Text`は文字間に半角スペースを挟んで結合される（例: `"栄世の護石"` → `"栄 世 の 護 石"`）。スキル名等と比較する際はスペースを除去してから行う。
 - **TFM要件**: `Windows.Media.Ocr`の利用には`CharmChecker.Core`/`CharmChecker.Tests`/`CharmChecker.App`すべてを`net10.0-windows10.0.22000.0`に統一する必要がある（プロジェクト間でTFMの具体度が揃わないとNU1201エラーになる）。
 
-## スキル名・Lv読み取りロジック（検証済み仕様）
+## スキル名・Lv読み取りロジック（`CharmChecker.Core/Skill/`）
 
-Python(`C:\tmp\ClaudeCode\charm_ocr\skill_ocr_test.py`)でPoC済み。15画像・37スキル項目で全問正解。C#移植時はこのロジックを移す。
+PythonでPoC済み、C#移植済み。15画像・37スキル項目で全問正解。
 
 ### パイプライン概要
 1. **フル画像OCR** → アンカー検出 → 護石パネル判定 → スキル領域クロップ → バリエーションOCR → 正規化・ペアリング
@@ -122,7 +169,6 @@ Python(`C:\tmp\ClaudeCode\charm_ocr\skill_ocr_test.py`)でPoC済み。15画像�
 - 非護石画像の棄却テスト: 30枚で偽陽性ゼロ
 - 1280x720設定(スクショは2560x1440): 正常動作確認済み
 - **21:9は未対応**(パネル幅が異なりLv検出不可。将来課題)
-- ~~`skill-decoration-map.json`に未収録のスキルが存在する~~ → `extra_skills`として追加済み（属性吸収・属性変換・属性やられ耐性・オトモへの采配）
 
 ## コミット規約
 
