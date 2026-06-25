@@ -342,6 +342,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
 
     private static readonly string[] ImageExtensions = [".jpg", ".jpeg", ".png", ".bmp"];
     private List<(Charm Charm, string FileName)>? _readingResults;
+    private CancellationTokenSource? _readingCts;
 
     private void BrowseScreenshotFolder_Click(object sender, RoutedEventArgs e)
     {
@@ -392,7 +393,13 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
             if (confirm != MessageBoxResult.Yes) return;
         }
 
+        _readingCts?.Cancel();
+        _readingCts = new CancellationTokenSource();
+        var ct = _readingCts.Token;
+
         StartReadingButton.IsEnabled = false;
+        CancelReadingButton.IsEnabled = true;
+        CancelReadingButton.Visibility = Visibility.Visible;
         ReadingProgressPanel.Visibility = Visibility.Visible;
         ReadingProgressBar.Maximum = targetFiles.Count;
         ReadingProgressBar.Value = 0;
@@ -408,9 +415,16 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         int processed = 0;
         int detected = 0;
         int failed = 0;
+        bool cancelled = false;
 
         foreach (var file in targetFiles)
         {
+            if (ct.IsCancellationRequested)
+            {
+                cancelled = true;
+                break;
+            }
+
             processed++;
             ReadingProgressBar.Value = processed;
             ReadingProgressText.Text = $"{processed} / {targetFiles.Count} 処理中...";
@@ -451,11 +465,24 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
             await Task.Yield();
         }
 
-        ReadingProgressText.Text = "完了";
-        var summary = $"{allFiles.Count}枚中 新規{targetFiles.Count}枚を処理、{detected}枚から護石を検出";
-        if (failed > 0)
-            summary += $"（{failed}枚で処理エラー）";
-        ReadingSummaryText.Text = summary;
+        CancelReadingButton.Visibility = Visibility.Collapsed;
+
+        if (cancelled)
+        {
+            ReadingProgressText.Text = "中断";
+            var summary = $"{processed} / {targetFiles.Count}枚まで処理（中断）、{detected}枚から護石を検出";
+            if (failed > 0)
+                summary += $"（{failed}枚で処理エラー）";
+            ReadingSummaryText.Text = summary;
+        }
+        else
+        {
+            ReadingProgressText.Text = "完了";
+            var summary = $"{allFiles.Count}枚中 新規{targetFiles.Count}枚を処理、{detected}枚から護石を検出";
+            if (failed > 0)
+                summary += $"（{failed}枚で処理エラー）";
+            ReadingSummaryText.Text = summary;
+        }
 
         if (results.Count > 0)
         {
@@ -472,6 +499,13 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         }
 
         StartReadingButton.IsEnabled = true;
+    }
+
+    private void CancelReading_Click(object sender, RoutedEventArgs e)
+    {
+        _readingCts?.Cancel();
+        CancelReadingButton.IsEnabled = false;
+        ReadingProgressText.Text = "中断しています...";
     }
 
     private static (List<int> ArmorSlots, List<int> WeaponSlots) ReadSlots(
