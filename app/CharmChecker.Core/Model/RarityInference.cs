@@ -10,24 +10,15 @@ public record CharmCombination(int Rarity, int[] SkillGroups, CharmCombinationSl
 
 public static class RarityInference
 {
-    private static IReadOnlyList<SkillGroupEntry>? _skillGroups;
-    private static IReadOnlyList<CharmCombination>? _combinations;
+    private static readonly Lazy<IReadOnlyList<SkillGroupEntry>> _skillGroups =
+        new(() => LoadEmbeddedResource<SkillGroupEntry[]>("skill-groups.json", ParseSkillGroups));
 
-    public static IReadOnlyList<SkillGroupEntry> LoadSkillGroups()
-    {
-        if (_skillGroups is not null) return _skillGroups;
-        _skillGroups = LoadEmbeddedResource<SkillGroupEntry[]>("skill-groups.json",
-            ParseSkillGroups);
-        return _skillGroups;
-    }
+    private static readonly Lazy<IReadOnlyList<CharmCombination>> _combinations =
+        new(() => LoadEmbeddedResource<CharmCombination[]>("charm-combinations.json", ParseCombinations));
 
-    public static IReadOnlyList<CharmCombination> LoadCombinations()
-    {
-        if (_combinations is not null) return _combinations;
-        _combinations = LoadEmbeddedResource<CharmCombination[]>("charm-combinations.json",
-            ParseCombinations);
-        return _combinations;
-    }
+    public static IReadOnlyList<SkillGroupEntry> LoadSkillGroups() => _skillGroups.Value;
+
+    public static IReadOnlyList<CharmCombination> LoadCombinations() => _combinations.Value;
 
     public static int? Infer(Charm charm)
     {

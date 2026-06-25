@@ -209,4 +209,19 @@ public class DuplicateCheckerTests
         Assert.Empty(result.DuplicateGroups);
         Assert.Empty(result.Inferiors);
     }
+
+    [Fact]
+    public void DuplicateSkillNames_Incomparable_NoCrash()
+    {
+        var charms = new[]
+        {
+            MakeCharm([("攻撃", 4), ("攻撃", 2)], [1, 0, 0]),
+            MakeCharm([("攻撃", 4)], [1, 0, 0]),
+        };
+
+        var result = DuplicateChecker.Check(charms);
+
+        Assert.Empty(result.DuplicateGroups);
+        Assert.Empty(result.Inferiors);
+    }
 }

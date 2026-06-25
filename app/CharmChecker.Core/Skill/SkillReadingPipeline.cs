@@ -41,6 +41,7 @@ public static class SkillReadingPipeline
 
         using var img = Cv2.ImRead(imagePath);
         using var crop = CropSkillArea(img, ax, ay);
+        if (crop is null) return null;
 
         var variants = ImageVariantFactory.Create(crop);
         try
@@ -143,20 +144,25 @@ public static class SkillReadingPipeline
         return false;
     }
 
-    private static Mat CropSkillArea(Mat img, double anchorX, double anchorY)
+    private static Mat? CropSkillArea(Mat img, double anchorX, double anchorY)
     {
         int x0 = Math.Max(0, (int)(anchorX + SkillAreaRel.X));
         int y0 = Math.Max(0, (int)(anchorY + SkillAreaRel.Y));
         int x1 = Math.Min(img.Width, (int)(anchorX + SkillAreaRel.X + SkillAreaRel.Width));
         int y1 = Math.Min(img.Height, (int)(anchorY + SkillAreaRel.Y + SkillAreaRel.Height));
 
-        return new Mat(img, new Rect(x0, y0, x1 - x0, y1 - y0));
+        int w = x1 - x0;
+        int h = y1 - y0;
+        if (w <= 0 || h <= 0) return null;
+
+        return new Mat(img, new Rect(x0, y0, w, h));
     }
 
     private static async Task<IReadOnlyList<SkillEntry>> RunVariantsAndMerge(
         List<ImageVariantFactory.Variant> variants,
         IReadOnlyList<string> knownSkills)
     {
+        var knownSkillSet = new HashSet<string>(knownSkills);
         var allResults = new List<(string Name, List<(double Y, string SkillName)> Names, List<(double Y, int Lv)> Lvs)>();
 
         foreach (var v in variants)
@@ -181,7 +187,7 @@ public static class SkillReadingPipeline
                 }
                 else
                 {
-                    var normalized = SkillNameNormalizer.Normalize(t.Text, knownSkills);
+                    var normalized = SkillNameNormalizer.Normalize(t.Text, knownSkills, knownSkillSet);
                     if (normalized is not null)
                         names.Add((t.Y0, normalized));
                 }

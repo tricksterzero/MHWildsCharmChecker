@@ -6,20 +6,16 @@ public record CharmTypeInfo(string Name, int Rarity, bool HasWeaponSlot);
 
 public static class CharmTypeLoader
 {
-    private static IReadOnlyList<CharmTypeInfo>? _cached;
-
-    public static IReadOnlyList<CharmTypeInfo> LoadFromEmbeddedResource()
+    private static readonly Lazy<IReadOnlyList<CharmTypeInfo>> _cached = new(() =>
     {
-        if (_cached is not null) return _cached;
-
         var asm = typeof(CharmTypeLoader).Assembly;
         using var stream = asm.GetManifestResourceStream("CharmChecker.Core.Resources.charm-types.json")
             ?? throw new InvalidOperationException("埋め込みリソース 'charm-types.json' が見つかりません。");
         using var reader = new StreamReader(stream);
-        var json = reader.ReadToEnd();
-        _cached = ParseJson(json);
-        return _cached;
-    }
+        return ParseJson(reader.ReadToEnd());
+    });
+
+    public static IReadOnlyList<CharmTypeInfo> LoadFromEmbeddedResource() => _cached.Value;
 
     public static IReadOnlyList<CharmTypeInfo> Load(string jsonPath)
     {

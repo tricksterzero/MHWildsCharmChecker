@@ -43,6 +43,22 @@ public partial class CharmEditWindow : Wpf.Ui.Controls.FluentWindow
         {
             Title = "護石の手動入力";
         }
+
+        foreach (var cb in skillLvComboBoxes)
+            cb.SelectionChanged += OnInputChanged;
+        foreach (var cb in new[] { ArmorSlot1, ArmorSlot2, WeaponSlot1 })
+            cb.SelectionChanged += OnInputChanged;
+        foreach (var cb in skillNameComboBoxes)
+        {
+            cb.SelectionChanged += OnInputChanged;
+            cb.AddHandler(System.Windows.Controls.Primitives.TextBoxBase.TextChangedEvent,
+                new RoutedEventHandler(OnInputChanged));
+        }
+    }
+
+    private void OnInputChanged(object sender, RoutedEventArgs e)
+    {
+        UpdateInferredRarity();
     }
 
     private void LoadFromCharm(Charm charm)

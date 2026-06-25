@@ -151,7 +151,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
             if (!double.IsNaN(settings.DetailPanelHeight) && settings.DetailPanelHeight >= 80)
                 DetailRowDef.Height = new GridLength(settings.DetailPanelHeight);
         }
-        catch { }
+        catch (Exception ex) { ErrorLogger.Log("LoadSettings", SettingsFilePath, ex); }
     }
 
     private string _screenshotFolder = "";
@@ -394,6 +394,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         }
 
         _readingCts?.Cancel();
+        _readingCts?.Dispose();
         _readingCts = new CancellationTokenSource();
         var ct = _readingCts.Token;
 
@@ -442,7 +443,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
                 if (validSkills.Count == 0) continue;
 
                 var charmType = CharmTypeLoader.Lookup(readResult.CharmName, charmTypes);
-                var slots = ReadSlots(file, charmType?.HasWeaponSlot ?? false);
+                var slots = await Task.Run(() => ReadSlots(file, charmType?.HasWeaponSlot ?? false));
 
                 var charm = new Charm
                 {
@@ -872,6 +873,9 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
             FileName = "charms.json",
         };
         if (dialog.ShowDialog() != true) return;
+
+        if (!File.Exists(CharmsFilePath))
+            SaveCharms();
 
         File.Copy(CharmsFilePath, dialog.FileName, overwrite: true);
         MessageBox.Show($"{CharmItems.Count}件の護石データをエクスポートしました。", "エクスポート");

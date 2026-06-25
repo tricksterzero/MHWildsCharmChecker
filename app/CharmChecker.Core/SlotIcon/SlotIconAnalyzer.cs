@@ -208,7 +208,7 @@ public static class SlotIconAnalyzer
             else
                 groups.Add(new() { sortedByY[i] });
         }
-        var best = groups.MaxBy(g => (g.Count, g.Sum(f => f.Width * f.Height)))!;
+        var best = groups.MaxBy(g => (g.Count, g.Sum(f => (long)f.Width * f.Height)))!;
         var bestSet = new HashSet<Rect>(best);
         return frames.Where(f => bestSet.Contains(f)).ToList();
     }

@@ -43,18 +43,18 @@ public static class CharmCsvConverter
         for (int i = 0; i < MaxSkills; i++)
         {
             var name = cols[i * 2].Trim();
-            var lv = int.Parse(cols[i * 2 + 1].Trim());
+            var lv = ParseInt(cols[i * 2 + 1].Trim(), line);
             if (name != "" && lv > 0)
                 skills.Add(new CharmSkill(name, lv));
         }
 
         var armorSlots = new List<int>();
         for (int i = 0; i < MaxSlots; i++)
-            armorSlots.Add(int.Parse(cols[6 + i].Trim()));
+            armorSlots.Add(ParseInt(cols[6 + i].Trim(), line));
 
         var weaponSlots = new List<int>();
         for (int i = 0; i < MaxSlots; i++)
-            weaponSlots.Add(int.Parse(cols[9 + i].Trim()));
+            weaponSlots.Add(ParseInt(cols[9 + i].Trim(), line));
 
         return new Charm
         {
@@ -82,6 +82,13 @@ public static class CharmCsvConverter
             }
         }
         return charms;
+    }
+
+    private static int ParseInt(string value, string line)
+    {
+        if (!int.TryParse(value, out var result))
+            throw new FormatException($"数値に変換できません「{value}」: {line}");
+        return result;
     }
 
     public static string ToText(IEnumerable<Charm> charms)

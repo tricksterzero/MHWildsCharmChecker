@@ -19,12 +19,15 @@ public static class SkillNameNormalizer
     /// 部分一致(先頭ゴミ文字対応) + 濁点フォールバック。
     /// </summary>
     public static string? Normalize(string ocrText, IReadOnlyList<string> knownSkills)
+        => Normalize(ocrText, knownSkills, null);
+
+    public static string? Normalize(string ocrText, IReadOnlyList<string> knownSkills, HashSet<string>? knownSkillSet)
     {
         var text = ocrText.Trim();
         if (text.Length == 0)
             return null;
 
-        if (knownSkills.Contains(text))
+        if (knownSkillSet is not null ? knownSkillSet.Contains(text) : knownSkills.Contains(text))
             return text;
 
         foreach (var skill in knownSkills)
