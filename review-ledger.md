@@ -58,8 +58,8 @@
 
 | ファイル | 状態 | 相互作用チェック相手 |
 |---|---|---|
-| App.xaml.cs | 未 | - |
-| AssemblyInfo.cs | 未 | - |
+| App.xaml.cs | 済(2026-07-12、0件・既知課題を再確認) | MainWindow(`SystemThemeWatcher.Watch(this)`)。`ApplicationThemeManager.ApplySystemTheme()`+`SystemThemeWatcher`はOSのライト/ダーク設定に追従する実装のままである一方、MainWindow.xaml等のカスタムカラー(`PanelBackground`等)はダーク専用の固定`SolidColorBrush`(`#FF2D2D2D`等)。ライトモード環境ではwpfui標準コントロールだけライトへ切り替わりカスタムパネルはダークのまま残る、という混在崩れが理論上発生しうる。**新規発見ではなく、26日前のメモリ(project-wpfui-theme)で既に「ダーク固定が意図だが機構は残っており将来のライトテーマ対応タスク」として認識・先送り済みの既知課題であることをコード上で再確認**。CLAUDE.mdの「テーマ: ダーク固定」という記述はやや言い切りすぎで、実装は「ダーク前提だがOS追従の機構は無効化されていない」という実態の方が正確。対応は既にユーザー判断で見送り済みのため今回も修正せず据え置き |
+| AssemblyInfo.cs | 済(2026-07-12、0件) | WPFテンプレート標準のThemeInfo属性のみ、ロジックなし |
 
 ## ドキュメント精査
 
