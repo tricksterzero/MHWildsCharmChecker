@@ -28,8 +28,8 @@
 | ファイル | 状態 | 相互作用チェック相手 |
 |---|---|---|
 | SlotIconAnalyzer.cs | 済(2026-06-25、マジックナンバー定数化+コードレビュー修正1件) | SlotIconTypes(定数)・SlotValidation(判定結果の検証)・SkillReadingPipeline(護石名ベース種別判定の受け渡し) |
-| SlotIconTypes.cs | 未 | SlotIconAnalyzer・SlotValidation |
-| SlotValidation.cs | 未 | SlotIconAnalyzer(判定結果)・CharmModel(スロット値の型) |
+| SlotIconTypes.cs | 済(2026-07-12、0件) | SlotIconAnalyzer(定数の消費)・SlotValidation(ArmorSlotMaxByPositionとの整合)。定数値自体はSlotIconAnalyzer精査時に実データ検証済み(2026-06-15メモリ参照)のものをそのまま踏襲しており齟齬なし |
+| SlotValidation.cs | 済(2026-07-12、0件) | SlotIconAnalyzer(判定結果)・MainWindow.ClassifyFrames(武器/防具振り分け後に呼ばれる呼び出し元)。ArmorSlotMaxByPosition=[3,1,0](防具3個目は常に0)が実データと矛盾しないか、3フレーム検出される「栄世の護石」(20260614061441_1.jpg、防具2+武器1の特殊護石)で裏取り。ClassifyFramesがhasWeaponSlot時にframes[0]を武器スロットへ先に振り分けるため、SlotValidationへ渡る時点で防具は実質2枠のみとなり制約と整合することを確認(コード確認+実画像目視)。観察点(据え置き): 武器スロットのバリデーションは防具と異なりOrderByDescending未実施だが、現行ゲームでは武器スロットはClassifyFrames側の設計上常にweaponSlots[0]のみが埋まる(複数武器スロットを持つ護石が存在しない)ため実害なし。将来複数武器スロット護石が実装された場合は要再検討 |
 | SkillReadingPipeline.cs | 済(2026-06-25) | ImageVariantFactory・LvParser・SkillNameNormalizer・SkillNameLoader・TextOcrReader・SlotIconAnalyzer(護石名の受け渡し)・CharmTypeLoader |
 | ImageVariantFactory.cs | 済(2026-06-25) | SkillReadingPipeline(5バリエーション生成・幅ガード) |
 | LvParser.cs | 未 | SkillReadingPipeline(Lv解析) |
