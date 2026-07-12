@@ -49,7 +49,7 @@
 | CharmCsvConverter.cs | 済(2026-06-25) | CharmModel・MainWindow(インポート/エクスポート) |
 | MainWindow.xaml.cs | 済(2026-06-25、一部)+変更 | 全モジュールのオーケストレーション。920行中、06-25修正は一部箇所のみ（Task.Run化・存在チェック等）で全体は未精査。SkillReadingPipeline・SlotIconAnalyzer・CharmCsvConverter・DuplicateChecker・RarityInference・ErrorLogger・GameSkillOrder |
 | CharmEditWindow.xaml.cs | 済(2026-06-25) | SkillNameLoader・GameSkillOrder・RarityInference(レアリティ動的更新) |
-| DuplicateCheckWindow.xaml.cs | 未 | DuplicateChecker(消費者) |
+| DuplicateCheckWindow.xaml.cs | 済(2026-07-12、0件) | DuplicateChecker(消費者、`Check()`が返す`Indices`/`TargetIndex`/`SuperiorIndices`は`charms`リストの0始まり位置)・MainWindow(`CharmItems`をそのまま渡す、DataGridの列ソートは表示のみでコレクション自体の順序を変えないため`charmItems[i]`との対応がずれないことを確認)。`ShowDialog()`によるモーダル表示のため計算後の並行変更リスクも無し |
 | SettingsWindow.xaml.cs | 未 | MainWindow(設定永続化: ウィンドウサイズ・位置・スクショフォルダ) |
 | ErrorLogger.cs | 済(2026-06-16新規実装、2026-06-25呼び出し側修正) | MainWindow各所（例外通知・error.log出力） |
 | GameSkillOrder.cs | 済(2026-06-25) | skill-order.json・CharmEditWindow(ComboBox表示順)・SkillNameLoader(正規名との整合) |
