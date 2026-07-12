@@ -145,16 +145,13 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
                 Left = settings.WindowLeft;
                 Top = settings.WindowTop;
             }
-            _screenshotFolder = settings.ScreenshotFolder;
-            if (!string.IsNullOrEmpty(_screenshotFolder))
-                ScreenshotFolderPath.Text = _screenshotFolder;
+            if (!string.IsNullOrEmpty(settings.ScreenshotFolder))
+                ScreenshotFolderPath.Text = settings.ScreenshotFolder;
             if (!double.IsNaN(settings.DetailPanelHeight) && settings.DetailPanelHeight >= 80)
                 DetailRowDef.Height = new GridLength(settings.DetailPanelHeight);
         }
         catch (Exception ex) { ErrorLogger.Log("LoadSettings", SettingsFilePath, ex); }
     }
-
-    private string _screenshotFolder = "";
 
     private void SaveSettings()
     {
@@ -164,7 +161,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
             WindowHeight = Height,
             WindowLeft = Left,
             WindowTop = Top,
-            ScreenshotFolder = _screenshotFolder,
+            ScreenshotFolder = ScreenshotFolderPath.Text,
             DetailPanelHeight = DetailRowDef.ActualHeight,
         };
         var json = JsonSerializer.Serialize(settings, JsonOptions);
@@ -347,8 +344,8 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     private void BrowseScreenshotFolder_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new Microsoft.Win32.OpenFolderDialog();
-        if (!string.IsNullOrEmpty(_screenshotFolder))
-            dialog.InitialDirectory = _screenshotFolder;
+        if (!string.IsNullOrEmpty(ScreenshotFolderPath.Text))
+            dialog.InitialDirectory = ScreenshotFolderPath.Text;
         if (dialog.ShowDialog() == true)
             ScreenshotFolderPath.Text = dialog.FolderName;
     }
@@ -787,11 +784,10 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
 
     private void SettingsMenu_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new SettingsWindow(_screenshotFolder) { Owner = this };
+        var dialog = new SettingsWindow(ScreenshotFolderPath.Text) { Owner = this };
         if (dialog.ShowDialog() == true)
         {
-            _screenshotFolder = dialog.ScreenshotFolder;
-            ScreenshotFolderPath.Text = _screenshotFolder;
+            ScreenshotFolderPath.Text = dialog.ScreenshotFolder;
             SaveSettings();
         }
     }

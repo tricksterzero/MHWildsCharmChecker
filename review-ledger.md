@@ -47,10 +47,10 @@
 |---|---|---|
 | CharmModel.cs | 済(2026-07-12、0件) | DuplicateChecker・CharmCsvConverter・RarityInference・MainWindow・CharmEditWindow(共通データモデル)。`Skills`/`ArmorSlots`/`WeaponSlots`は`init`のみで可変`List<T>`だが、消費側(`DuplicateChecker.SortDesc`)が`new List<int>(slots)`で防御的コピーしてからソートしておりエイリアシングによる原本破壊は無いことを確認。観察点(据え置き): `GameVersion.Ascendance`は現状どの生成経路(スクショ読取・CSV取込・手動入力)でも明示的に設定されず常定値`Wilds`のまま(JSON往復のみ対応)。将来のアセンダンス拡張(2027年予定)向けの先行スキャフォールドと判断、現時点では未使用でも問題なし |
 | CharmCsvConverter.cs | 済(2026-06-25) | CharmModel・MainWindow(インポート/エクスポート) |
-| MainWindow.xaml.cs | 済(2026-06-25、一部)+変更 | 全モジュールのオーケストレーション。920行中、06-25修正は一部箇所のみ（Task.Run化・存在チェック等）で全体は未精査。SkillReadingPipeline・SlotIconAnalyzer・CharmCsvConverter・DuplicateChecker・RarityInference・ErrorLogger・GameSkillOrder |
+| MainWindow.xaml.cs | 済(2026-06-25、一部)+変更→2026-07-12差分再精査済(SettingsWindow相互作用チェックで1件修正) | 全モジュールのオーケストレーション。920行中、06-25修正は一部箇所のみ（Task.Run化・存在チェック等）。SettingsWindow.xaml.cs精査時に`_screenshotFolder`影フィールドの同期漏れバグを発見・修正(詳細はSettingsWindow.xaml.cs行参照)。この修正箇所以外の全体(スクショ読み取りループ・CSV入出力・護石一覧操作等)はまだ未精査のため、いずれ全体精査が必要 |
 | CharmEditWindow.xaml.cs | 済(2026-06-25) | SkillNameLoader・GameSkillOrder・RarityInference(レアリティ動的更新) |
 | DuplicateCheckWindow.xaml.cs | 済(2026-07-12、0件) | DuplicateChecker(消費者、`Check()`が返す`Indices`/`TargetIndex`/`SuperiorIndices`は`charms`リストの0始まり位置)・MainWindow(`CharmItems`をそのまま渡す、DataGridの列ソートは表示のみでコレクション自体の順序を変えないため`charmItems[i]`との対応がずれないことを確認)。`ShowDialog()`によるモーダル表示のため計算後の並行変更リスクも無し |
-| SettingsWindow.xaml.cs | 未 | MainWindow(設定永続化: ウィンドウサイズ・位置・スクショフォルダ) |
+| SettingsWindow.xaml.cs | 済(2026-07-12、1件・MainWindow側で修正) | MainWindow(設定永続化: ウィンドウサイズ・位置・スクショフォルダ)。SettingsWindow.xaml.cs自体は問題なし。**実バグ発見・修正**: MainWindowが`ScreenshotFolderPath.Text`(スクショ読み取りタブの実際の値)とは別に`_screenshotFolder`という影のフィールドを持ち、`SaveSettings()`は`_screenshotFolder`の方を永続化していた。ところがタブ自身の「参照...」ボタン(`BrowseScreenshotFolder_Click`)は`ScreenshotFolderPath.Text`だけを更新し`_screenshotFolder`は更新しないため、設定ダイアログ経由ではなくタブから直接フォルダを変更した場合、アプリ終了時にその変更が保存されず次回起動時に消えていた。`_screenshotFolder`フィールドを廃止し`ScreenshotFolderPath.Text`を単一の情報源に統一(読み込み/保存/初期ディレクトリ/設定ダイアログ受け渡しの4箇所を修正)。ビルド+全97件のテスト成功を確認。**制約**: この修正はWPFコードビハインドの状態遷移に関するもので、`CharmChecker.Tests`はCoreロジックのみが対象のためUIレベルの自動テストは無い。実機での動作確認(タブで参照→再起動→復元)は未実施 |
 | ErrorLogger.cs | 済(2026-06-16新規実装、2026-06-25呼び出し側修正) | MainWindow各所（例外通知・error.log出力） |
 | GameSkillOrder.cs | 済(2026-06-25) | skill-order.json・CharmEditWindow(ComboBox表示順)・SkillNameLoader(正規名との整合) |
 
