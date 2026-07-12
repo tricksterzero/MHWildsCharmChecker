@@ -45,7 +45,7 @@
 
 | ファイル | 状態 | 相互作用チェック相手 |
 |---|---|---|
-| CharmModel.cs | 未 | DuplicateChecker・CharmCsvConverter・RarityInference・MainWindow・CharmEditWindow（共通データモデル） |
+| CharmModel.cs | 済(2026-07-12、0件) | DuplicateChecker・CharmCsvConverter・RarityInference・MainWindow・CharmEditWindow(共通データモデル)。`Skills`/`ArmorSlots`/`WeaponSlots`は`init`のみで可変`List<T>`だが、消費側(`DuplicateChecker.SortDesc`)が`new List<int>(slots)`で防御的コピーしてからソートしておりエイリアシングによる原本破壊は無いことを確認。観察点(据え置き): `GameVersion.Ascendance`は現状どの生成経路(スクショ読取・CSV取込・手動入力)でも明示的に設定されず常定値`Wilds`のまま(JSON往復のみ対応)。将来のアセンダンス拡張(2027年予定)向けの先行スキャフォールドと判断、現時点では未使用でも問題なし |
 | CharmCsvConverter.cs | 済(2026-06-25) | CharmModel・MainWindow(インポート/エクスポート) |
 | MainWindow.xaml.cs | 済(2026-06-25、一部)+変更 | 全モジュールのオーケストレーション。920行中、06-25修正は一部箇所のみ（Task.Run化・存在チェック等）で全体は未精査。SkillReadingPipeline・SlotIconAnalyzer・CharmCsvConverter・DuplicateChecker・RarityInference・ErrorLogger・GameSkillOrder |
 | CharmEditWindow.xaml.cs | 済(2026-06-25) | SkillNameLoader・GameSkillOrder・RarityInference(レアリティ動的更新) |
