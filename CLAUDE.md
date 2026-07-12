@@ -69,6 +69,7 @@ node legacy/charm-duplicate-checker.js <CSVパス>
 ## RARE推定ロジック（`CharmChecker.Core/Model/RarityInference.cs`）
 
 - `skill-groups.json`でスキル名→グループ番号に変換し、`charm-combinations.json`のパターンテーブルからRARE値を決定
+- 特殊ケース: 武器スロットが1つでもあれば → RARE 8 固定（栄世の護石限定の武器スロットはRARE8確定のため）
 - 特殊ケース: 研鑽スキル（希望の護石固有）→ RARE 5 固定
 
 ## WPF UI構成
