@@ -93,6 +93,18 @@ public class RarityInferenceTests
         Assert.Null(RarityInference.Infer(charm));
     }
 
+    [Theory]
+    [InlineData("防御力ＤＯＷＮ耐性", 1)]
+    [InlineData("貫通弾・竜の矢強化", 1)]
+    [InlineData("災禍転福", 1)]
+    public void CanonicalSkillName_ResolvesInSkillGroups(string name, int level)
+    {
+        // skill-decoration-map.json（正規名）と表記が食い違っていたため
+        // RARE推定が静かに失敗していた3件の回帰テスト
+        var groups = RarityInference.LoadSkillGroups();
+        Assert.Contains(groups, e => e.Name == name && e.Level == level);
+    }
+
     [Fact]
     public void ResourcesLoadCorrectly()
     {
