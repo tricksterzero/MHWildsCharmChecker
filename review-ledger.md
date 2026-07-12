@@ -32,7 +32,7 @@
 | SlotValidation.cs | 済(2026-07-12、0件) | SlotIconAnalyzer(判定結果)・MainWindow.ClassifyFrames(武器/防具振り分け後に呼ばれる呼び出し元)。ArmorSlotMaxByPosition=[3,1,0](防具3個目は常に0)が実データと矛盾しないか、3フレーム検出される「栄世の護石」(20260614061441_1.jpg、防具2+武器1の特殊護石)で裏取り。ClassifyFramesがhasWeaponSlot時にframes[0]を武器スロットへ先に振り分けるため、SlotValidationへ渡る時点で防具は実質2枠のみとなり制約と整合することを確認(コード確認+実画像目視)。観察点(据え置き): 武器スロットのバリデーションは防具と異なりOrderByDescending未実施だが、現行ゲームでは武器スロットはClassifyFrames側の設計上常にweaponSlots[0]のみが埋まる(複数武器スロットを持つ護石が存在しない)ため実害なし。将来複数武器スロット護石が実装された場合は要再検討 |
 | SkillReadingPipeline.cs | 済(2026-06-25) | ImageVariantFactory・LvParser・SkillNameNormalizer・SkillNameLoader・TextOcrReader・SlotIconAnalyzer(護石名の受け渡し)・CharmTypeLoader |
 | ImageVariantFactory.cs | 済(2026-06-25) | SkillReadingPipeline(5バリエーション生成・幅ガード) |
-| LvParser.cs | 未 | SkillReadingPipeline(Lv解析) |
+| LvParser.cs | 済(2026-07-12、0件) | SkillReadingPipeline(184行目、`t.X0 >= v.LvXThreshold`で右側候補のみに適用・null返却時はlvsに追加せずスキップ)。CLAUDE.md記載の文字置換仕様(し→L, l→L, I→1, ー除去)と実装が一致。観察点(据え置き): `int.Parse(digits)`はdigits長に上限が無くOCR誤読で10桁超の数字列が来ればOverflowExceptionを送出しうるが、呼び出し元のMainWindow側スクショ処理ループ(433-464行目)がtry/catchで1枚ずつ隔離済み(失敗カウントに計上され後続処理は継続)のため実害なし。`.Replace("l","L")`は直後の`ToUpperInvariant()`で同じ変換が行われるため実質冗長だが、動作に影響なし(修正不要と判断) |
 | SkillNameNormalizer.cs | 済(2026-06-25) | SkillNameLoader(正解候補121種・HashSet化)・SkillReadingPipeline |
 | SkillNameLoader.cs | 未 | SkillNameNormalizer・CharmEditWindow(ComboBox)・GameSkillOrder(表示順との整合) |
 | SkillOcrTypes.cs | 未 | SkillReadingPipeline |
