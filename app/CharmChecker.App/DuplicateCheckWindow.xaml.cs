@@ -110,7 +110,16 @@ public partial class DuplicateCheckWindow : FluentWindow
 
         if (dialog.ShowDialog() == true)
         {
-            File.WriteAllText(dialog.FileName, _resultText, Encoding.UTF8);
+            try
+            {
+                File.WriteAllText(dialog.FileName, _resultText, Encoding.UTF8);
+            }
+            catch (Exception ex)
+            {
+                ErrorLogger.Log("SaveDuplicateCheckResult", dialog.FileName, ex);
+                System.Windows.MessageBox.Show($"保存に失敗しました: {ex.Message}", "保存エラー",
+                    System.Windows.MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
         }
     }
 }
