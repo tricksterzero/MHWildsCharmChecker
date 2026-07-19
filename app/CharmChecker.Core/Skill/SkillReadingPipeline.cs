@@ -37,7 +37,7 @@ public static class SkillReadingPipeline
         if (!IsCharmPanel(fullOcr, ax, ay))
             return null;
 
-        var charmName = ExtractCharmName(fullOcr);
+        var charmName = ExtractCharmName(fullOcr, ax, ay);
 
         using var img = Cv2.ImRead(imagePath);
         using var crop = CropSkillArea(img, ax, ay);
@@ -56,12 +56,24 @@ public static class SkillReadingPipeline
         }
     }
 
-    internal static string? ExtractCharmName(OcrResult ocrResult)
+    /// <summary>
+    /// アンカーが指すパネル範囲内(IsCharmPanelと同じ相対位置)にある「〜の護石」を護石名として返す。
+    /// 複数パネル(装備中側・BOX側等)が同一画面に写る場合、アンカーと無関係な護石名を誤って
+    /// 拾わないよう、範囲外の候補は無視する。
+    /// </summary>
+    internal static string? ExtractCharmName(OcrResult ocrResult, double anchorX, double anchorY)
     {
         foreach (var line in ocrResult.Lines)
         {
             var text = line.Text.Replace(" ", "");
-            if (text.Contains("の護石"))
+            if (!text.Contains("の護石"))
+                continue;
+
+            var x0 = line.Words.Min(w => w.BoundingRect.X);
+            var y0 = line.Words.Min(w => w.BoundingRect.Y);
+            var dx = x0 - anchorX;
+            var dy = y0 - anchorY;
+            if (dx >= -50 && dx <= 250 && dy >= 80 && dy <= 280)
             {
                 var idx = text.IndexOf("の護石");
                 return text[..idx] + "の護石";

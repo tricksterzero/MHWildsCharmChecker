@@ -54,6 +54,28 @@ public class SkillReadingPipelineTests
         ["case5 craft result", "20260615054704_1.jpg", new[] { ("攻撃", 1), ("雷耐性", 3) }],
     ];
 
+    [Fact]
+    public async Task ReadWithMetadataAsync_DualPanel_PicksCharmNameFromAnchoredPanel()
+    {
+        // 左パネル(秘歴の護石)・右パネル(栄世の護石)が同時に写る装備変更画面。
+        // FindAnchorは右パネルを選ぶため、護石名も右パネル(栄世の護石)を返すべき。
+        var assetsDir = FindAssetsDir();
+        var resourcesDir = FindResourcesDir();
+        var jsonPath = Path.Combine(resourcesDir, "skill-decoration-map.json");
+        var imagePath = Path.Combine(assetsDir, "case2 equip change", "20260615054234_1.jpg");
+
+        if (!File.Exists(imagePath))
+        {
+            return;
+        }
+
+        var knownSkills = SkillNameLoader.Load(jsonPath);
+        var result = await SkillReadingPipeline.ReadWithMetadataAsync(imagePath, knownSkills);
+
+        Assert.NotNull(result);
+        Assert.Equal("栄世の護石", result.CharmName);
+    }
+
     [Theory]
     [MemberData(nameof(TestCases))]
     public async Task ReadAsync_MatchesExpected(string folder, string file, (string Name, int Lv)[] expected)
