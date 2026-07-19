@@ -28,8 +28,19 @@ public class LvParserTests
     [InlineData("abc")]
     [InlineData("")]
     [InlineData("LV")]
+    [InlineData("LVSKILL2")]
+    [InlineData("LV2147483648")]
+    [InlineData("LV１")]
     public void InvalidReturnsNull(string input)
     {
         Assert.Null(LvParser.Parse(input));
+    }
+
+    [Theory]
+    [InlineData("LV1個2", 1)]
+    [InlineData("LV1/2", 1)]
+    public void TrailingGarbage_OnlyLeadingDigitsUsed(string input, int expected)
+    {
+        Assert.Equal(expected, LvParser.Parse(input));
     }
 }

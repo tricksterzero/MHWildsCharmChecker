@@ -17,10 +17,10 @@ public static class LvParser
             return null;
 
         var rest = t[2..].Replace("I", "1");
-        var digits = new string(rest.Where(char.IsDigit).ToArray());
+        var digits = new string(rest.TakeWhile(char.IsAsciiDigit).ToArray());
         if (digits.Length == 0)
             return null;
 
-        return int.Parse(digits);
+        return int.TryParse(digits, out var value) ? value : null;
     }
 }
