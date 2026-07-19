@@ -219,6 +219,9 @@
                                     Margin="8,0,0,0" Padding="16,6"
                                     Visibility="Collapsed"
                                     Click="CancelReading_Click" />
+                            <CheckBox x:Name="RescanAllCheckBox"
+                                      Content="フォルダ内の全画像を再スキャン（前回読み取り失敗分の再試行用）"
+                                      VerticalAlignment="Center" Margin="16,0,0,0" />
                         </StackPanel>
 
                         <!-- プログレスバー -->

@@ -155,17 +155,24 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
 
     private void SaveSettings()
     {
-        var settings = new AppSettings
+        try
         {
-            WindowWidth = Width,
-            WindowHeight = Height,
-            WindowLeft = Left,
-            WindowTop = Top,
-            ScreenshotFolder = ScreenshotFolderPath.Text,
-            DetailPanelHeight = DetailRowDef.ActualHeight,
-        };
-        var json = JsonSerializer.Serialize(settings, JsonOptions);
-        File.WriteAllText(SettingsFilePath, json);
+            var settings = new AppSettings
+            {
+                WindowWidth = Width,
+                WindowHeight = Height,
+                WindowLeft = Left,
+                WindowTop = Top,
+                ScreenshotFolder = ScreenshotFolderPath.Text,
+                DetailPanelHeight = DetailRowDef.ActualHeight,
+            };
+            var json = JsonSerializer.Serialize(settings, JsonOptions);
+            File.WriteAllText(SettingsFilePath, json);
+        }
+        catch (Exception ex)
+        {
+            ErrorLogger.Log("SaveSettings", SettingsFilePath, ex);
+        }
     }
 
     private void LoadCharms()
@@ -175,6 +182,9 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
             if (!File.Exists(CharmsFilePath)) return;
             var json = File.ReadAllText(CharmsFilePath);
             var charms = ParseCharmsJson(json);
+            // charm-types.jsonの固有名護石以外で、修正前の実装漏れによりRarityが
+            // null保存されたままの既存データを起動時に補完する。
+            InferRarityBatch(charms);
             foreach (var charm in charms)
                 AddCharm(charm);
         }
@@ -363,16 +373,26 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
             .Where(f => ImageExtensions.Contains(Path.GetExtension(f).ToLowerInvariant()))
             .ToList();
 
-        var latestScreenshot = CharmItems
-            .Where(i => i.Charm.Source == CharmSource.Screenshot)
-            .Select(i => i.Charm.SourceTimestamp)
-            .DefaultIfEmpty(DateTime.MinValue)
-            .Max();
+        List<string> targetFiles;
+        if (RescanAllCheckBox.IsChecked == true)
+        {
+            // ウォーターマーク方式は、失敗ファイルより後のタイムスタンプのファイルが1つでも
+            // 成功すると当該ファイルが永久に対象外になるため、全件再スキャンの手動フォールバックを用意する。
+            targetFiles = allFiles.OrderBy(f => File.GetLastWriteTime(f)).ToList();
+        }
+        else
+        {
+            var latestScreenshot = CharmItems
+                .Where(i => i.Charm.Source == CharmSource.Screenshot)
+                .Select(i => i.Charm.SourceTimestamp)
+                .DefaultIfEmpty(DateTime.MinValue)
+                .Max();
 
-        var targetFiles = allFiles
-            .Where(f => File.GetLastWriteTime(f) > latestScreenshot)
-            .OrderBy(f => File.GetLastWriteTime(f))
-            .ToList();
+            targetFiles = allFiles
+                .Where(f => File.GetLastWriteTime(f) > latestScreenshot)
+                .OrderBy(f => File.GetLastWriteTime(f))
+                .ToList();
+        }
 
         if (targetFiles.Count == 0)
         {
@@ -406,101 +426,114 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         AddReadingResultButton.Visibility = Visibility.Collapsed;
         _readingResults = null;
 
-        var knownSkills = SkillNameLoader.LoadFromEmbeddedResource();
-        var charmTypes = CharmTypeLoader.LoadFromEmbeddedResource();
-
-        var results = new List<(Charm Charm, string FileName)>();
-        int processed = 0;
-        int detected = 0;
-        int failed = 0;
-        bool cancelled = false;
-
-        foreach (var file in targetFiles)
+        try
         {
-            if (ct.IsCancellationRequested)
+            var knownSkills = SkillNameLoader.LoadFromEmbeddedResource();
+            var charmTypes = CharmTypeLoader.LoadFromEmbeddedResource();
+
+            var results = new List<(Charm Charm, string FileName)>();
+            int processed = 0;
+            int detected = 0;
+            int failed = 0;
+            bool cancelled = false;
+
+            foreach (var file in targetFiles)
             {
-                cancelled = true;
-                break;
-            }
-
-            processed++;
-            ReadingProgressBar.Value = processed;
-            ReadingProgressText.Text = $"{processed} / {targetFiles.Count} 処理中...";
-
-            try
-            {
-                var readResult = await SkillReadingPipeline.ReadWithMetadataAsync(file, knownSkills);
-                if (readResult is null) continue;
-
-                var validSkills = readResult.Skills
-                    .Where(s => s.Name is not null && s.Lv is not null)
-                    .Select(s => new CharmSkill(s.Name!, s.Lv!.Value))
-                    .ToList();
-
-                if (validSkills.Count == 0) continue;
-
-                var charmType = CharmTypeLoader.Lookup(readResult.CharmName, charmTypes);
-                var slots = await Task.Run(() => ReadSlots(file, charmType?.HasWeaponSlot ?? false));
-
-                var charm = new Charm
+                if (ct.IsCancellationRequested)
                 {
-                    Skills = validSkills,
-                    ArmorSlots = slots.ArmorSlots,
-                    WeaponSlots = slots.WeaponSlots,
-                    Rarity = charmType?.Rarity,
-                    Source = CharmSource.Screenshot,
-                    SourceTimestamp = File.GetLastWriteTime(file),
-                };
-                results.Add((charm, Path.GetFileName(file)));
-                detected++;
+                    cancelled = true;
+                    break;
+                }
+
+                processed++;
+                ReadingProgressBar.Value = processed;
+                ReadingProgressText.Text = $"{processed} / {targetFiles.Count} 処理中...";
+
+                try
+                {
+                    var readResult = await SkillReadingPipeline.ReadWithMetadataAsync(file, knownSkills);
+                    if (readResult is null) continue;
+
+                    var validSkills = readResult.Skills
+                        .Where(s => s.Name is not null && s.Lv is not null)
+                        .Select(s => new CharmSkill(s.Name!, s.Lv!.Value))
+                        .ToList();
+
+                    if (validSkills.Count == 0)
+                    {
+                        // 護石パネル自体は検出できたがスキル名/Lvが1件も読み取れなかったケース。
+                        // 「対象外スクショだった」のか「護石だが読み取り失敗」なのかをログで区別できるようにする。
+                        ErrorLogger.Log("ReadScreenshot",
+                            $"{Path.GetFileName(file)}: 護石パネルは検出できたがスキルを1件も読み取れませんでした。");
+                        failed++;
+                        continue;
+                    }
+
+                    var charmType = CharmTypeLoader.Lookup(readResult.CharmName, charmTypes);
+                    var slots = await Task.Run(() => ReadSlots(file, charmType?.HasWeaponSlot ?? false));
+
+                    var charm = new Charm
+                    {
+                        Skills = validSkills,
+                        ArmorSlots = slots.ArmorSlots,
+                        WeaponSlots = slots.WeaponSlots,
+                        Rarity = charmType?.Rarity,
+                        Source = CharmSource.Screenshot,
+                        SourceTimestamp = File.GetLastWriteTime(file),
+                    };
+                    results.Add((charm, Path.GetFileName(file)));
+                    detected++;
+                }
+                catch (Exception ex)
+                {
+                    ErrorLogger.Log("ReadScreenshot", Path.GetFileName(file), ex);
+                    failed++;
+                }
+
+                await Task.Yield();
             }
-            catch (Exception ex)
+
+            // charmType(未解/史伝/秘歴/栄世の護石)でRarityが決まらなかった護石(通常護石・希望の護石等)は
+            // スキル・スロット構成からのRARE推定で補完する。
+            InferRarityBatch(results.Select(r => r.Charm).ToList());
+
+            CancelReadingButton.Visibility = Visibility.Collapsed;
+
+            if (cancelled)
             {
-                ErrorLogger.Log("ReadScreenshot", Path.GetFileName(file), ex);
-                failed++;
+                ReadingProgressText.Text = "中断";
+                var summary = $"{processed} / {targetFiles.Count}枚まで処理（中断）、{detected}枚から護石を検出";
+                if (failed > 0)
+                    summary += $"（{failed}枚で処理エラー）";
+                ReadingSummaryText.Text = summary;
+            }
+            else
+            {
+                ReadingProgressText.Text = "完了";
+                var summary = $"{allFiles.Count}枚中 新規{targetFiles.Count}枚を処理、{detected}枚から護石を検出";
+                if (failed > 0)
+                    summary += $"（{failed}枚で処理エラー）";
+                ReadingSummaryText.Text = summary;
             }
 
-            await Task.Yield();
-        }
-
-        // charmType(未解/史伝/秘歴/栄世の護石)でRarityが決まらなかった護石(通常護石・希望の護石等)は
-        // スキル・スロット構成からのRARE推定で補完する。
-        InferRarityBatch(results.Select(r => r.Charm).ToList());
-
-        CancelReadingButton.Visibility = Visibility.Collapsed;
-
-        if (cancelled)
-        {
-            ReadingProgressText.Text = "中断";
-            var summary = $"{processed} / {targetFiles.Count}枚まで処理（中断）、{detected}枚から護石を検出";
-            if (failed > 0)
-                summary += $"（{failed}枚で処理エラー）";
-            ReadingSummaryText.Text = summary;
-        }
-        else
-        {
-            ReadingProgressText.Text = "完了";
-            var summary = $"{allFiles.Count}枚中 新規{targetFiles.Count}枚を処理、{detected}枚から護石を検出";
-            if (failed > 0)
-                summary += $"（{failed}枚で処理エラー）";
-            ReadingSummaryText.Text = summary;
-        }
-
-        if (results.Count > 0)
-        {
-            _readingResults = results;
-            ReadingResultGrid.ItemsSource = results.Select(r => new
+            if (results.Count > 0)
             {
-                RarityText = r.Charm.Rarity.HasValue ? r.Charm.Rarity.Value.ToString() : "-",
-                SkillText = string.Join(" / ", r.Charm.Skills.Select(s => $"{s.Name} Lv{s.Lv}")),
-                SlotText = CharmListItem.FormatSlotsStatic(r.Charm),
-                r.FileName,
-            }).ToList();
-            ReadingResultGrid.Visibility = Visibility.Visible;
-            AddReadingResultButton.Visibility = Visibility.Visible;
+                _readingResults = results;
+                ReadingResultGrid.ItemsSource = results.Select(r => new
+                {
+                    RarityText = r.Charm.Rarity.HasValue ? r.Charm.Rarity.Value.ToString() : "-",
+                    SkillText = string.Join(" / ", r.Charm.Skills.Select(s => $"{s.Name} Lv{s.Lv}")),
+                    SlotText = CharmListItem.FormatSlotsStatic(r.Charm),
+                    r.FileName,
+                }).ToList();
+                ReadingResultGrid.Visibility = Visibility.Visible;
+                AddReadingResultButton.Visibility = Visibility.Visible;
+            }
         }
-
-        StartReadingButton.IsEnabled = true;
+        finally
+        {
+            StartReadingButton.IsEnabled = true;
+        }
     }
 
     private void CancelReading_Click(object sender, RoutedEventArgs e)
@@ -809,6 +842,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         {
             var json = File.ReadAllText(dialog.FileName);
             parsed = ParseCharmsJson(json);
+            InferRarityBatch(parsed);
         }
         catch (Exception ex)
         {
