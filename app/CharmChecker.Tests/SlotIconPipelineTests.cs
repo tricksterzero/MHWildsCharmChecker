@@ -99,4 +99,15 @@ public class SlotIconPipelineTests
         var chosen = boxFrames.Count > detFrames.Count ? boxFrames : detFrames;
         Assert.Equal(Math.Max(expectedBox, expectedDetail), chosen.Count);
     }
+
+    [Fact]
+    public void ClassifyLevel_UniformCrop_ReturnsUnknown()
+    {
+        using var gray = new Mat(100, 50, MatType.CV_8UC1, Scalar.All(0));
+        var frame = new Rect(0, 0, 50, 100);
+
+        var result = SlotIconAnalyzer.ClassifyLevel(gray, frame);
+
+        Assert.Equal(SlotLevel.Unknown, result.Level);
+    }
 }

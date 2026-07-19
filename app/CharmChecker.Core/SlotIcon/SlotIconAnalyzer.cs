@@ -3,7 +3,9 @@ using OpenCvSharp;
 namespace CharmChecker.Core.SlotIcon;
 
 /// <summary>
-/// legacy/slot-icon-pipeline/pipeline.py で検証済みのスロットアイコン判定ロジックの移植。
+/// legacy/slot-icon-pipeline/pipeline.py で検証済みのスロットアイコン判定ロジックの移植を土台に、
+/// 実データでのチューニングを加えたもの（Lv1/Lv2判定の閾値・n==1の扱いがPoCと異なる。
+/// legacy側はビルド対象外の参照記録のため未追随）。
 /// 詳細仕様はリポジトリルートのCLAUDE.mdを参照。
 /// </summary>
 public static class SlotIconAnalyzer
@@ -110,6 +112,10 @@ public static class SlotIconAnalyzer
         }
 
         double peak = smoothed.Max();
+        if (peak <= 0)
+        {
+            return new LevelClassification(SlotLevel.Unknown, 0, []);
+        }
         double threshold = peak * 0.75;
 
         var groups = new List<List<int>>();
