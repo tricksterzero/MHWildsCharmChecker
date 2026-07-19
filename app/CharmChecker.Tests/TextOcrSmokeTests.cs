@@ -21,4 +21,13 @@ public class TextOcrSmokeTests
         Assert.Contains("業物", text);
         Assert.Contains("攻勢", text);
     }
+
+    [Fact]
+    public async Task RecognizeBytesAsync_MismatchedLength_Throws()
+    {
+        var bytes = new byte[10]; // 2x2 BGRAなら16バイト必要、意図的に短くする
+
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => TextOcrReader.RecognizeBytesAsync(bytes, 2, 2));
+    }
 }

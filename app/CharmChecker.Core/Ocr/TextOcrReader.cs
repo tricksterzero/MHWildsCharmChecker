@@ -32,6 +32,12 @@ public static class TextOcrReader
     /// </summary>
     public static async Task<OcrResult> RecognizeBytesAsync(byte[] bgraBytes, int width, int height, string languageTag = "ja")
     {
+        var expectedLength = checked((long)width * height * 4);
+        if (bgraBytes.Length != expectedLength)
+            throw new ArgumentException(
+                $"bgraBytesの長さ({bgraBytes.Length})がwidth*height*4({expectedLength})と一致しません。",
+                nameof(bgraBytes));
+
         var engine = CreateEngine(languageTag);
 
         using var bitmap = new SoftwareBitmap(BitmapPixelFormat.Bgra8, width, height, BitmapAlphaMode.Premultiplied);
