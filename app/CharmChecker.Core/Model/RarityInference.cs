@@ -93,14 +93,25 @@ public static class RarityInference
         return parser(reader.ReadToEnd());
     }
 
-    private static SkillGroupEntry[] ParseSkillGroups(string json)
+    internal static SkillGroupEntry[] ParseSkillGroups(string json)
     {
         using var doc = JsonDocument.Parse(json);
-        return doc.RootElement.EnumerateArray().Select(e => new SkillGroupEntry(
+        var entries = doc.RootElement.EnumerateArray().Select(e => new SkillGroupEntry(
             e.GetProperty("name").GetString()!,
             e.GetProperty("level").GetInt32(),
             e.GetProperty("groups").EnumerateArray().Select(g => g.GetInt32()).ToArray()
         )).ToArray();
+
+        var duplicates = entries
+            .GroupBy(e => (e.Name, e.Level))
+            .Where(g => g.Count() > 1)
+            .Select(g => $"{g.Key.Name}(Lv{g.Key.Level})")
+            .ToList();
+        if (duplicates.Count > 0)
+            throw new InvalidOperationException(
+                $"skill-groups.json に (name, level) の重複があります: {string.Join(", ", duplicates)}");
+
+        return entries;
     }
 
     private static CharmCombination[] ParseCombinations(string json)

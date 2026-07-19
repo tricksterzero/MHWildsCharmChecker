@@ -114,4 +114,17 @@ public class RarityInferenceTests
         var combos = RarityInference.LoadCombinations();
         Assert.True(combos.Count > 20);
     }
+
+    [Fact]
+    public void ParseSkillGroups_DuplicateNameLevel_Throws()
+    {
+        var json = """
+            [
+                { "name": "攻撃", "level": 1, "groups": [1] },
+                { "name": "攻撃", "level": 1, "groups": [2] }
+            ]
+            """;
+
+        Assert.Throws<InvalidOperationException>(() => RarityInference.ParseSkillGroups(json));
+    }
 }
