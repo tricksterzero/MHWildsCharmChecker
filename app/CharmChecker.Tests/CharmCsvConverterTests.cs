@@ -122,11 +122,21 @@ public class CharmCsvConverterTests
 
     [Theory]
     [InlineData("攻撃,4,,0,,0,5,0,0,0,0,0")] // 防具スロット範囲外(5)
+    [InlineData("攻撃,4,,0,,0,4,0,0,0,0,0")] // 防具スロット範囲外(4、現行ゲームの最大Lvは3)
     [InlineData("攻撃,4,,0,,0,-1,0,0,0,0,0")] // 防具スロット範囲外(-1)
     [InlineData("攻撃,4,,0,,0,0,0,0,5,0,0")] // 武器スロット範囲外(5)
+    [InlineData("攻撃,4,,0,,0,0,0,0,4,0,0")] // 武器スロット範囲外(4)
     public void ParseLine_SlotOutOfRange_ThrowsFormatException(string line)
     {
         Assert.Throws<FormatException>(() => CharmCsvConverter.ParseLine(line));
+    }
+
+    [Fact]
+    public void ParseLine_SlotValue3_IsAccepted()
+    {
+        var line = "攻撃,4,,0,,0,3,0,0,0,0,0";
+        var charm = CharmCsvConverter.ParseLine(line);
+        Assert.Equal(3, charm.ArmorSlots[0]);
     }
 
     [Fact]

@@ -102,8 +102,8 @@ public static class CharmCsvConverter
     private static int ParseSlotValue(string value, string line)
     {
         var result = ParseInt(value, line);
-        if (result < 0 || result > 4)
-            throw new FormatException($"スロット値は0〜4である必要があります「{result}」: {line}");
+        if (result < 0 || result > 3)
+            throw new FormatException($"スロット値は0〜3である必要があります「{result}」: {line}");
         return result;
     }
 
