@@ -37,17 +37,30 @@ public static class CharmTypeLoader
         return null;
     }
 
-    private static IReadOnlyList<CharmTypeInfo> ParseJson(string json)
+    internal static IReadOnlyList<CharmTypeInfo> ParseJson(string json)
     {
         using var doc = JsonDocument.Parse(json);
         var list = new List<CharmTypeInfo>();
         foreach (var elem in doc.RootElement.EnumerateArray())
         {
-            var name = elem.GetProperty("name").GetString()!;
+            var name = elem.GetProperty("name").GetString();
+            if (string.IsNullOrWhiteSpace(name))
+                throw new InvalidOperationException("charm-types.json に無効な護石名(null/空文字/空白)があります。");
+
             var rarity = elem.GetProperty("rarity").GetInt32();
             var hasWeaponSlot = elem.GetProperty("hasWeaponSlot").GetBoolean();
             list.Add(new CharmTypeInfo(name, rarity, hasWeaponSlot));
         }
+
+        var duplicates = list
+            .GroupBy(ct => ct.Name)
+            .Where(g => g.Count() > 1)
+            .Select(g => g.Key)
+            .ToList();
+        if (duplicates.Count > 0)
+            throw new InvalidOperationException(
+                $"charm-types.json に護石名の重複があります: {string.Join(", ", duplicates)}");
+
         return list;
     }
 }

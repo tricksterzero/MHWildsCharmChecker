@@ -463,6 +463,10 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
             await Task.Yield();
         }
 
+        // charmType(未解/史伝/秘歴/栄世の護石)でRarityが決まらなかった護石(通常護石・希望の護石等)は
+        // スキル・スロット構成からのRARE推定で補完する。
+        InferRarityBatch(results.Select(r => r.Charm).ToList());
+
         CancelReadingButton.Visibility = Visibility.Collapsed;
 
         if (cancelled)
