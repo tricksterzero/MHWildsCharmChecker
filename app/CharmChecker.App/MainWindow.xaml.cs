@@ -4,7 +4,6 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Windows;
 using System.Windows.Controls;
-using Wpf.Ui.Appearance;
 using CharmChecker.Core.Model;
 using CharmChecker.Core.Skill;
 using CharmChecker.Core.SlotIcon;
@@ -115,7 +114,6 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     public MainWindow()
     {
         InitializeComponent();
-        SystemThemeWatcher.Watch(this);
         ErrorLogger.LogStartup();
         LoadSettings();
         LoadCharms();

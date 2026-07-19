@@ -68,7 +68,7 @@ RARE推定サイレント失敗・スクショフォルダ設定の保存漏れ�
 
 | ファイル | 状態 | 相互作用チェック相手 |
 |---|---|---|
-| App.xaml.cs | 済(2026-07-12、0件・既知課題を再確認) | MainWindow(`SystemThemeWatcher.Watch(this)`)。`ApplicationThemeManager.ApplySystemTheme()`+`SystemThemeWatcher`はOSのライト/ダーク設定に追従する実装のままである一方、MainWindow.xaml等のカスタムカラー(`PanelBackground`等)はダーク専用の固定`SolidColorBrush`(`#FF2D2D2D`等)。ライトモード環境ではwpfui標準コントロールだけライトへ切り替わりカスタムパネルはダークのまま残る、という混在崩れが理論上発生しうる。**新規発見ではなく、26日前のメモリ(project-wpfui-theme)で既に「ダーク固定が意図だが機構は残っており将来のライトテーマ対応タスク」として認識・先送り済みの既知課題であることをコード上で再確認**。CLAUDE.mdの「テーマ: ダーク固定」という記述はやや言い切りすぎで、実装は「ダーク前提だがOS追従の機構は無効化されていない」という実態の方が正確。対応は既にユーザー判断で見送り済みのため今回も修正せず据え置き |
+| App.xaml.cs | 済(2026-07-19、Codex相談、実バグ1件修正) | MainWindow(`SystemThemeWatcher.Watch(this)`)。前回(2026-07-12)は「ダーク固定は意図だがOS追従の機構自体は残っている」既知課題として将来のライトテーマ対応タスクの範疇で先送りしていたが、今回Codexとの相談で「現行仕様(ダーク固定)を前提にすると、これは将来課題ではなくOSライト環境で今すぐ到達可能な現行仕様との矛盾」と再評価。WPF-UI 4.3.0のXMLドキュメント(`Wpf.Ui.xml`)で`ApplicationThemeManager.Apply(ApplicationTheme, WindowBackdropType, bool)`という明示的固定テーマ適用APIの存在を確認。**実バグ発見・修正**: `App.xaml.cs`の`ApplicationThemeManager.ApplySystemTheme()`(OS追従、App.xamlの`Theme="Dark"`明示指定を実行時に上書きしうる)を`ApplicationThemeManager.Apply(ApplicationTheme.Dark)`(明示固定)に変更。`MainWindow.xaml.cs`の`SystemThemeWatcher.Watch(this)`(OS設定変更のたびにテーマ再適用、ドキュメント上「グローバル動作、Windowごとに変更不可」と明記)も削除し、未使用となった`using Wpf.Ui.Appearance;`も除去。ビルド成功・全137テスト成功を確認。実機起動もプロセス正常起動・`error.log`に例外記録なしを確認したが、UI外観の目視確認はスクリーンショット取得側の制約(Mica背景合成window領域がGDI `CopyFromScreen`で黒塗りになる現象、変更前コードでも同一再現を確認済みのため今回の変更由来ではないと切り分け済み)により実施できず。次回UI改修時に別の確認手段(例: `PrintWindow`API使用等)を検討 |
 | AssemblyInfo.cs | 済(2026-07-12、0件) | WPFテンプレート標準のThemeInfo属性のみ、ロジックなし |
 
 ## ドキュメント精査
