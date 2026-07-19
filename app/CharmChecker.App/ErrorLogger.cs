@@ -38,6 +38,6 @@ internal static class ErrorLogger
 
     internal static void Log(string category, string message, Exception ex)
     {
-        Log(category, $"{message} -- {ex.GetType().Name}: {ex.Message}");
+        Log(category, $"{message} -- {ex}");
     }
 }
