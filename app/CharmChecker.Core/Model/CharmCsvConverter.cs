@@ -45,16 +45,24 @@ public static class CharmCsvConverter
             var name = cols[i * 2].Trim();
             var lv = ParseInt(cols[i * 2 + 1].Trim(), line);
             if (name != "" && lv > 0)
+            {
                 skills.Add(new CharmSkill(name, lv));
+            }
+            else if (!(name == "" && lv == 0))
+            {
+                throw new FormatException(
+                    $"スキル{i + 1}の名前とLvが不整合です(名前「{name}」,Lv{lv})。" +
+                    $"空き欄は名前・Lvともに空欄/0にしてください: {line}");
+            }
         }
 
         var armorSlots = new List<int>();
         for (int i = 0; i < MaxSlots; i++)
-            armorSlots.Add(ParseInt(cols[6 + i].Trim(), line));
+            armorSlots.Add(ParseSlotValue(cols[6 + i].Trim(), line));
 
         var weaponSlots = new List<int>();
         for (int i = 0; i < MaxSlots; i++)
-            weaponSlots.Add(ParseInt(cols[9 + i].Trim(), line));
+            weaponSlots.Add(ParseSlotValue(cols[9 + i].Trim(), line));
 
         return new Charm
         {
@@ -88,6 +96,14 @@ public static class CharmCsvConverter
     {
         if (!int.TryParse(value, out var result))
             throw new FormatException($"数値に変換できません「{value}」: {line}");
+        return result;
+    }
+
+    private static int ParseSlotValue(string value, string line)
+    {
+        var result = ParseInt(value, line);
+        if (result < 0 || result > 4)
+            throw new FormatException($"スロット値は0〜4である必要があります「{result}」: {line}");
         return result;
     }
 

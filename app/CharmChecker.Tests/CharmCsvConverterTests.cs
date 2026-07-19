@@ -112,6 +112,23 @@ public class CharmCsvConverterTests
         Assert.Contains("行 2", ex.Message);
     }
 
+    [Theory]
+    [InlineData("攻撃,0,,0,,0,0,0,0,0,0,0")] // 名前ありLv0
+    [InlineData(",3,,0,,0,0,0,0,0,0,0")] // 名前なしLv正
+    public void ParseLine_NameLvMismatch_ThrowsFormatException(string line)
+    {
+        Assert.Throws<FormatException>(() => CharmCsvConverter.ParseLine(line));
+    }
+
+    [Theory]
+    [InlineData("攻撃,4,,0,,0,5,0,0,0,0,0")] // 防具スロット範囲外(5)
+    [InlineData("攻撃,4,,0,,0,-1,0,0,0,0,0")] // 防具スロット範囲外(-1)
+    [InlineData("攻撃,4,,0,,0,0,0,0,5,0,0")] // 武器スロット範囲外(5)
+    public void ParseLine_SlotOutOfRange_ThrowsFormatException(string line)
+    {
+        Assert.Throws<FormatException>(() => CharmCsvConverter.ParseLine(line));
+    }
+
     [Fact]
     public void ToText_MultipleCharms_JoinsWithNewline()
     {
