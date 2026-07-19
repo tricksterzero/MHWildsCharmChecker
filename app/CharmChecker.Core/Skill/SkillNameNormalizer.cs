@@ -6,8 +6,10 @@ public static class SkillNameNormalizer
 
     private static Dictionary<char, char> BuildDakutenMap()
     {
-        const string from = "ガギグゲゴザジズゼゾダヂヅデドバビブベボパピプペポ";
-        const string to   = "カキクケコサシスセソタチツテトハヒフヘホハヒフヘホ";
+        const string from = "ガギグゲゴザジズゼゾダヂヅデドバビブベボパピプペポ"
+                           + "がぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽ";
+        const string to   = "カキクケコサシスセソタチツテトハヒフヘホハヒフヘホ"
+                           + "かきくけこさしすせそたちつてとはひふへほはひふへほ";
         var map = new Dictionary<char, char>(from.Length);
         for (int i = 0; i < from.Length; i++)
             map[from[i]] = to[i];
@@ -23,21 +25,24 @@ public static class SkillNameNormalizer
 
     public static string? Normalize(string ocrText, IReadOnlyList<string> knownSkills, HashSet<string>? knownSkillSet)
     {
-        var text = ocrText.Trim();
+        var text = ToFullWidthAscii(ocrText.Trim());
         if (text.Length == 0)
             return null;
 
         if (knownSkillSet is not null ? knownSkillSet.Contains(text) : knownSkills.Contains(text))
             return text;
 
-        foreach (var skill in knownSkills)
+        // 呼び出し元が長さ降順でない可能性があっても「長い名前優先」を守るため、ここで確定させる。
+        var sortedSkills = knownSkills.OrderByDescending(n => n.Length).ThenBy(n => n, StringComparer.Ordinal).ToList();
+
+        foreach (var skill in sortedSkills)
         {
             if (text.Contains(skill, StringComparison.Ordinal))
                 return skill;
         }
 
         var textStripped = StripDakuten(text);
-        foreach (var skill in knownSkills)
+        foreach (var skill in sortedSkills)
         {
             if (textStripped.Contains(StripDakuten(skill), StringComparison.Ordinal))
                 return skill;
@@ -53,6 +58,18 @@ public static class SkillNameNormalizer
         {
             if (DakutenMap.TryGetValue(chars[i], out var replacement))
                 chars[i] = replacement;
+        }
+        return new string(chars);
+    }
+
+    /// <summary>半角ASCII可視文字(!〜~)を全角に変換する。正規スキル名側の表記(ＫＯ術等)に合わせるため。</summary>
+    private static string ToFullWidthAscii(string s)
+    {
+        var chars = s.ToCharArray();
+        for (int i = 0; i < chars.Length; i++)
+        {
+            if (chars[i] is >= '!' and <= '~')
+                chars[i] = (char)(chars[i] + 0xFEE0);
         }
         return new string(chars);
     }

@@ -48,4 +48,26 @@ public class SkillNameNormalizerTests
     {
         Assert.Null(SkillNameNormalizer.Normalize("存在しないスキル", Skills));
     }
+
+    [Fact]
+    public void PartialMatch_UnsortedInput_LongerNameStillPreferred()
+    {
+        // 呼び出し元が長さ順ソートを怠っても、Normalize内部でソートし直し短い一致に惑わされない
+        var unsorted = new[] { "攻撃", "龍属性攻撃強化" };
+        Assert.Equal("龍属性攻撃強化", SkillNameNormalizer.Normalize("x龍属性攻撃強化", unsorted));
+    }
+
+    [Fact]
+    public void DakutenFallback_Hiragana()
+    {
+        var skills = new[] { "飛び込み" };
+        Assert.Equal("飛び込み", SkillNameNormalizer.Normalize("飛ひ込み", skills));
+    }
+
+    [Fact]
+    public void HalfWidthAlphabet_NormalizedToFullWidth()
+    {
+        var skills = new[] { "ＫＯ術" };
+        Assert.Equal("ＫＯ術", SkillNameNormalizer.Normalize("KO術", skills));
+    }
 }
