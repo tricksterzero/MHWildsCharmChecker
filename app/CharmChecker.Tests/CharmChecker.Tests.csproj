@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CharmChecker.Core\CharmChecker.Core.csproj" />
+    <ProjectReference Include="..\CharmChecker.App\CharmChecker.App.csproj" />
   </ItemGroup>
 
 </Project>
