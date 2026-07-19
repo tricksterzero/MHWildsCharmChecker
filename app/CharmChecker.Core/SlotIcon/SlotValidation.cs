@@ -8,6 +8,9 @@ public static class SlotValidation
     // 武器スロット: Lv0-1のみ（現行ゲームでLv2/3は存在しない）
     private const int WeaponSlotMax = 1;
 
+    // 武器スロット: 現行ゲームでは実質1個までしか存在しない
+    private const int WeaponSlotCountMax = 1;
+
     public static (List<int> ArmorSlots, List<int> WeaponSlots) Validate(
         List<int> armorSlots, List<int> weaponSlots)
     {
@@ -30,7 +33,7 @@ public static class SlotValidation
         int weaponIdx = 0;
         foreach (var lv in weaponSlots.Where(v => v > 0))
         {
-            if (weaponIdx >= 3) break;
+            if (weaponIdx >= WeaponSlotCountMax) break;
             if (lv <= WeaponSlotMax)
             {
                 validWeapon[weaponIdx] = lv;

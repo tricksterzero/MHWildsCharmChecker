@@ -73,4 +73,20 @@ public class SlotValidationTests
         Assert.Equal([1, 1, 0], armor);
         Assert.Equal([1, 0, 0], weapon);
     }
+
+    [Fact]
+    public void ArmorSlot1_Lv3Lv2Lv1_RejectsLv2_KeepsFollowingLv1()
+    {
+        // 防3-防2-防1 → 2個目の防2は制約違反（max Lv1）で棄却、後続の防1を採用
+        var (armor, _) = SlotValidation.Validate([3, 2, 1], [0, 0, 0]);
+        Assert.Equal([3, 1, 0], armor);
+    }
+
+    [Fact]
+    public void WeaponSlot_MultipleLv1_OnlyFirstKept()
+    {
+        // 武器スロットは現行ゲームで実質1個までしか存在しないため、2個目以降は棄却
+        var (_, weapon) = SlotValidation.Validate([0, 0, 0], [1, 1, 0]);
+        Assert.Equal([1, 0, 0], weapon);
+    }
 }
