@@ -158,7 +158,23 @@ public partial class CharmEditWindow : Wpf.Ui.Controls.FluentWindow
             return;
         }
 
-        // スキル名の検証
+        // 同一スキル名の重複検証(DuplicateCheckerは重複スキル名を比較不能として扱うため、
+        // 手動入力の時点で弾く)
+        var duplicateNames = charm.Skills
+            .GroupBy(s => s.Name)
+            .Where(g => g.Count() > 1)
+            .Select(g => g.Key)
+            .ToList();
+        if (duplicateNames.Count > 0)
+        {
+            MessageBox.Show(
+                $"同じスキルが複数入力されています: {string.Join(", ", duplicateNames)}",
+                "入力エラー", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        // スキル名・Lvの検証
+        var skillGroups = RarityInference.LoadSkillGroups();
         foreach (var skill in charm.Skills)
         {
             if (!_skillNames.Contains(skill.Name))
@@ -167,6 +183,15 @@ public partial class CharmEditWindow : Wpf.Ui.Controls.FluentWindow
                     $"「{skill.Name}」はスキル候補一覧にありません。このまま保存しますか？",
                     "確認", MessageBoxButton.YesNo, MessageBoxImage.Question);
                 if (result != MessageBoxResult.Yes) return;
+            }
+            else if (!skillGroups.Any(g => g.Name == skill.Name && g.Level == skill.Lv))
+            {
+                // ComboBoxのLv選択肢は全スキル共通で0〜4だが、実際のLv上限はスキルごとに異なる
+                // (skill-groups.jsonの113種中109種はLv上限2〜3)。存在しない組み合わせを弾く。
+                MessageBox.Show(
+                    $"「{skill.Name}」にLv{skill.Lv}は存在しません。",
+                    "入力エラー", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
             }
         }
 
