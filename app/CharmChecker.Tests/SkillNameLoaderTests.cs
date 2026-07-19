@@ -45,4 +45,59 @@ public class SkillNameLoaderTests
         var names = SkillNameLoader.Load(FindJsonPath());
         Assert.Contains(skillName, names);
     }
+
+    private static string WriteTempJson(string json)
+    {
+        var path = Path.GetTempFileName();
+        File.WriteAllText(path, json);
+        return path;
+    }
+
+    [Fact]
+    public void Load_EmptyDecorationSkillName_Throws()
+    {
+        var path = WriteTempJson("""
+            { "decorations": [ { "skills": { "": {} } } ], "extra_skills": [] }
+            """);
+        try
+        {
+            Assert.Throws<InvalidOperationException>(() => SkillNameLoader.Load(path));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Load_NullExtraSkill_Throws()
+    {
+        var path = WriteTempJson("""
+            { "decorations": [], "extra_skills": [null] }
+            """);
+        try
+        {
+            Assert.Throws<InvalidOperationException>(() => SkillNameLoader.Load(path));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Load_MissingExtraSkillsProperty_Throws()
+    {
+        var path = WriteTempJson("""
+            { "decorations": [] }
+            """);
+        try
+        {
+            Assert.Throws<InvalidOperationException>(() => SkillNameLoader.Load(path));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
 }

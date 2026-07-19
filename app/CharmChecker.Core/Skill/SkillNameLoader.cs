@@ -37,18 +37,25 @@ public static class SkillNameLoader
         {
             foreach (var skill in deco.GetProperty("skills").EnumerateObject())
             {
-                names.Add(skill.Name);
+                AddSkillName(names, skill.Name);
             }
         }
 
-        if (root.TryGetProperty("extra_skills", out var extras))
+        if (!root.TryGetProperty("extra_skills", out var extras))
+            throw new InvalidOperationException("skill-decoration-map.json に 'extra_skills' プロパティがありません。");
+
+        foreach (var item in extras.EnumerateArray())
         {
-            foreach (var item in extras.EnumerateArray())
-            {
-                names.Add(item.GetString()!);
-            }
+            AddSkillName(names, item.GetString());
         }
 
         return names.OrderByDescending(n => n.Length).ThenBy(n => n, StringComparer.Ordinal).ToList();
+    }
+
+    private static void AddSkillName(HashSet<string> names, string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new InvalidOperationException("skill-decoration-map.json に無効なスキル名(null/空文字/空白)があります。");
+        names.Add(name);
     }
 }
