@@ -35,6 +35,19 @@ fail-fast検証の追加5件（`SkillNameLoader`・`RarityInference.ParseSkillGr
 CIではスキップされるため、境界・例外経路を人工データの単体テストで補完する価値がある」。
 全140テスト成功、コアロジックの作り直しは不要、連携漏れとデータ境界の補強が中心の巡目だった。
 
+**#12/#21の宿題解消（2026-07-20）**: `skill-decoration-map.json`にあって`skill-groups.json`に無い
+8スキル問題は、ユーザーが実機の「条件ソート→装備スキル」一覧（護石選択画面・装飾品選択画面）を
+書き出した2ファイルとの突き合わせで解決。7種（クライマー・ジャンプ鉄人・ハンター生活・
+昆虫標本の達人・緩衝・閃光強化・飛び込み）は装飾品専用スキルと確認、護石CSVに出現しないため
+`skill-groups.json`未収録でも実害なしと判断（対応不要）。残る1種（オトモへの采配）はユーザー確認
+により「防具スキルだが現時点では防具自体にのみ付く（護石・装飾品経由では付かない）」と判明し、
+`skill-decoration-map.json`の`extra_skills`から削除（正規名121種→120種）。連動して
+`resources/skill-order.json`・`app/CharmChecker.Tests/SkillNameLoaderTests.cs`
+（`Load_Returns121Skills`→`Load_Returns120Skills`、`Load_ContainsExtraSkills`から
+オトモへの采配を除外、否定側の回帰テスト`Load_DoesNotContainOtomoHaisai`を追加）・
+`resources/skill-name-checklist.md`・CLAUDE.mdを更新。全140テスト成功を再確認済み
+（`GameSkillOrderTests`は`SkillNameLoader`からの動的検証のためコード変更不要）。
+
 ## 精査手順（1本あたり）
 
 1. 実装+対応テストを読む

@@ -13,7 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - `charm-duplicate-checker.js` — 重複・上位互換チェッカー（C#移植済み）
   - `charm_reader_prompt.md` / `charm_reader_prompt_for_cowork.md` — スクショ読み取り手順（Vision向けプロンプト）
 - `resources/` — アプリが参照するデータファイル群
-  - `skill-decoration-map.json` — 装飾品マスターデータ + 装飾品なしスキル。スキル名正規化（121種）の正解候補として使う
+  - `skill-decoration-map.json` — 装飾品マスターデータ + 装飾品なしスキル。スキル名正規化（120種）の正解候補として使う
   - `skill-order.json` — ゲーム内表示順のスキル名リスト。ComboBox表示順に使用
   - `skill-groups.json` — スキル→グループ番号のマッピング。RARE推定に使用
   - `charm-combinations.json` — グループ組み合わせ→RARE値のパターンテーブル。RARE推定に使用
@@ -50,12 +50,12 @@ node legacy/charm-duplicate-checker.js <CSVパス>
 
 - スキルが3つ未満の場合、空きは名前を空欄・Lvを`0`とする
 - スロットは各位置のレベルを`0/1/2/3`で記録する（穴なし=0）
-- スキル名は`resources/skill-decoration-map.json`の`decorations[].skills`キー + `extra_skills`配列に含まれる正規名（計121種）のみが有効（正規化ルールは`legacy/charm_reader_prompt.md`を参照）
+- スキル名は`resources/skill-decoration-map.json`の`decorations[].skills`キー + `extra_skills`配列に含まれる正規名（計120種）のみが有効（正規化ルールは`legacy/charm_reader_prompt.md`を参照）
 - mhwilds.wiki-db.comのスキルシミュレータとのインポート・エクスポート互換を意図した形式
 
 ## スキル名の正規名と照合時の注意
 
-- **正規名の単一ソース**: `resources/skill-decoration-map.json`の`decorations[].skills`キー + `extra_skills`（計121種）
+- **正規名の単一ソース**: `resources/skill-decoration-map.json`の`decorations[].skills`キー + `extra_skills`（計120種）
 - `skill-groups.json`・`skill-order.json`等のスキル名は正規名と完全一致している必要がある
 - **正規名は全角表記に統一**: `ＫＯ術`（全角）・`攻撃力ＵＰ`（全角）等を使う。OCR入力側の半角ASCII（`KO術`・`攻撃力UP`等）は`SkillNameNormalizer.ToFullWidthAscii`で照合前に全角へ正規化するため問題なくマッチする（`app/CharmChecker.Core/Skill/SkillNameNormalizer.cs`）
 - スキル名を含むリソースファイルを編集する際は、必ず`skill-decoration-map.json`の表記と突き合わせること
@@ -72,7 +72,7 @@ node legacy/charm-duplicate-checker.js <CSVパス>
 - 特殊ケース: 武器スロットが1つでもあれば → RARE 8 固定（栄世の護石限定の武器スロットはRARE8確定のため）
 - 特殊ケース: 研鑽スキル（希望の護石固有）→ RARE 5 固定
 - 特殊ケース: 武器スロットなしでグループパターンがRARE 7・8の両方に一致する場合はRARE 8候補を除外し、RARE 7のみが残ればRARE 7とする（現行テーブルではRARE 8のスキルグループ構成がRARE 7と重複するが、RARE 8の護石は必ず武器スロットを伴うため。「7/8なら常に7」ではなく「8を除外した後に7だけが残れば」という条件）
-- **TODO**: `skill-decoration-map.json`にあって`skill-groups.json`に無い8スキル（オトモへの采配・クライマー・ジャンプ鉄人・ハンター生活・昆虫標本の達人・緩衝・閃光強化・飛び込み）は、実際に護石に付与されうるスキルか未確認（ユーザー確認待ち）。該当スキルを含む護石は、武器スロットまたは研鑽スキルによる先行判定に該当しない限りRARE推定が`null`になる。正規名121種すべてがRARE推定可能なわけではない点に注意
+- 解決済み（2026-07-20）: `skill-decoration-map.json`にあって`skill-groups.json`に無かった8スキルのうち7種（クライマー・ジャンプ鉄人・ハンター生活・昆虫標本の達人・緩衝・閃光強化・飛び込み）は、実機の護石選択画面「条件ソート→装備スキル」一覧に出現せず装飾品専用スキルと確認。護石CSVにこれらの名前が入ることはなく、`skill-groups.json`に未収録でも実害なし。残る1種（オトモへの采配）は防具スキルではあるが護石・装飾品どちらの一覧にも出現せず、防具自体にのみ付くスキルと判明したため`extra_skills`から削除し正規名を121種→120種に修正済み（詳細: `resources/skill-name-checklist.md`）
 
 ## WPF UI構成
 
@@ -160,7 +160,7 @@ PythonでPoC済み、C#移植済み。15画像・37スキル項目で全問正�
 - gray(グレースケールのみ, lv_x_thresh=300)
 
 ### スキル名正規化
-- `skill-decoration-map.json`の`decorations[].skills`(117種) + `extra_skills`(4種)の計121種を正解候補とする
+- `skill-decoration-map.json`の`decorations[].skills`(117種) + `extra_skills`(3種)の計120種を正解候補とする
 - 長い名前から優先的に部分一致（先頭のゴミ文字を無視）
 - **濁点フォールバック**: 通常マッチ失敗時に濁点を除去して再マッチ（OCRの「ガ→カ」等の誤認対応）
 

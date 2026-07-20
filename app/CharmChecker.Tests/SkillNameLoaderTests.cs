@@ -18,10 +18,10 @@ public class SkillNameLoaderTests
     }
 
     [Fact]
-    public void Load_Returns121Skills()
+    public void Load_Returns120Skills()
     {
         var names = SkillNameLoader.Load(FindJsonPath());
-        Assert.Equal(121, names.Count);
+        Assert.Equal(120, names.Count);
     }
 
     [Fact]
@@ -39,11 +39,17 @@ public class SkillNameLoaderTests
     [InlineData("属性吸収")]
     [InlineData("属性変換")]
     [InlineData("属性やられ耐性")]
-    [InlineData("オトモへの采配")]
     public void Load_ContainsExtraSkills(string skillName)
     {
         var names = SkillNameLoader.Load(FindJsonPath());
         Assert.Contains(skillName, names);
+    }
+
+    [Fact]
+    public void Load_DoesNotContainOtomoHaisai()
+    {
+        var names = SkillNameLoader.Load(FindJsonPath());
+        Assert.DoesNotContain("オトモへの采配", names);
     }
 
     private static string WriteTempJson(string json)
