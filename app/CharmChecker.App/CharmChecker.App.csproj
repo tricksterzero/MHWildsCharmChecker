@@ -12,19 +12,28 @@
     <Resource Include="app.ico" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="..\..\README.md" Link="README.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="..\..\LICENSE" Link="LICENSE" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="..\..\THIRD-PARTY-NOTICES" Link="THIRD-PARTY-NOTICES" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows10.0.22000.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <Version>0.1.0</Version>
+    <Version>1.0.0</Version>
     <AssemblyName>MHWildsCharmChecker</AssemblyName>
     <Product>MHWilds Charm Checker</Product>
     <Description>MHWildsの護石スクリーンショット読み取り・重複チェッカー</Description>
     <Authors>tsZ</Authors>
     <Copyright>Copyright (c) 2026 tsZ</Copyright>
     <ApplicationIcon>app.ico</ApplicationIcon>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishReadyToRun>false</PublishReadyToRun>
   </PropertyGroup>
 
 </Project>

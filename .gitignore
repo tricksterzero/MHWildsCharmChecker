@@ -3,6 +3,7 @@ bin/
 obj/
 *.user
 .vs/
+/app/publish/
 
 # ローカルのみ(検証用データ・出力物)
 /assets/
