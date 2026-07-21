@@ -175,7 +175,7 @@ public static class SkillReadingPipeline
         IReadOnlyList<string> knownSkills)
     {
         var knownSkillSet = new HashSet<string>(knownSkills);
-        var allResults = new List<(string Name, List<(double Y, string SkillName)> Names, List<(double Y, int Lv)> Lvs)>();
+        var allResults = new List<(List<(double Y, string SkillName)> Names, List<(double Y, int Lv)> Lvs)>();
 
         foreach (var v in variants)
         {
@@ -207,24 +207,64 @@ public static class SkillReadingPipeline
 
             names.Sort((a, b) => a.Y.CompareTo(b.Y));
             lvs.Sort((a, b) => a.Y.CompareTo(b.Y));
-            allResults.Add((v.Name, names, lvs));
+            allResults.Add((names, lvs));
         }
 
         if (allResults.Count == 0)
             return [];
 
+        // 名前・Lvはそれぞれ独立に最多検出のバリアントを採用する（あるバリアントは名前の検出に強く、
+        // 別のバリアントはLvの検出に強い、といったケースがあるため）。ペアリングはY座標が近いもの
+        // 同士で貪欲マッチングする（単純なインデックス順だと、名前が1つ欠落しただけで後続の
+        // 全スキルのLvがずれてしまうため）。
         var bestNames = allResults.MaxBy(r => r.Names.Count)!.Names;
         var bestLvs = allResults.MaxBy(r => r.Lvs.Count)!.Lvs;
+        return PairByNearestY(bestNames, bestLvs);
+    }
 
-        int n = Math.Max(bestNames.Count, bestLvs.Count);
-        var entries = new List<SkillEntry>(n);
-        for (int i = 0; i < n; i++)
+    /// <summary>
+    /// スキル名リストとLvリストを、それぞれ単純なインデックス順ではなくY座標が近いもの同士で
+    /// 貪欲マッチングする。名前が1つでも検出漏れすると、インデックス順ペアリングでは
+    /// 後続の全スキルのLvがずれてしまうため（例: 1つ目のスキル名が丸ごと検出できない場合、
+    /// 2つ目以降のスキルに誤ったLvが割り当たる）。
+    /// </summary>
+    private static List<SkillEntry> PairByNearestY(
+        List<(double Y, string SkillName)> names,
+        List<(double Y, int Lv)> lvs)
+    {
+        var candidatePairs = new List<(int NameIdx, int LvIdx, double Dist)>();
+        for (int i = 0; i < names.Count; i++)
+            for (int j = 0; j < lvs.Count; j++)
+                candidatePairs.Add((i, j, Math.Abs(names[i].Y - lvs[j].Y)));
+        candidatePairs.Sort((a, b) => a.Dist.CompareTo(b.Dist));
+
+        var usedNames = new bool[names.Count];
+        var usedLvs = new bool[lvs.Count];
+        var matchedLvIndexForName = new int?[names.Count];
+        foreach (var (nameIdx, lvIdx, _) in candidatePairs)
         {
-            var name = i < bestNames.Count ? bestNames[i].SkillName : null;
-            var lv = i < bestLvs.Count ? bestLvs[i].Lv : (int?)null;
-            entries.Add(new SkillEntry(name, lv));
+            if (usedNames[nameIdx] || usedLvs[lvIdx])
+                continue;
+            usedNames[nameIdx] = true;
+            usedLvs[lvIdx] = true;
+            matchedLvIndexForName[nameIdx] = lvIdx;
         }
-        return entries;
+
+        var entries = new List<(double Y, SkillEntry Entry)>();
+        for (int i = 0; i < names.Count; i++)
+        {
+            var lv = matchedLvIndexForName[i] is int lvIdx ? lvs[lvIdx].Lv : (int?)null;
+            entries.Add((names[i].Y, new SkillEntry(names[i].SkillName, lv)));
+        }
+        for (int j = 0; j < lvs.Count; j++)
+        {
+            if (usedLvs[j])
+                continue;
+            entries.Add((lvs[j].Y, new SkillEntry(null, lvs[j].Lv)));
+        }
+
+        entries.Sort((a, b) => a.Y.CompareTo(b.Y));
+        return entries.Select(e => e.Entry).ToList();
     }
 
     private static async Task<OcrResult> OcrMatAsync(Mat mat)

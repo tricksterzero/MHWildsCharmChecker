@@ -57,6 +57,36 @@ public class SkillReadingPipelineTests
     ];
 
     [Fact]
+    public async Task ReadAsync_OneSkillNameUndetected_DoesNotShiftOtherSkillsLevels()
+    {
+        // OCRエンジンが「匠」（1文字のスキル名）を一切検出できないケース。
+        // 名前とLvを単純なインデックス順でペアリングすると、1つ目のスキル名が
+        // 丸ごと欠落した影響で後続の全スキルのLvがずれてしまう回帰テスト
+        // （正: 匠Lv3, 回避性能Lv2, 満足感Lv1 / 修正前の誤: 回避性能Lv3, 満足感Lv2）
+        var assetsDir = FindAssetsDir();
+        var resourcesDir = FindResourcesDir();
+        var jsonPath = Path.Combine(resourcesDir, "skill-decoration-map.json");
+        var imagePath = Path.Combine(assetsDir, "20260614061441_1.jpg");
+
+        if (!File.Exists(imagePath))
+        {
+            return;
+        }
+
+        var knownSkills = SkillNameLoader.Load(jsonPath);
+        var result = await SkillReadingPipeline.ReadAsync(imagePath, knownSkills);
+
+        Assert.NotNull(result);
+        Assert.Equal(3, result.Count);
+        Assert.Null(result[0].Name);
+        Assert.Equal(3, result[0].Lv);
+        Assert.Equal("回避性能", result[1].Name);
+        Assert.Equal(2, result[1].Lv);
+        Assert.Equal("満足感", result[2].Name);
+        Assert.Equal(1, result[2].Lv);
+    }
+
+    [Fact]
     public async Task ReadWithMetadataAsync_DualPanel_PicksCharmNameFromAnchoredPanel()
     {
         // 左パネル(秘歴の護石)・右パネル(栄世の護石)が同時に写る装備変更画面。
