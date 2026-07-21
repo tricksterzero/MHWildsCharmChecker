@@ -156,7 +156,7 @@ public static class SkillReadingPipeline
         return false;
     }
 
-    private static Mat? CropSkillArea(Mat img, double anchorX, double anchorY)
+    internal static Mat? CropSkillArea(Mat img, double anchorX, double anchorY)
     {
         int x0 = Math.Max(0, (int)(anchorX + SkillAreaRel.X));
         int y0 = Math.Max(0, (int)(anchorY + SkillAreaRel.Y));

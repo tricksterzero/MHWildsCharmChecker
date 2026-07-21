@@ -41,10 +41,28 @@ public static class SkillNameNormalizer
                 return skill;
         }
 
+        // 「力」がカタカナの「カ」に誤認識されるOCRの癖に対応（正規名に「カ」を含むスキルは存在しないため、
+        // 一方向の置換のみで安全に対応できる。例: 「火事場カ」→「火事場力」）
+        var textKanaFixed = text.Replace('カ', '力');
+        foreach (var skill in sortedSkills)
+        {
+            if (textKanaFixed.Contains(skill, StringComparison.Ordinal))
+                return skill;
+        }
+
+        // 濁点フォールバック
         var textStripped = StripDakuten(text);
         foreach (var skill in sortedSkills)
         {
             if (textStripped.Contains(StripDakuten(skill), StringComparison.Ordinal))
+                return skill;
+        }
+
+        // 濁点フォールバック + カ→力（両方の誤認識が重なるケースの保険）
+        var textStrippedKanaFixed = StripDakuten(textKanaFixed);
+        foreach (var skill in sortedSkills)
+        {
+            if (textStrippedKanaFixed.Contains(StripDakuten(skill), StringComparison.Ordinal))
                 return skill;
         }
 

@@ -52,6 +52,8 @@ public class SkillReadingPipelineTests
         ["case5 craft result", "20260615054652_1.jpg", new[] { ("攻撃", 1), ("龍属性攻撃強化", 1), ("巧撃", 1) }],
         ["case5 craft result", "20260615054656_1.jpg", new[] { ("スタミナ奪取", 3), ("巧撃", 1) }],
         ["case5 craft result", "20260615054704_1.jpg", new[] { ("攻撃", 1), ("雷耐性", 3) }],
+        // 「火事場力」の「力」がカタカナ「カ」に誤認識され2つ目のスキルが読み取れなかった回帰テスト
+        ["case5 craft result", "20260704160048_1.jpg", new[] { ("笛吹き名人", 2), ("火事場力", 3) }],
     ];
 
     [Fact]
