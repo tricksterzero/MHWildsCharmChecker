@@ -255,7 +255,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
 
     private const int ProbabilitySignificantDigits = 3;
 
-    private static string FormatProbability(double? probability)
+    internal static string FormatProbability(double? probability)
     {
         if (probability is not double p || p <= 0)
             return "算出不可";
@@ -263,7 +263,21 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         double percent = p * 100;
         int magnitude = (int)Math.Floor(Math.Log10(percent));
         int decimals = Math.Max(0, ProbabilitySignificantDigits - 1 - magnitude);
-        return $"約{Math.Round(percent, decimals).ToString($"F{decimals}")}%";
+        double rounded = Math.Round(percent, decimals);
+
+        // 丸めで桁上がりした場合(例: 9.996% → 小数点2桁のまま丸めると10.00%になり有効数字4桁になる)、
+        // 桁上がり後の桁数で小数桁数を再計算し、有効数字3桁を保つ
+        if (rounded > 0)
+        {
+            int roundedMagnitude = (int)Math.Floor(Math.Log10(rounded));
+            if (roundedMagnitude > magnitude)
+            {
+                decimals = Math.Max(0, ProbabilitySignificantDigits - 1 - roundedMagnitude);
+                rounded = Math.Round(percent, decimals);
+            }
+        }
+
+        return $"約{rounded.ToString($"F{decimals}")}%";
     }
 
     private void CharmDataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
