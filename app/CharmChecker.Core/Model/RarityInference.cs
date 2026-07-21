@@ -92,6 +92,22 @@ public static class RarityInference
         return true;
     }
 
+    /// <summary>
+    /// スロットパターンごとに配列長が異なる（例: RARE8は[1]と[1,1]が混在）ため、
+    /// パターンが宣言する個数だけ上位を切り出して比較し、残りが全て0であることも確認する。
+    /// </summary>
+    internal static CharmCombinationSlot? FindMatchingSlot(IEnumerable<CharmCombinationSlot> slots, Charm charm)
+    {
+        var armorSorted = charm.ArmorSlots.OrderByDescending(v => v).ToArray();
+        var weaponSorted = charm.WeaponSlots.OrderByDescending(v => v).ToArray();
+
+        return slots.FirstOrDefault(s =>
+            armorSorted.Take(s.Armor.Length).SequenceEqual(s.Armor) &&
+            armorSorted.Skip(s.Armor.Length).All(v => v == 0) &&
+            weaponSorted.Take(s.Weapon.Length).SequenceEqual(s.Weapon) &&
+            weaponSorted.Skip(s.Weapon.Length).All(v => v == 0));
+    }
+
     private static T LoadEmbeddedResource<T>(string resourceName, Func<string, T> parser)
     {
         var asm = typeof(RarityInference).Assembly;

@@ -88,14 +88,40 @@ public class CharmTheoreticalValueCheckerTests
     }
 
     [Fact]
-    public void SkillWithNoHigherLevelAnywhere_StillCountsAsMax()
+    public void SkillWithNoHigherLevelAnywhere_DoesNotIncorrectlyFailMaxCheck()
     {
-        // 超会心はLv1にしか存在しないため、Lv1でも「自身の最大」を満たす
-        // （所属グループの集合最大Lvが2であっても、超会心自身は対象外）
-        var groups = RarityInference.LoadSkillGroups();
-        var chokaishin = groups.Where(g => g.Name == "超会心").ToList();
-        Assert.Single(chokaishin);
-        Assert.Equal(1, chokaishin[0].Level);
+        // 超会心はLv1にしか存在しないが、所属するgroup4には会心撃【属性】Lv2が混在する。
+        // 「所属グループの最大Lv」基準で判定すると、超会心Lv1が自身の最大に
+        // 達していないと誤判定されfalseを返してしまう回帰を防ぐ。
+        // 自身の最大Lv基準では単独スキルは組み合わせテーブルに一致せずnullを返すべきで、
+        // falseにはならない
+        var charm = new Charm
+        {
+            Skills = [new("超会心", 1)],
+            ArmorSlots = [0, 0, 0],
+            WeaponSlots = [0, 0, 0],
+        };
+
+        Assert.Null(CharmTheoreticalValueChecker.IsTheoretical(charm));
+    }
+
+    [Fact]
+    public void ImpossibleSlotConfiguration_ReturnsNull()
+    {
+        // スキルは自身の最大Lvで組み合わせにも一致するが、防具スロットLv3は
+        // このスキルグループ構成[3,7]のどの組み合わせパターンにも実在しない値。
+        // 「支配されなければtrue」という判定だけだと、テーブルに存在しない
+        // 極端な値ほど何にも支配されず誤ってtrueになってしまうため、
+        // 実在するパターンとの完全一致を先に要求してnullを返す
+        var charm = new Charm
+        {
+            Skills = [new("ＫＯ術", 3), new("ひるみ軽減", 3)],
+            ArmorSlots = [3, 0, 0],
+            WeaponSlots = [0, 0, 0],
+            Rarity = 7,
+        };
+
+        Assert.Null(CharmTheoreticalValueChecker.IsTheoretical(charm));
     }
 
     [Fact]

@@ -30,7 +30,8 @@ public class CharmProbabilityEstimatorTests
     [Fact]
     public void Rare8_UsesKnownSlotWeight_NotUniform()
     {
-        // skillGroups [3,10] は RARE8 の8パターン中の1つ、スロット[W1,1,1]はxlsx出典の実測重み17%、
+        // skillGroups [3,10] は RARE8 の8パターン中の1つ、スロット[W1,1,1]はデータマイン出典の
+        // 重み17%（ゲーム内実測による裏付けはない、CLAUDE.md参照）、
         // グループ3は40種・グループ10は10種（skill-groups.jsonで確認済み）
         var charm = new Charm
         {

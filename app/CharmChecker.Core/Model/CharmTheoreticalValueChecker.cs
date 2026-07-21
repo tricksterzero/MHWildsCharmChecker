@@ -46,7 +46,14 @@ public static class CharmTheoreticalValueChecker
         // 防具スロットと武器スロットの価値を単純比較できないため対象に含めない）
         var comparableSlots = combinations
             .Where(c => c.SkillGroups.SequenceEqual(matched.SkillGroups))
-            .SelectMany(c => c.Slots);
+            .SelectMany(c => c.Slots)
+            .ToList();
+
+        // 護石自身のスロット構成がテーブル上に実在するパターンかを先に確認する。
+        // 実在しない構成（OCR誤読や手動入力の誤操作等）を、たまたま既存パターンに
+        // 支配されないというだけで理論値と誤判定しないため
+        if (RarityInference.FindMatchingSlot(comparableSlots, charm) is null)
+            return null;
 
         return !IsSlotPatternDominated(charm, comparableSlots);
     }
