@@ -175,6 +175,11 @@
                                     <TextBlock Text="レアリティ" FontWeight="Bold" />
                                     <TextBlock x:Name="DetailRarity" Margin="12,2,0,8" />
 
+                                    <TextBlock Text="構成確率（参考値）" FontWeight="Bold"
+                                               ToolTip="スキル・スロットの組み合わせが等確率で選ばれるという未検証の仮定に基づく推定値です。実際の抽選確率とは異なる可能性があります。" />
+                                    <TextBlock x:Name="DetailProbability" Margin="12,2,0,8"
+                                               ToolTip="スキル・スロットの組み合わせが等確率で選ばれるという未検証の仮定に基づく推定値です。実際の抽選確率とは異なる可能性があります。" />
+
                                     <TextBlock Text="スキル" FontWeight="Bold" />
                                     <TextBlock x:Name="DetailSkills" Margin="12,2,0,8" />
 

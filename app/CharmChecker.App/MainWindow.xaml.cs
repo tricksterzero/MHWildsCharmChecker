@@ -253,6 +253,19 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         return item;
     }
 
+    private const int ProbabilitySignificantDigits = 3;
+
+    private static string FormatProbability(double? probability)
+    {
+        if (probability is not double p || p <= 0)
+            return "算出不可";
+
+        double percent = p * 100;
+        int magnitude = (int)Math.Floor(Math.Log10(percent));
+        int decimals = Math.Max(0, ProbabilitySignificantDigits - 1 - magnitude);
+        return $"約{Math.Round(percent, decimals).ToString($"F{decimals}")}%";
+    }
+
     private void CharmDataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (CharmDataGrid.SelectedItem is CharmListItem item)
@@ -263,6 +276,8 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
             var charm = item.Charm;
 
             DetailRarity.Text = charm.Rarity.HasValue ? $"RARE {charm.Rarity.Value}" : "不明";
+
+            DetailProbability.Text = FormatProbability(CharmProbabilityEstimator.Estimate(charm));
 
             DetailSkills.Text = charm.Skills.Count > 0
                 ? string.Join("\n", charm.Skills.Select(s => $"{s.Name} Lv{s.Lv}"))

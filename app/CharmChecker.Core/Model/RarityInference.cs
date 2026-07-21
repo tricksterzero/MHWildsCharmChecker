@@ -4,7 +4,7 @@ namespace CharmChecker.Core.Model;
 
 public record SkillGroupEntry(string Name, int Level, int[] Groups);
 
-public record CharmCombinationSlot(int[] Armor, int[] Weapon);
+public record CharmCombinationSlot(int[] Armor, int[] Weapon, double? Weight = null);
 
 public record CharmCombination(int Rarity, int[] SkillGroups, CharmCombinationSlot[] Slots);
 
@@ -41,15 +41,9 @@ public static class RarityInference
         if (charm.Skills.Count == 0)
             return null;
 
-        var possibleGroupsPerSkill = new List<int[]>();
-        foreach (var skill in charm.Skills)
-        {
-            var entry = skillGroups.FirstOrDefault(e =>
-                e.Name == skill.Name && e.Level == skill.Lv);
-            if (entry is null)
-                return null;
-            possibleGroupsPerSkill.Add(entry.Groups);
-        }
+        var possibleGroupsPerSkill = ResolvePossibleGroups(charm, skillGroups);
+        if (possibleGroupsPerSkill is null)
+            return null;
 
         var matchedRarities = new HashSet<int>();
         foreach (var combo in combinations)
@@ -73,7 +67,21 @@ public static class RarityInference
         return null;
     }
 
-    private static bool MatchesGroupPattern(List<int[]> possibleGroups, int[] pattern)
+    internal static List<int[]>? ResolvePossibleGroups(Charm charm, IReadOnlyList<SkillGroupEntry> skillGroups)
+    {
+        var possibleGroupsPerSkill = new List<int[]>();
+        foreach (var skill in charm.Skills)
+        {
+            var entry = skillGroups.FirstOrDefault(e =>
+                e.Name == skill.Name && e.Level == skill.Lv);
+            if (entry is null)
+                return null;
+            possibleGroupsPerSkill.Add(entry.Groups);
+        }
+        return possibleGroupsPerSkill;
+    }
+
+    internal static bool MatchesGroupPattern(List<int[]> possibleGroups, int[] pattern)
     {
         if (possibleGroups.Count != pattern.Length) return false;
         for (int i = 0; i < pattern.Length; i++)
@@ -122,7 +130,8 @@ public static class RarityInference
             e.GetProperty("skillGroups").EnumerateArray().Select(g => g.GetInt32()).ToArray(),
             e.GetProperty("slots").EnumerateArray().Select(s => new CharmCombinationSlot(
                 s.GetProperty("armor").EnumerateArray().Select(a => a.GetInt32()).ToArray(),
-                s.GetProperty("weapon").EnumerateArray().Select(w => w.GetInt32()).ToArray()
+                s.GetProperty("weapon").EnumerateArray().Select(w => w.GetInt32()).ToArray(),
+                s.TryGetProperty("weight", out var w) ? w.GetDouble() : null
             )).ToArray()
         )).ToArray();
     }
