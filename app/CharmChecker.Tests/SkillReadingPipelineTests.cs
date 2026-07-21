@@ -61,6 +61,31 @@ public class SkillReadingPipelineTests
     ];
 
     [Fact]
+    public void PairByNearestY_LeadingNameMissing_DoesNotShiftRemainingLevels()
+    {
+        // Codexとの相談で発見された実バグの回帰テスト。名前-Lv間の行内オフセット(実データで
+        // 31~48px、平均約37px)が行間隔(約80px)の半分を超える画像で、先頭の名前が検出漏れした
+        // 場合、生のY座標差をコストにすると「1行分ずれた誤ペアリング」の方が正しいペアリングより
+        // 総コストが低くなり、GapCostをどう調整しても直せない誤りが起きていた
+        // (詳細はAssumedRowOffsetのXMLコメント参照)。
+        // 名前Y=[120,200](2件目・3件目相当)、Lv Y=[88,168,248](3件分、1件目=88が実際の1件目の
+        // Lv)という、先頭スキルの名前だけが検出漏れした状況を再現する。
+        var names = new List<(double Y, string SkillName)> { (120, "回避性能"), (200, "満足感") };
+        var lvs = new List<(double Y, int Lv)> { (88, 3), (168, 2), (248, 1) };
+
+        var result = SkillReadingPipeline.PairByNearestY(names, lvs);
+        result.Sort((a, b) => a.Y.CompareTo(b.Y));
+
+        Assert.Equal(3, result.Count);
+        Assert.Null(result[0].Entry.Name);
+        Assert.Equal(3, result[0].Entry.Lv);
+        Assert.Equal("回避性能", result[1].Entry.Name);
+        Assert.Equal(2, result[1].Entry.Lv);
+        Assert.Equal("満足感", result[2].Entry.Name);
+        Assert.Equal(1, result[2].Entry.Lv);
+    }
+
+    [Fact]
     public async Task ReadAsync_SingleCharacterSkillName_IsRecoveredWithoutShiftingOtherSkillsLevels()
     {
         // OCRエンジンが「匠」（1文字のスキル名）を単独では一切検出できないケース

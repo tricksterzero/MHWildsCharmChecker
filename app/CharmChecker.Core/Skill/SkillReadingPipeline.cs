@@ -214,9 +214,9 @@ public static class SkillReadingPipeline
             return [];
 
         // 名前・Lvはそれぞれ独立に最多検出のバリアントを採用する（あるバリアントは名前の検出に強く、
-        // 別のバリアントはLvの検出に強い、といったケースがあるため）。ペアリングはY座標が近いもの
-        // 同士で貪欲マッチングする（単純なインデックス順だと、名前が1つ欠落しただけで後続の
-        // 全スキルのLvがずれてしまうため）。
+        // 別のバリアントはLvの検出に強い、といったケースがあるため）。ペアリングはY座標順を保った
+        // 単調アライメント(DP)で行う（詳細はPairByNearestYのXMLコメント参照。単純なインデックス順や
+        // 素朴なY最近傍の貪欲マッチングでは、名前の検出漏れや行間隔次第で誤ったペアになる問題があった）。
         var bestNames = allResults.MaxBy(r => r.Names.Count)!.Names;
         var bestLvs = allResults.MaxBy(r => r.Lvs.Count)!.Lvs;
         var entries = PairByNearestY(bestNames, bestLvs);
@@ -228,6 +228,18 @@ public static class SkillReadingPipeline
         entries.Sort((a, b) => a.Y.CompareTo(b.Y));
         return entries.Select(e => e.Entry).ToList();
     }
+
+    /// <summary>
+    /// 同一行内でLvテキストのY座標が名前テキストのY座標よりどれだけ下にずれるかの実データ平均
+    /// (6画像・17スキル項目を実測、31px〜48pxで変動、行間隔は約80pxでほぼ一定)。
+    /// 生のY座標差をそのままコストにすると、この行内オフセットが行間隔の半分(約40px)を
+    /// 超える画像で「1行分ずれた誤ペアリング」の方が正しいペアリングよりコストが低くなり、
+    /// GapCostをどう調整しても直せない構造的な誤りが起きることをCodexとの相談で確認済み
+    /// (`GapCost`は「マッチさせず読み飛ばす」コストで、マッチ同士の相対比較には効かないため)。
+    /// このオフセットをコストに織り込む(生の差ではなく、期待オフセットからのズレを見る)ことで、
+    /// 同一行のペアを常に安く評価できるようにする。
+    /// </summary>
+    private const double AssumedRowOffset = 37.0;
 
     /// <summary>
     /// スキル名リストとLvリストを、Y座標順を保った単調な対応付け(モノトニック・アライメント)で
@@ -244,7 +256,7 @@ public static class SkillReadingPipeline
     /// スキップを許容する）を使う。これにより、名前の検出漏れ（スキップが必要なケース、
     /// 例:「匠」等の1文字名検出漏れ）にも対応しつつ、交差マッチを防げる。
     /// </summary>
-    private static List<(double Y, SkillEntry Entry)> PairByNearestY(
+    internal static List<(double Y, SkillEntry Entry)> PairByNearestY(
         List<(double Y, string SkillName)> names,
         List<(double Y, int Lv)> lvs)
     {
@@ -260,7 +272,8 @@ public static class SkillReadingPipeline
         {
             for (int j = 1; j <= m; j++)
             {
-                double matchCost = dp[i - 1, j - 1] + Math.Abs(names[i - 1].Y - lvs[j - 1].Y);
+                double rawDiff = lvs[j - 1].Y - names[i - 1].Y;
+                double matchCost = dp[i - 1, j - 1] + Math.Abs(rawDiff - AssumedRowOffset);
                 double skipNameCost = dp[i - 1, j] + GapCost;
                 double skipLvCost = dp[i, j - 1] + GapCost;
 
@@ -360,7 +373,11 @@ public static class SkillReadingPipeline
         foreach (var i in orphanIndices)
         {
             var (orphanY, orphanEntry) = entries[i];
-            using var orphanBand = ExtractBand(orphanY);
+            // orphanYはLv行のY座標(371行目のコメント通り、名前が欠落した行のYはLv側の値)。
+            // 名前は実データでLvより平均37px上に位置する(AssumedRowOffset)ため、Lv位置を
+            // そのまま中心にすると行間隔(約80px)の半分を超える画像で名前の上端が窓の外に
+            // はみ出しうる。名前の推定位置を中心に据える
+            using var orphanBand = ExtractBand(orphanY - AssumedRowOffset);
             if (orphanBand is null)
                 continue;
 
@@ -384,16 +401,17 @@ public static class SkillReadingPipeline
                 if (line.Words.Count == 0)
                     continue;
 
-                // コンパニオンはorphanBandの右側に連結しているため、行の左端X座標が
-                // orphanBandの幅を超えるものはコンパニオン側の再認識結果として除外する。
-                // テキスト内容による判定(コンパニオン名を含むか)ではなく座標で判定することで、
-                // OCRがコンパニオン側を誤読した場合に誤って別スキル名を採用してしまう
-                // リスクを避ける。
-                var x0 = line.Words.Min(w => w.BoundingRect.X);
-                if (x0 >= orphanBand.Cols)
+                // コンパニオンはorphanBandの右側に連結しているため、X座標がorphanBandの幅を
+                // 超える単語はコンパニオン側の再認識結果として除外する。行単位ではなく単語単位で
+                // 判定することで、OCRが孤児側とコンパニオン側を同一行として結合した場合でも、
+                // コンパニオン側の単語が混入したテキストを正規化してしまうことを防ぐ
+                // (テキスト内容による判定ではなく座標で判定するのは、OCRがコンパニオン側を
+                // 誤読した場合に誤って別スキル名を採用してしまうリスクを避けるため)。
+                var orphanWords = line.Words.Where(w => w.BoundingRect.X < orphanBand.Cols).ToList();
+                if (orphanWords.Count == 0)
                     continue;
 
-                var text = line.Text.Replace(" ", "");
+                var text = string.Concat(orphanWords.Select(w => w.Text)).Replace(" ", "");
                 var normalized = SkillNameNormalizer.Normalize(text, knownSkills, knownSkillSet);
                 if (normalized is not null)
                 {
