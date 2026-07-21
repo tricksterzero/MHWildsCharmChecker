@@ -35,35 +35,28 @@ public static class SkillNameNormalizer
         // 呼び出し元が長さ降順でない可能性があっても「長い名前優先」を守るため、ここで確定させる。
         var sortedSkills = knownSkills.OrderByDescending(n => n.Length).ThenBy(n => n, StringComparer.Ordinal).ToList();
 
-        foreach (var skill in sortedSkills)
-        {
-            if (text.Contains(skill, StringComparison.Ordinal))
-                return skill;
-        }
-
-        // 「力」がカタカナの「カ」に誤認識されるOCRの癖に対応（正規名に「カ」を含むスキルは存在しないため、
-        // 一方向の置換のみで安全に対応できる。例: 「火事場カ」→「火事場力」）
+        // 「力」がカタカナの「カ」に誤認識されるOCRの癖に対応（正規名側に「カ」を含むスキルは
+        // 存在しないため、変換後のテキストが正規名自体と衝突する心配はない。例:
+        // 「火事場カ」→「火事場力」。ただしOCR誤読テキストが偶然別の正規名と部分一致する
+        // 可能性まで排除するものではない）
         var textKanaFixed = text.Replace('カ', '力');
-        foreach (var skill in sortedSkills)
-        {
-            if (textKanaFixed.Contains(skill, StringComparison.Ordinal))
-                return skill;
-        }
-
-        // 濁点フォールバック
         var textStripped = StripDakuten(text);
-        foreach (var skill in sortedSkills)
-        {
-            if (textStripped.Contains(StripDakuten(skill), StringComparison.Ordinal))
-                return skill;
-        }
-
-        // 濁点フォールバック + カ→力（両方の誤認識が重なるケースの保険）
         var textStrippedKanaFixed = StripDakuten(textKanaFixed);
+
+        // 素の部分一致・カナ誤認フォールバック・濁点フォールバック・両方の組み合わせを、
+        // スキルごとに(長い名前から順に)まとめて試す。フォールバック別に全スキルを1周ずつ
+        // 試す(旧実装)と、「防御」⊂「防御力ＤＯＷＮ耐性」のような包含関係を持つ名前の組で、
+        // 短い名前が素の部分一致で先に確定してしまい、フォールバックを要する長い名前の方が
+        // 優先されるべき場面でも短い名前が採用されてしまう不具合があった。
         foreach (var skill in sortedSkills)
         {
-            if (textStrippedKanaFixed.Contains(StripDakuten(skill), StringComparison.Ordinal))
+            if (text.Contains(skill, StringComparison.Ordinal)
+                || textKanaFixed.Contains(skill, StringComparison.Ordinal)
+                || textStripped.Contains(StripDakuten(skill), StringComparison.Ordinal)
+                || textStrippedKanaFixed.Contains(StripDakuten(skill), StringComparison.Ordinal))
+            {
                 return skill;
+            }
         }
 
         return null;

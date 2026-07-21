@@ -70,4 +70,23 @@ public class SkillNameNormalizerTests
         var skills = new[] { "ＫＯ術" };
         Assert.Equal("ＫＯ術", SkillNameNormalizer.Normalize("KO術", skills));
     }
+
+    [Fact]
+    public void KanaFallback_HijibaKa_MatchesHijibaChikara()
+    {
+        var skills = new[] { "火事場力" };
+        Assert.Equal("火事場力", SkillNameNormalizer.Normalize("火事場カ", skills));
+    }
+
+    [Fact]
+    public void KanaFallback_PrefersLongerNameOverContainedShorterName()
+    {
+        // 「防御」⊂「防御力ＤＯＷＮ耐性」という包含関係を持つ2つの正規名がある状態で、
+        // OCRが「力」を「カ」に誤認識した場合。カナ誤認フォールバックを要する長い名前より、
+        // 素の部分一致で先に見つかる短い名前(防御)を誤って優先してしまう回帰テスト
+        // (フォールバック別に全スキルを1周ずつ試す実装だと、素の部分一致の周で
+        // 「防御」が先に確定してしまいカナ誤認フォールバックの周に到達できなかった)
+        var skills = new[] { "防御", "防御力ＤＯＷＮ耐性" };
+        Assert.Equal("防御力ＤＯＷＮ耐性", SkillNameNormalizer.Normalize("防御カＤＯＷＮ耐性", skills));
+    }
 }
