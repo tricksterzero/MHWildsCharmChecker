@@ -219,7 +219,14 @@ public static class SkillReadingPipeline
         // 全スキルのLvがずれてしまうため）。
         var bestNames = allResults.MaxBy(r => r.Names.Count)!.Names;
         var bestLvs = allResults.MaxBy(r => r.Lvs.Count)!.Lvs;
-        return PairByNearestY(bestNames, bestLvs);
+        var entries = PairByNearestY(bestNames, bestLvs);
+
+        var rawImage = variants.FirstOrDefault(v => v.Name == "raw").Image;
+        if (rawImage is not null)
+            await TryRecoverOrphanNames(entries, rawImage, knownSkills, knownSkillSet);
+
+        entries.Sort((a, b) => a.Y.CompareTo(b.Y));
+        return entries.Select(e => e.Entry).ToList();
     }
 
     /// <summary>
@@ -228,7 +235,7 @@ public static class SkillReadingPipeline
     /// 後続の全スキルのLvがずれてしまうため（例: 1つ目のスキル名が丸ごと検出できない場合、
     /// 2つ目以降のスキルに誤ったLvが割り当たる）。
     /// </summary>
-    private static List<SkillEntry> PairByNearestY(
+    private static List<(double Y, SkillEntry Entry)> PairByNearestY(
         List<(double Y, string SkillName)> names,
         List<(double Y, int Lv)> lvs)
     {
@@ -263,8 +270,101 @@ public static class SkillReadingPipeline
             entries.Add((lvs[j].Y, new SkillEntry(null, lvs[j].Lv)));
         }
 
-        entries.Sort((a, b) => a.Y.CompareTo(b.Y));
-        return entries.Select(e => e.Entry).ToList();
+        return entries;
+    }
+
+    /// <summary>
+    /// 名前が検出できなかった行(Lvのみ)を、既知スキル名として認識回復させる試み。
+    /// Windows.Media.Ocrは1文字だけで同一行に他のテキストが無い場合、その文字を
+    /// 行として一切検出しないことがある（「匠」等の1文字スキル名で確認済み）。
+    /// 同じ画像内で既に名前が判明している別の行を「コンパニオン」として横に連結し、
+    /// 再OCRすることで、単独では検出されない文字を検出させる（検証済みの回避策）。
+    /// </summary>
+    private static async Task TryRecoverOrphanNames(
+        List<(double Y, SkillEntry Entry)> entries,
+        Mat rawImage,
+        IReadOnlyList<string> knownSkills,
+        HashSet<string> knownSkillSet)
+    {
+        var orphanIndices = new List<int>();
+        (double Y, string Name)? companion = null;
+        for (int i = 0; i < entries.Count; i++)
+        {
+            var (y, entry) = entries[i];
+            if (entry.Name is null && entry.Lv is not null)
+                orphanIndices.Add(i);
+            else if (entry.Name is not null && companion is null)
+                companion = (y, entry.Name);
+        }
+
+        if (orphanIndices.Count == 0 || companion is null)
+            return;
+
+        const int halfHeight = 40;
+        // スキルアイコン(装飾グラフィック)を含めるとOCRの行検出が阻害されるため、
+        // アイコン列(x:0-50付近)を除外し、名前テキスト部分のみを切り出す。
+        const int xOffset = 50;
+        const int bandWidth = 250;
+
+        Mat? ExtractBand(double centerY)
+        {
+            int y0 = Math.Max(0, (int)centerY - halfHeight);
+            int y1 = Math.Min(rawImage.Rows, (int)centerY + halfHeight);
+            int w = Math.Min(bandWidth, rawImage.Cols - xOffset);
+            if (y1 - y0 <= 0 || w <= 0)
+                return null;
+            return new Mat(rawImage, new Rect(xOffset, y0, w, y1 - y0));
+        }
+
+        using var companionBand = ExtractBand(companion.Value.Y);
+        if (companionBand is null)
+            return;
+
+        foreach (var i in orphanIndices)
+        {
+            var (orphanY, orphanEntry) = entries[i];
+            using var orphanBand = ExtractBand(orphanY);
+            if (orphanBand is null)
+                continue;
+
+            using var companionResized = new Mat();
+            if (companionBand.Rows == orphanBand.Rows)
+                Cv2.CopyTo(companionBand, companionResized);
+            else
+                Cv2.Resize(companionBand, companionResized, new Size(companionBand.Cols, orphanBand.Rows));
+
+            using var combined = new Mat();
+            Cv2.HConcat(new[] { orphanBand, companionResized }, combined);
+
+            using var bgra = new Mat();
+            Cv2.CvtColor(combined, bgra, ColorConversionCodes.BGR2BGRA);
+            var bytes = new byte[bgra.Rows * bgra.Cols * 4];
+            System.Runtime.InteropServices.Marshal.Copy(bgra.Data, bytes, 0, bytes.Length);
+            var ocr = await TextOcrReader.RecognizeBytesAsync(bytes, bgra.Cols, bgra.Rows);
+
+            foreach (var line in ocr.Lines)
+            {
+                if (line.Words.Count == 0)
+                    continue;
+
+                // コンパニオンはorphanBandの右側に連結しているため、行の左端X座標が
+                // orphanBandの幅を超えるものはコンパニオン側の再認識結果として除外する。
+                // テキスト内容による判定(コンパニオン名を含むか)ではなく座標で判定することで、
+                // OCRがコンパニオン側を誤読した場合に誤って別スキル名を採用してしまう
+                // リスクを避ける。
+                var x0 = line.Words.Min(w => w.BoundingRect.X);
+                if (x0 >= orphanBand.Cols)
+                    continue;
+
+                var text = line.Text.Replace(" ", "");
+                var normalized = SkillNameNormalizer.Normalize(text, knownSkills, knownSkillSet);
+                if (normalized is not null)
+                {
+                    entries[i] = (orphanY, orphanEntry with { Name = normalized });
+                    break;
+                }
+            }
+        }
     }
 
     private static async Task<OcrResult> OcrMatAsync(Mat mat)

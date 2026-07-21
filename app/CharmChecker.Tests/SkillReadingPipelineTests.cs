@@ -57,12 +57,15 @@ public class SkillReadingPipelineTests
     ];
 
     [Fact]
-    public async Task ReadAsync_OneSkillNameUndetected_DoesNotShiftOtherSkillsLevels()
+    public async Task ReadAsync_SingleCharacterSkillName_IsRecoveredWithoutShiftingOtherSkillsLevels()
     {
-        // OCRエンジンが「匠」（1文字のスキル名）を一切検出できないケース。
+        // OCRエンジンが「匠」（1文字のスキル名）を単独では一切検出できないケース
+        // （Windows.Media.Ocrは同一行に他のテキストが無い孤立した1文字を行として検出しない仕様）。
         // 名前とLvを単純なインデックス順でペアリングすると、1つ目のスキル名が
-        // 丸ごと欠落した影響で後続の全スキルのLvがずれてしまう回帰テスト
-        // （正: 匠Lv3, 回避性能Lv2, 満足感Lv1 / 修正前の誤: 回避性能Lv3, 満足感Lv2）
+        // 丸ごと欠落した影響で後続の全スキルのLvがずれてしまう問題があったため、
+        // Y座標最近傍ペアリングで欠落自体は解消済み。さらに、名前が無いLv行(孤児行)については
+        // 既に判明している別の行のテキストをコンパニオンとして横に連結し再OCRすることで、
+        // 「匠」単独では検出されない文字を回復させる（正: 匠Lv3, 回避性能Lv2, 満足感Lv1）。
         var assetsDir = FindAssetsDir();
         var resourcesDir = FindResourcesDir();
         var jsonPath = Path.Combine(resourcesDir, "skill-decoration-map.json");
@@ -78,7 +81,7 @@ public class SkillReadingPipelineTests
 
         Assert.NotNull(result);
         Assert.Equal(3, result.Count);
-        Assert.Null(result[0].Name);
+        Assert.Equal("匠", result[0].Name);
         Assert.Equal(3, result[0].Lv);
         Assert.Equal("回避性能", result[1].Name);
         Assert.Equal(2, result[1].Lv);
