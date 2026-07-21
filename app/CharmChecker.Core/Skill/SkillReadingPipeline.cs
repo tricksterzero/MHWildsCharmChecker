@@ -230,40 +230,77 @@ public static class SkillReadingPipeline
     }
 
     /// <summary>
-    /// スキル名リストとLvリストを、それぞれ単純なインデックス順ではなくY座標が近いもの同士で
-    /// 貪欲マッチングする。名前が1つでも検出漏れすると、インデックス順ペアリングでは
-    /// 後続の全スキルのLvがずれてしまうため（例: 1つ目のスキル名が丸ごと検出できない場合、
-    /// 2つ目以降のスキルに誤ったLvが割り当たる）。
+    /// スキル名リストとLvリストを、Y座標順を保った単調な対応付け(モノトニック・アライメント)で
+    /// ペアリングする。名前・Lvはあらかじめ各々Y昇順でソート済みであることを前提とする。
+    ///
+    /// 単純な「Y最近傍」の貪欲マッチングでは、行間隔(row spacing)が行内の名前-Lv間オフセット
+    /// (within-row offset)の2倍未満の場合、後の行の名前が前の行のLvに、前の行の名前が後の行の
+    /// Lvに誤って交差マッチしてしまう問題があった（実例: 名前Y=[40,120], Lv Y=[88,168]の場合、
+    /// 2番目の名前(120)は自分の本来のLv(168, 差48)より1番目のLv(88, 差32)の方が近く、
+    /// 素朴な最近傍マッチングだと1番目と2番目のLvが入れ替わって割り当たる）。
+    /// 行の並び順(Y昇順)はOCRの検出順と一致するはずなので、対応関係が交差しない
+    /// （名前リストの前の要素は、Lvリストの前の要素にしか対応しない）という制約を守った上で
+    /// 最小コストの対応を求めるDP（編集距離と同じ考え方、名前・Lvどちらかを読み飛ばす
+    /// スキップを許容する）を使う。これにより、名前の検出漏れ（スキップが必要なケース、
+    /// 例:「匠」等の1文字名検出漏れ）にも対応しつつ、交差マッチを防げる。
     /// </summary>
     private static List<(double Y, SkillEntry Entry)> PairByNearestY(
         List<(double Y, string SkillName)> names,
         List<(double Y, int Lv)> lvs)
     {
-        var candidatePairs = new List<(int NameIdx, int LvIdx, double Dist)>();
-        for (int i = 0; i < names.Count; i++)
-            for (int j = 0; j < lvs.Count; j++)
-                candidatePairs.Add((i, j, Math.Abs(names[i].Y - lvs[j].Y)));
-        candidatePairs.Sort((a, b) => a.Dist.CompareTo(b.Dist));
+        const double GapCost = 60.0;
+        int n = names.Count, m = lvs.Count;
 
-        var usedNames = new bool[names.Count];
-        var usedLvs = new bool[lvs.Count];
-        var matchedLvIndexForName = new int?[names.Count];
-        foreach (var (nameIdx, lvIdx, _) in candidatePairs)
+        var dp = new double[n + 1, m + 1];
+        var choice = new byte[n + 1, m + 1]; // 0=match, 1=nameをスキップ, 2=lvをスキップ
+        for (int i = 1; i <= n; i++) dp[i, 0] = i * GapCost;
+        for (int j = 1; j <= m; j++) dp[0, j] = j * GapCost;
+
+        for (int i = 1; i <= n; i++)
         {
-            if (usedNames[nameIdx] || usedLvs[lvIdx])
-                continue;
-            usedNames[nameIdx] = true;
-            usedLvs[lvIdx] = true;
-            matchedLvIndexForName[nameIdx] = lvIdx;
+            for (int j = 1; j <= m; j++)
+            {
+                double matchCost = dp[i - 1, j - 1] + Math.Abs(names[i - 1].Y - lvs[j - 1].Y);
+                double skipNameCost = dp[i - 1, j] + GapCost;
+                double skipLvCost = dp[i, j - 1] + GapCost;
+
+                double best = matchCost;
+                byte c = 0;
+                if (skipNameCost < best) { best = skipNameCost; c = 1; }
+                if (skipLvCost < best) { best = skipLvCost; c = 2; }
+                dp[i, j] = best;
+                choice[i, j] = c;
+            }
+        }
+
+        var matchedLvIndexForName = new int?[n];
+        var usedLvs = new bool[m];
+        int ci = n, cj = m;
+        while (ci > 0 || cj > 0)
+        {
+            if (ci > 0 && cj > 0 && choice[ci, cj] == 0)
+            {
+                matchedLvIndexForName[ci - 1] = cj - 1;
+                usedLvs[cj - 1] = true;
+                ci--; cj--;
+            }
+            else if (ci > 0 && (cj == 0 || choice[ci, cj] == 1))
+            {
+                ci--;
+            }
+            else
+            {
+                cj--;
+            }
         }
 
         var entries = new List<(double Y, SkillEntry Entry)>();
-        for (int i = 0; i < names.Count; i++)
+        for (int i = 0; i < n; i++)
         {
             var lv = matchedLvIndexForName[i] is int lvIdx ? lvs[lvIdx].Lv : (int?)null;
             entries.Add((names[i].Y, new SkillEntry(names[i].SkillName, lv)));
         }
-        for (int j = 0; j < lvs.Count; j++)
+        for (int j = 0; j < m; j++)
         {
             if (usedLvs[j])
                 continue;
