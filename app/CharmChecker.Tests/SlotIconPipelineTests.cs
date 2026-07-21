@@ -126,6 +126,22 @@ public class SlotIconPipelineTests
     }
 
     [Fact]
+    public void ReadSlots_AdjacentIconFusedWithBarBorder_RecoversFirstSlot()
+    {
+        // 「ベースキャンプメニュー>装備変更」の2護石比較画面。1つ目のスロットアイコンが
+        // スロットバーの縁取り(装飾UI)とCannyの輪郭検出で融合し、幅が正常範囲を大きく
+        // 超えた1つの塊として検出され、本来2つあるはずのスロットが1つ(2つ目のみ)しか
+        // 検出されなかった回帰テスト(正: 防具[2,1,0] / 修正前の誤: 防具[1,0,0])。
+        // TryRecoverFusedFrameが、確定済みの2つ目のアイコンを手掛かりに、融合した塊の
+        // 未検出側だけを狭い窓で再度Canny検出することで1つ目のLv2を回復する。
+        var path = Path.Combine(TestPaths.FindAssetsDir(), "case2 equip change", "20260506085633_1.jpg");
+        var (armor, weapon) = CharmChecker.App.MainWindow.ReadSlots(path, hasWeaponSlot: false);
+
+        Assert.Equal(new List<int> { 2, 1, 0 }, armor);
+        Assert.Equal(new List<int> { 0, 0, 0 }, weapon);
+    }
+
+    [Fact]
     public void ClassifyLevel_UniformCrop_ReturnsUnknown()
     {
         using var gray = new Mat(100, 50, MatType.CV_8UC1, Scalar.All(0));

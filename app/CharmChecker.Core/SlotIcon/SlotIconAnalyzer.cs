@@ -58,6 +58,7 @@ public static class SlotIconAnalyzer
             RetrievalModes.External, ContourApproximationModes.ApproxSimple);
 
         var raw = new List<Rect>();
+        var oversized = new List<Rect>();
         foreach (var contour in contours)
         {
             var rect = Cv2.BoundingRect(contour);
@@ -67,11 +68,124 @@ public static class SlotIconAnalyzer
             {
                 raw.Add(rect);
             }
+            else if (rect.Width >= wHi && rect.Width < wHi * 4
+                && rect.Height > hLo && rect.Height < hHi
+                && rect.Y >= yMin)
+            {
+                // 幅だけが上限を超える塊。ソケット枠が隣接UI装飾(スロットバーの縁取り等)と
+                // Cannyで1つに融合した可能性がある候補として保持する（TryRecoverFusedFrame参照）。
+                oversized.Add(rect);
+            }
         }
 
         raw.Sort((a, b) => a.X.CompareTo(b.X));
         var merged = MergeOverlapping(raw, SlotIconConstants.MergeXThreshold * sx);
-        return FilterYCluster(merged, SlotIconConstants.ClusterYThreshold * sy);
+        var filtered = FilterYCluster(merged, SlotIconConstants.ClusterYThreshold * sy);
+
+        if (oversized.Count > 0 && filtered.Count > 0)
+            filtered = TryRecoverFusedFrame(gray, filtered, oversized, wLo, wHi, hLo, hHi);
+
+        return filtered;
+    }
+
+    /// <summary>
+    /// ソケット枠が隣接するUI装飾(スロットバーの縁取り等)とCannyで1つの輪郭に融合し、
+    /// 幅だけが異常に大きい塊として検出された場合の回復処理。
+    /// 「装備変更」画面の2護石比較パネル(実データで1件確認済み)で、1つ目のスロットアイコンが
+    /// バーの縁取りと融合して幅が正常範囲外の塊になり、本来2つあるはずのスロットが
+    /// 1つしか検出されない問題への対応。
+    /// 塊の中に既に確定した正常なフレーム(=融合していない側の隣接アイコン)が含まれる場合、
+    /// その左右の残り領域だけを狭い窓として切り出し再度Canny+輪郭検出をかける。
+    /// 残り領域から輪郭候補が複数出た場合(曖昧)は採用しない。
+    /// </summary>
+    private static List<Rect> TryRecoverFusedFrame(
+        Mat gray, List<Rect> accepted, List<Rect> oversizedCandidates,
+        double wLo, double wHi, double hLo, double hHi)
+    {
+        var result = new List<Rect>(accepted);
+
+        foreach (var oversize in oversizedCandidates)
+        {
+            Rect? contained = null;
+            foreach (var f in accepted)
+            {
+                if (f.X >= oversize.X && f.Right <= oversize.Right)
+                {
+                    contained = f;
+                    break;
+                }
+            }
+            if (contained is not { } c)
+                continue;
+
+            // 窓の外側境界(隣接する確定フレームと逆側)に余白を持たせる。境界ぎりぎりで
+            // 切り出すとCannyが輪郭を正しく閉じられず、本来のアイコン形状より小さい
+            // 断片に分裂することを実験で確認済みのため、内側(隣接フレーム側)は境界通り、
+            // 外側だけ余白を追加する。
+            int outerMargin = (int)(wHi * 0.4);
+
+            TryRecoverSide(gray, oversize.Y, oversize.Height,
+                oversize.X - outerMargin, (c.X - oversize.X) + outerMargin,
+                wLo, wHi, hLo, hHi, result);
+            TryRecoverSide(gray, oversize.Y, oversize.Height,
+                c.Right, (oversize.Right - c.Right) + outerMargin,
+                wLo, wHi, hLo, hHi, result);
+        }
+
+        result.Sort((a, b) => a.X.CompareTo(b.X));
+        return result;
+    }
+
+    private static void TryRecoverSide(
+        Mat gray, int y, int height, int subX, int subWidth,
+        double wLo, double wHi, double hLo, double hHi,
+        List<Rect> outResult)
+    {
+        if (subWidth < wLo)
+            return;
+
+        var subRect = new Rect(subX, y, subWidth, height);
+        var bounds = new Rect(0, 0, gray.Cols, gray.Rows);
+        subRect = subRect.Intersect(bounds);
+        if (subRect.Width <= 0 || subRect.Height <= 0)
+            return;
+
+        using var subGray = new Mat(gray, subRect);
+        using var subEdges = new Mat();
+        Cv2.Canny(subGray, subEdges, 50, 150);
+        Cv2.FindContours(subEdges, out Point[][] subContours, out _,
+            RetrievalModes.External, ContourApproximationModes.ApproxSimple);
+
+        var candidates = new List<Rect>();
+        foreach (var contour in subContours)
+        {
+            var r = Cv2.BoundingRect(contour);
+            if (r.Width > wLo && r.Width < wHi && r.Height > hLo && r.Height < hHi)
+                candidates.Add(r);
+        }
+
+        if (candidates.Count == 0)
+            return;
+
+        Rect recovered;
+        if (candidates.Count == 1)
+        {
+            recovered = candidates[0];
+        }
+        else if (subWidth < wHi * 1.5)
+        {
+            // 窓の幅が1個分のアイコン相当のため、複数候補は同一アイコンの内側/外側境界の
+            // 重複検出である可能性が高いと判断し、最大面積のものを採用する
+            // (MergeOverlappingが近接候補から大きい方を選ぶのと同じ考え方)。
+            recovered = candidates.MaxBy(c => c.Width * c.Height);
+        }
+        else
+        {
+            // 窓が複数アイコン分の幅を持ちうる場合、どれが正しいか判断できないため採用しない
+            return;
+        }
+
+        outResult.Add(new Rect(recovered.X + subRect.X, recovered.Y + subRect.Y, recovered.Width, recovered.Height));
     }
 
     /// <summary>
