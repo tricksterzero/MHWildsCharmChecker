@@ -9,6 +9,7 @@ namespace CharmChecker.App;
 public partial class App : Application
 {
     private Mutex? _instanceLock;
+    private bool _ownsInstanceLock;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -16,6 +17,7 @@ public partial class App : Application
 
         var mutexName = "MHWildsCharmChecker_" + HashDataDir(AppDomain.CurrentDomain.BaseDirectory);
         _instanceLock = new Mutex(initiallyOwned: true, mutexName, out bool createdNew);
+        _ownsInstanceLock = createdNew;
         if (!createdNew)
         {
             MessageBox.Show(
@@ -36,7 +38,11 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
-        _instanceLock?.ReleaseMutex();
+        // initiallyOwned:trueで所有権を得るのはMutexを新規作成した場合のみ。多重起動を検知した
+        // 側(createdNew==false)は既存Mutexを開いただけで所有していないため、ReleaseMutex()を
+        // 呼ぶとApplicationExceptionを投げ、後続のDispose()/base.OnExit(e)が実行されなくなる
+        if (_ownsInstanceLock)
+            _instanceLock?.ReleaseMutex();
         _instanceLock?.Dispose();
         base.OnExit(e);
     }
