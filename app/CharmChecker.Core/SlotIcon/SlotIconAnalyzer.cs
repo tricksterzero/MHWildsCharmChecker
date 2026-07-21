@@ -112,7 +112,10 @@ public static class SlotIconAnalyzer
             Rect? contained = null;
             foreach (var f in accepted)
             {
-                if (f.X >= oversize.X && f.Right <= oversize.Right)
+                // X範囲の内包だけで判定すると、Y範囲が全く異なる(=別行の)無関係な大型輪郭を
+                // 誤って内包パターンと認識してしまう(隣接パターンのsameRow条件と同じ理由で必須)
+                bool sameRow = oversize.Y < f.Y + f.Height && f.Y < oversize.Y + oversize.Height;
+                if (sameRow && f.X >= oversize.X && f.Right <= oversize.Right)
                 {
                     contained = f;
                     break;
@@ -217,7 +220,22 @@ public static class SlotIconAnalyzer
             return;
         }
 
-        outResult.Add(new Rect(recovered.X + subRect.X, recovered.Y + subRect.Y, recovered.Width, recovered.Height));
+        var recoveredRect = new Rect(recovered.X + subRect.X, recovered.Y + subRect.Y, recovered.Width, recovered.Height);
+
+        // 複数のoversizedCandidatesが同じ枠を回復した場合や、1つの内包塊内に確定フレームが
+        // 複数含まれる場合に、同一の枠を重複して追加してしまうことを防ぐ
+        // (X範囲が重なっていれば同一アイコンの重複検出とみなす)
+        if (outResult.Any(existing => RangesOverlap(existing, recoveredRect)))
+            return;
+
+        outResult.Add(recoveredRect);
+    }
+
+    private static bool RangesOverlap(Rect a, Rect b)
+    {
+        int overlapStart = Math.Max(a.X, b.X);
+        int overlapEnd = Math.Min(a.Right, b.Right);
+        return overlapEnd > overlapStart;
     }
 
     /// <summary>
