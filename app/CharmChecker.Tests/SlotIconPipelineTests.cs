@@ -101,6 +101,19 @@ public class SlotIconPipelineTests
     }
 
     [Fact]
+    public void ReadSlots_TiedFrameCount_PrefersBoxRegionOverSpuriousDetailRegion()
+    {
+        // 鑑定BOXプレビュー画面ではBOX領域・Detail領域とも2枠を検出し同数になるが、
+        // Detail領域(x:1400-1650)側はこの画面では護石画像プレビュー部分を誤検出しており、
+        // BOX領域の検出結果(Lv2+Lv1、正解)が採用されるべき回帰テスト
+        var path = Path.Combine(TestPaths.FindAssetsDir(), "case5 craft result", "20260615054704_1.jpg");
+        var (armor, weapon) = CharmChecker.App.MainWindow.ReadSlots(path, hasWeaponSlot: false);
+
+        Assert.Equal(new List<int> { 2, 1, 0 }, armor);
+        Assert.Equal(new List<int> { 0, 0, 0 }, weapon);
+    }
+
+    [Fact]
     public void ClassifyLevel_UniformCrop_ReturnsUnknown()
     {
         using var gray = new Mat(100, 50, MatType.CV_8UC1, Scalar.All(0));

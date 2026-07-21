@@ -563,7 +563,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         ReadingProgressText.Text = "中断しています...";
     }
 
-    private static (List<int> ArmorSlots, List<int> WeaponSlots) ReadSlots(
+    internal static (List<int> ArmorSlots, List<int> WeaponSlots) ReadSlots(
         string imagePath, bool hasWeaponSlot)
     {
         using var img = OpenCvSharp.Cv2.ImRead(imagePath);
@@ -576,7 +576,9 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         OpenCvSharp.Mat gray;
         OpenCvSharp.Mat disposeGray;
 
-        if (boxFrames.Count > detFrames.Count && boxFrames.Count > 0)
+        // 同数の場合はBOX領域を優先する。Detail領域(x:1400-1650)は画面パターンによっては
+        // 護石画像プレビュー等の無関係な内容を誤検出しうるため、同数のタイはBOX側を信頼する。
+        if (boxFrames.Count >= detFrames.Count && boxFrames.Count > 0)
         {
             frames = boxFrames; gray = boxGray;
             disposeGray = detGray;
