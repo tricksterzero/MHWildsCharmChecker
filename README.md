@@ -14,9 +14,7 @@
 
 ## 現在の配布状況
 
-配布形式は決定済み: Windows x64向けの自己完結（self-contained）ポータブルzipを、GitHub Releasesで配布する予定（.NETランタイムの別途インストールは不要、zipを展開して実行ファイルを起動するだけで動作する）。
-
-ただし現時点ではまだリリースを作成していないため、配布用バイナリは未整備。それまではソースからビルドして実行する必要がある。手順は「ビルド方法」を参照。
+Windows x64向けの自己完結（self-contained）ポータブルzipを[GitHub Releases](https://github.com/tricksterzero/MHWildsCharmChecker/releases)で配布している（.NETランタイムの別途インストールは不要、zipを展開して`MHWildsCharmChecker.exe`を起動するだけで動作する）。
 
 ## 使い方
 
