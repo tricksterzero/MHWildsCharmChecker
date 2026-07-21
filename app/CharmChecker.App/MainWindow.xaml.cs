@@ -279,6 +279,13 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
 
             DetailProbability.Text = FormatProbability(CharmProbabilityEstimator.Estimate(charm));
 
+            DetailTheoreticalValue.Text = CharmTheoreticalValueChecker.IsTheoretical(charm) switch
+            {
+                true => "理論値護石です",
+                false => "理論値ではありません",
+                null => "判定不可",
+            };
+
             DetailSkills.Text = charm.Skills.Count > 0
                 ? string.Join("\n", charm.Skills.Select(s => $"{s.Name} Lv{s.Lv}"))
                 : "（なし）";

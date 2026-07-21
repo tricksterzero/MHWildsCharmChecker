@@ -180,6 +180,11 @@
                                     <TextBlock x:Name="DetailProbability" Margin="12,2,0,8"
                                                ToolTip="スキル・スロットの組み合わせが等確率で選ばれるという未検証の仮定に基づく推定値です。実際の抽選確率とは異なる可能性があります。" />
 
+                                    <TextBlock Text="理論値判定" FontWeight="Bold"
+                                               ToolTip="各スキルがそのスキル自身の最大Lvであり、かつスロット構成がレアリティを問わず他のどのパターンにも支配されない（＝上回られない）最大構成であるかを判定します。" />
+                                    <TextBlock x:Name="DetailTheoreticalValue" Margin="12,2,0,8"
+                                               ToolTip="各スキルがそのスキル自身の最大Lvであり、かつスロット構成がレアリティを問わず他のどのパターンにも支配されない（＝上回られない）最大構成であるかを判定します。" />
+
                                     <TextBlock Text="スキル" FontWeight="Bold" />
                                     <TextBlock x:Name="DetailSkills" Margin="12,2,0,8" />
 
