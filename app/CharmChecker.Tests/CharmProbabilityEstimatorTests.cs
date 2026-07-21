@@ -49,6 +49,28 @@ public class CharmProbabilityEstimatorTests
     }
 
     [Fact]
+    public void SkillOrderReversed_ProducesSameProbability()
+    {
+        // charm-combinations.jsonのRARE5にskillGroups[1,7](ＫＯ術Lv1→ひるみ軽減Lv3の順)は
+        // 実在するが逆順[7,1]は存在しない。護石のスキル入力順は意味を持たないため、
+        // 逆順で保存されても同じ確率が算出されるべき回帰テスト
+        // (グループ1は37種・グループ7は34種、RARE5は6パターン中1つ、スロット[2,1]は4パターン中1つ)
+        var charm = new Charm
+        {
+            Skills = [new("ひるみ軽減", 3), new("ＫＯ術", 1)],
+            ArmorSlots = [2, 1, 0],
+            WeaponSlots = [0, 0, 0],
+            Rarity = 5,
+        };
+
+        double expected = (1.0 / 6) * (1.0 / 4) * (1.0 / 37) * (1.0 / 34);
+        double? actual = CharmProbabilityEstimator.Estimate(charm);
+
+        Assert.NotNull(actual);
+        Assert.True(Math.Abs(expected - actual!.Value) < Tolerance);
+    }
+
+    [Fact]
     public void UnknownRarity_ReturnsNull()
     {
         var charm = new Charm

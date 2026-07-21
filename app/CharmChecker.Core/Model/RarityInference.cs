@@ -81,15 +81,35 @@ public static class RarityInference
         return possibleGroupsPerSkill;
     }
 
+    /// <summary>
+    /// 護石のスキル入力順序と組み合わせパターンの宣言順序は一致するとは限らない
+    /// （charm-combinations.jsonのskillGroups配列自体、グループ番号昇順にすらなっていない
+    /// エントリが29件中14件あり、順序に意味があるとは言えないため）。
+    /// 各パターン位置に、まだ割り当てていないスキルを1つずつ対応付けられるかを
+    /// バックトラッキングで探索する（一対一割り当て、同じスキルを2位置に使い回さない）。
+    /// </summary>
     internal static bool MatchesGroupPattern(List<int[]> possibleGroups, int[] pattern)
     {
         if (possibleGroups.Count != pattern.Length) return false;
-        for (int i = 0; i < pattern.Length; i++)
+        return TryAssign(possibleGroups, pattern, new bool[possibleGroups.Count], 0);
+    }
+
+    private static bool TryAssign(List<int[]> possibleGroups, int[] pattern, bool[] used, int patternIndex)
+    {
+        if (patternIndex == pattern.Length) return true;
+
+        for (int skillIndex = 0; skillIndex < possibleGroups.Count; skillIndex++)
         {
-            if (!possibleGroups[i].Contains(pattern[i]))
-                return false;
+            if (used[skillIndex] || !possibleGroups[skillIndex].Contains(pattern[patternIndex]))
+                continue;
+
+            used[skillIndex] = true;
+            if (TryAssign(possibleGroups, pattern, used, patternIndex + 1))
+                return true;
+            used[skillIndex] = false;
         }
-        return true;
+
+        return false;
     }
 
     /// <summary>

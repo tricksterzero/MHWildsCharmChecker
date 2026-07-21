@@ -22,6 +22,23 @@ public class CharmTheoreticalValueCheckerTests
     }
 
     [Fact]
+    public void SkillOrderReversed_StillReturnsTrue()
+    {
+        // charm-combinations.jsonのRARE7/8にskillGroups[3,7](ＫＯ術Lv3→ひるみ軽減Lv3の順)は
+        // 実在するが逆順[7,3]は存在しない。護石のスキル入力順は意味を持たないため、
+        // 逆順で保存されてもMaxSkillsAndFrontierSlotと同じ結果(true)になるべき回帰テスト
+        var charm = new Charm
+        {
+            Skills = [new("ひるみ軽減", 3), new("ＫＯ術", 3)],
+            ArmorSlots = [1, 1, 0],
+            WeaponSlots = [1, 0, 0],
+            Rarity = 8,
+        };
+
+        Assert.True(CharmTheoreticalValueChecker.IsTheoretical(charm));
+    }
+
+    [Fact]
     public void SkillBelowOwnMax_ReturnsFalse()
     {
         // ＫＯ術はLv3まで存在するため、Lv1では自身の最大に達していない
