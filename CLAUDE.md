@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## プロジェクト概要
 
-モンスターハンターワイルズの護石（スキル構成・スロット情報）をスクリーンショットから読み取ってCSV化し、重複・下位互換護石を検出するWindowsデスクトップアプリ。C# (WPF) + Windows.Media.Ocr + OpenCvSharpでローカル動作する。Core機能・UI共に実装済み、ライセンス対応済み（MIT + THIRD-PARTY-NOTICES）、README作成済み。配布形式は自己完結（self-contained）のWindows x64向けポータブルzip・GitHub Releases配布に決定済み（2026-07-20）。公開に向けた必須の残タスクは初回リリースの作成とリポジトリの公開設定変更（Private→Public）。
+モンスターハンターワイルズの護石（スキル構成・スロット情報）をスクリーンショットから読み取ってCSV化し、重複・下位互換護石を検出するWindowsデスクトップアプリ。C# (WPF) + Windows.Media.Ocr + OpenCvSharpでローカル動作する。Core機能・UI共に実装済み、ライセンス対応済み（MIT + THIRD-PARTY-NOTICES）、README作成済み。配布形式は自己完結（self-contained）のWindows x64向けポータブルzip・GitHub Releases配布（2026-07-21、v1.0.0リリース済み）。リポジトリは公開設定済み（Public、2026-07-21）。公開作業は完了。
 
 ## フォルダ構成
 
@@ -99,7 +99,7 @@ node legacy/charm-duplicate-checker.js <CSVパス>
 - スタック: C#/.NET 10.0 (WPF) + Windows.Media.Ocr（テキスト: スキル名・Lv）+ OpenCvSharp4（スロットアイコンの判定）+ WPF-UI 4.3.0（Fluentテーマ）
 - スロット判定: ソケット枠を`findContours`で検出し、列プロファイル解析でレベル判定。種別は護石名ベースで判定（バッジテンプレートマッチングは不安定なため廃止）
 - 基準解像度2560x1440に対する比率ベースで座標を扱う（解像度非依存対応は将来課題、現状は自環境での動作を優先）
-- 公開準備中。ライセンス対応済み・README作成済み・配布形式決定済み（自己完結ポータブルzip・GitHub Releases）。公開に向けた必須の残タスクは初回リリースの作成とリポジトリの公開設定変更（Private→Public）
+- 公開済み（2026-07-21）。ライセンス対応済み・README作成済み・自己完結ポータブルzipをGitHub Releasesでv1.0.0として配布中、リポジトリはPublic
 
 ## スロットアイコン判定ロジック（`CharmChecker.Core/SlotIcon/`）
 
