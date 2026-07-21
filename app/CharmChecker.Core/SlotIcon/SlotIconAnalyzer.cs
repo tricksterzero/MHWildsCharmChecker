@@ -90,19 +90,22 @@ public static class SlotIconAnalyzer
 
     /// <summary>
     /// ソケット枠が隣接するUI装飾(スロットバーの縁取り等)とCannyで1つの輪郭に融合し、
-    /// 幅だけが異常に大きい塊として検出された場合の回復処理。
-    /// 「装備変更」画面の2護石比較パネル(実データで1件確認済み)で、1つ目のスロットアイコンが
-    /// バーの縁取りと融合して幅が正常範囲外の塊になり、本来2つあるはずのスロットが
-    /// 1つしか検出されない問題への対応。
-    /// 塊の中に既に確定した正常なフレーム(=融合していない側の隣接アイコン)が含まれる場合、
-    /// その左右の残り領域だけを狭い窓として切り出し再度Canny+輪郭検出をかける。
-    /// 残り領域から輪郭候補が複数出た場合(曖昧)は採用しない。
+    /// 幅だけが異常に大きい塊として検出された場合の回復処理。実データで2パターン確認済み:
+    ///
+    /// (1) 「装備変更」画面の2護石比較パネル: 1つ目のアイコンがバーの縁取りと融合し、
+    ///     その塊の中に2つ目のアイコン(確定フレーム)が含まれる形で検出される。
+    /// (2) 単一「装備詳細」パネル(鑑定BOX画面等): 1つ目のアイコンがバーの縁取りと融合するが、
+    ///     2つ目のアイコン(確定フレーム)は塊に含まれず、単に隣接するだけの場合がある。
+    ///     この場合、塊自体の境界はCannyの融合具合で伸縮し不安定(実験で、狭い窓から広い窓へ
+    ///     切り出し幅を変えると塊が際限なく広がり続けることを確認済み)なため、塊の境界ではなく
+    ///     隣接する確定フレームの端を基準にした固定幅の窓で再探索する方が安定する。
     /// </summary>
     private static List<Rect> TryRecoverFusedFrame(
         Mat gray, List<Rect> accepted, List<Rect> oversizedCandidates,
         double wLo, double wHi, double hLo, double hHi)
     {
         var result = new List<Rect>(accepted);
+        double adjacencyThreshold = wLo * 0.67;
 
         foreach (var oversize in oversizedCandidates)
         {
@@ -115,21 +118,50 @@ public static class SlotIconAnalyzer
                     break;
                 }
             }
-            if (contained is not { } c)
+
+            if (contained is { } c)
+            {
+                // 窓の外側境界(隣接する確定フレームと逆側)に余白を持たせる。境界ぎりぎりで
+                // 切り出すとCannyが輪郭を正しく閉じられず、本来のアイコン形状より小さい
+                // 断片に分裂することを実験で確認済みのため、内側(隣接フレーム側)は境界通り、
+                // 外側だけ余白を追加する。
+                int outerMargin = (int)(wHi * 0.4);
+
+                TryRecoverSide(gray, oversize.Y, oversize.Height,
+                    oversize.X - outerMargin, (c.X - oversize.X) + outerMargin,
+                    wLo, wHi, hLo, hHi, result);
+                TryRecoverSide(gray, oversize.Y, oversize.Height,
+                    c.Right, (oversize.Right - c.Right) + outerMargin,
+                    wLo, wHi, hLo, hHi, result);
                 continue;
+            }
 
-            // 窓の外側境界(隣接する確定フレームと逆側)に余白を持たせる。境界ぎりぎりで
-            // 切り出すとCannyが輪郭を正しく閉じられず、本来のアイコン形状より小さい
-            // 断片に分裂することを実験で確認済みのため、内側(隣接フレーム側)は境界通り、
-            // 外側だけ余白を追加する。
-            int outerMargin = (int)(wHi * 0.4);
+            // 塊が確定フレームを含んでいない=単に隣接しているだけのケース。
+            // 塊自体の境界(不安定)ではなく、隣接する確定フレームの端を起点に、
+            // アイコン1個分相当の固定幅の窓で再探索する。
+            // X座標の近さだけで判定すると、Y座標が全く異なる(=別の行の)無関係な形状まで
+            // 「隣接」とみなしてしまうため、Y範囲が重なっている場合に限定する
+            // (実データで、別行の無関係な形状を誤検出する回帰を確認したため必須の条件)。
+            int fixedWindowWidth = (int)wHi;
+            foreach (var f in accepted)
+            {
+                bool sameRow = oversize.Y < f.Y + f.Height && f.Y < oversize.Y + oversize.Height;
+                if (!sameRow)
+                    continue;
 
-            TryRecoverSide(gray, oversize.Y, oversize.Height,
-                oversize.X - outerMargin, (c.X - oversize.X) + outerMargin,
-                wLo, wHi, hLo, hHi, result);
-            TryRecoverSide(gray, oversize.Y, oversize.Height,
-                c.Right, (oversize.Right - c.Right) + outerMargin,
-                wLo, wHi, hLo, hHi, result);
+                if (Math.Abs(oversize.Right - f.X) < adjacencyThreshold)
+                {
+                    TryRecoverSide(gray, oversize.Y, oversize.Height,
+                        f.X - fixedWindowWidth, fixedWindowWidth,
+                        wLo, wHi, hLo, hHi, result);
+                }
+                else if (Math.Abs(f.Right - oversize.X) < adjacencyThreshold)
+                {
+                    TryRecoverSide(gray, oversize.Y, oversize.Height,
+                        f.Right, fixedWindowWidth,
+                        wLo, wHi, hLo, hHi, result);
+                }
+            }
         }
 
         result.Sort((a, b) => a.X.CompareTo(b.X));

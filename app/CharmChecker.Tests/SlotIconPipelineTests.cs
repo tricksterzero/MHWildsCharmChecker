@@ -142,6 +142,21 @@ public class SlotIconPipelineTests
     }
 
     [Fact]
+    public void ReadSlots_IconAdjacentToFusedBlob_RecoversFirstSlot()
+    {
+        // 鑑定BOX画面の単一「装備詳細」パネル。1つ目のスロットアイコンがバーの縁取りと
+        // 融合するが、2つ目のアイコン(確定フレーム)はこの塊に含まれず単に隣接するだけの
+        // パターン(正: 武器1+防具[1,0,0] / 修正前の誤: 武器1+防具[0,0,0])。
+        // 塊の境界自体はCannyの融合具合で伸縮し不安定なため、隣接する確定フレームの端を
+        // 起点にした固定幅の窓で再探索して回復する。
+        var path = Path.Combine(TestPaths.FindAssetsDir(), "case6 appraisal box", "20250906064316_1.jpg");
+        var (armor, weapon) = CharmChecker.App.MainWindow.ReadSlots(path, hasWeaponSlot: true);
+
+        Assert.Equal(new List<int> { 1, 0, 0 }, armor);
+        Assert.Equal(new List<int> { 1, 0, 0 }, weapon);
+    }
+
+    [Fact]
     public void ClassifyLevel_UniformCrop_ReturnsUnknown()
     {
         using var gray = new Mat(100, 50, MatType.CV_8UC1, Scalar.All(0));
