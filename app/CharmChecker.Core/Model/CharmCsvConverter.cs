@@ -14,7 +14,7 @@ public static class CharmCsvConverter
         {
             if (i < charm.Skills.Count && charm.Skills[i].Name != "")
             {
-                cols[i * 2] = charm.Skills[i].Name;
+                cols[i * 2] = NeutralizeCsvFormula(charm.Skills[i].Name);
                 cols[i * 2 + 1] = charm.Skills[i].Lv.ToString();
             }
             else
@@ -31,6 +31,23 @@ public static class CharmCsvConverter
         }
 
         return string.Join(",", cols);
+    }
+
+    /// <summary>
+    /// CSVインジェクション対策: スキル名の先頭が '='/'+'/'-'/'@'/タブ/CRの場合、
+    /// Excel等のスプレッドシートアプリが数式として解釈しないよう先頭にアポストロフィを付与する。
+    /// nullは（string.Joinがnull要素を空文字として扱う既存挙動と同じ結果になるよう）空文字を返す。
+    /// </summary>
+    private static string NeutralizeCsvFormula(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return "";
+
+        var first = value[0];
+        if (first is '=' or '+' or '-' or '@' or '\t' or '\r')
+            return "'" + value;
+
+        return value;
     }
 
     public static Charm ParseLine(string line)

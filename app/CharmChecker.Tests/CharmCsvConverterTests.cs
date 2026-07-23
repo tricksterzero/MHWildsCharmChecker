@@ -139,6 +139,44 @@ public class CharmCsvConverterTests
         Assert.Equal(3, charm.ArmorSlots[0]);
     }
 
+    [Theory]
+    [InlineData("=HYPERLINK(\"http://evil.example\",\"詳細\")")]
+    [InlineData("+1+1")]
+    [InlineData("-1+1")]
+    [InlineData("@SUM(1,1)")]
+    public void ToLine_SkillNameStartsWithFormulaChar_IsNeutralizedWithLeadingApostrophe(string dangerousName)
+    {
+        var charm = new Charm
+        {
+            Skills = [new(dangerousName, 1)],
+            ArmorSlots = [0, 0, 0],
+            WeaponSlots = [0, 0, 0],
+        };
+
+        var line = CharmCsvConverter.ToLine(charm);
+        var cols = line.Split(',');
+
+        Assert.StartsWith("'", cols[0]);
+    }
+
+    [Fact]
+    public void ToLine_NullSkillName_DoesNotThrowAndRendersAsEmpty()
+    {
+        // System.Text.Jsonのデシリアライズ等でCharmSkill.Nameがnullになりうる
+        // （非nullable宣言でもランタイムのnull代入は防げない）ため、
+        // 既存挙動(string.Joinがnullを空文字として扱う)を壊さないことを確認する。
+        var charm = new Charm
+        {
+            Skills = [new(null!, 3)],
+            ArmorSlots = [0, 0, 0],
+            WeaponSlots = [0, 0, 0],
+        };
+
+        var line = CharmCsvConverter.ToLine(charm);
+
+        Assert.Equal(",3,,0,,0,0,0,0,0,0,0", line);
+    }
+
     [Fact]
     public void ToText_MultipleCharms_JoinsWithNewline()
     {
