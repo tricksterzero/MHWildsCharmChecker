@@ -1,5 +1,6 @@
 using OpenCvSharp;
 using Windows.Media.Ocr;
+using CharmChecker.Core.Image;
 using CharmChecker.Core.Ocr;
 
 namespace CharmChecker.Core.Skill;
@@ -28,7 +29,10 @@ public static class SkillReadingPipeline
     /// </summary>
     public static async Task<SkillReadResult?> ReadWithMetadataAsync(string imagePath, IReadOnlyList<string> knownSkills)
     {
-        var fullOcr = await TextOcrReader.RecognizeAsync(imagePath);
+        using var img = Cv2.ImRead(imagePath);
+        var (_, _, scale) = LetterboxNormalizer.DetectContentBounds(img);
+
+        var fullOcr = await OcrMatAsync(img);
         var anchor = FindAnchor(fullOcr);
         if (anchor is null)
             return null;
@@ -39,8 +43,7 @@ public static class SkillReadingPipeline
 
         var charmName = ExtractCharmName(fullOcr, ax, ay);
 
-        using var img = Cv2.ImRead(imagePath);
-        using var crop = CropSkillArea(img, ax, ay);
+        using var crop = CropSkillArea(img, ax, ay, scale);
         if (crop is null) return null;
 
         var variants = ImageVariantFactory.Create(crop);
@@ -76,10 +79,32 @@ public static class SkillReadingPipeline
             if (dx >= -50 && dx <= 250 && dy >= 80 && dy <= 280)
             {
                 var idx = text.IndexOf("の護石");
-                return text[..idx] + "の護石";
+                var name = text[..idx] + "の護石";
+                return StripLeadingNonJapanese(name);
             }
         }
         return null;
+    }
+
+    /// <summary>
+    /// 護石名の先頭に混入する非日本語文字(記号等)を取り除く。護石アイコン(装飾グラフィック)が
+    /// OCRで記号として誤読され、テキスト行の先頭に混入するケースへの対応(2026-07-24、
+    /// 21:9スクリーンショットの黒帯除去検証で発見。「、未解の護石」「)秘歴の護石」等)。
+    /// 護石名はひらがな・カタカナ・漢字のみで構成されるため、それ以外の先頭文字を除去する。
+    /// </summary>
+    internal static string StripLeadingNonJapanese(string name)
+    {
+        int start = 0;
+        while (start < name.Length && !IsJapaneseChar(name[start]))
+            start++;
+        return name[start..];
+    }
+
+    private static bool IsJapaneseChar(char c)
+    {
+        return (c >= '぀' && c <= 'ヿ')   // ひらがな・カタカナ
+            || (c >= '一' && c <= '鿿')   // CJK統合漢字
+            || (c >= '㐀' && c <= '䶿');  // CJK統合漢字拡張A
     }
 
     internal static (double X, double Y)? FindAnchor(OcrResult ocrResult)
@@ -156,18 +181,39 @@ public static class SkillReadingPipeline
         return false;
     }
 
-    internal static Mat? CropSkillArea(Mat img, double anchorX, double anchorY)
+    /// <summary>
+    /// アンカー位置からスキル領域(SkillAreaRel)を切り出す。scaleは基準解像度1440に対する
+    /// 実コンテンツ高さの比率(21:9等のレターボックス画像で1440未満になる。詳細は
+    /// <see cref="LetterboxNormalizer"/>)。scale!=1の場合、切り出した領域をSkillAreaRelの
+    /// 基準サイズへ拡大する。これはアンカー検出やIsCharmPanel等のテキストベースの検出を
+    /// 生画像のまま(拡大せず)行うための設計: 実験の結果、フルスクリーンOCR前に画像全体を
+    /// 拡大すると特定のパネルでテキスト認識が崩れるケースが確認されたため、テキスト検出は
+    /// 生画像で行い、固定pxオフセットに依存するこの幾何クロップのみスケール補正する
+    /// (2026-07-24)。
+    /// </summary>
+    internal static Mat? CropSkillArea(Mat img, double anchorX, double anchorY, double scale = 1.0)
     {
-        int x0 = Math.Max(0, (int)(anchorX + SkillAreaRel.X));
-        int y0 = Math.Max(0, (int)(anchorY + SkillAreaRel.Y));
-        int x1 = Math.Min(img.Width, (int)(anchorX + SkillAreaRel.X + SkillAreaRel.Width));
-        int y1 = Math.Min(img.Height, (int)(anchorY + SkillAreaRel.Y + SkillAreaRel.Height));
+        int relX = (int)Math.Round(SkillAreaRel.X * scale);
+        int relY = (int)Math.Round(SkillAreaRel.Y * scale);
+        int relW = (int)Math.Round(SkillAreaRel.Width * scale);
+        int relH = (int)Math.Round(SkillAreaRel.Height * scale);
+
+        int x0 = Math.Max(0, (int)(anchorX + relX));
+        int y0 = Math.Max(0, (int)(anchorY + relY));
+        int x1 = Math.Min(img.Width, (int)(anchorX + relX + relW));
+        int y1 = Math.Min(img.Height, (int)(anchorY + relY + relH));
 
         int w = x1 - x0;
         int h = y1 - y0;
         if (w <= 0 || h <= 0) return null;
 
-        return new Mat(img, new Rect(x0, y0, w, h));
+        using var cropped = new Mat(img, new Rect(x0, y0, w, h));
+        if (scale == 1.0)
+            return cropped.Clone();
+
+        var resized = new Mat();
+        Cv2.Resize(cropped, resized, new Size(SkillAreaRel.Width, SkillAreaRel.Height), 0, 0, InterpolationFlags.Cubic);
+        return resized;
     }
 
     private static async Task<IReadOnlyList<SkillEntry>> RunVariantsAndMerge(

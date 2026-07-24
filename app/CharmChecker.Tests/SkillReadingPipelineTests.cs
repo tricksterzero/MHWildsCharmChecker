@@ -58,6 +58,12 @@ public class SkillReadingPipelineTests
         // 貪欲マッチングだと2つ目の名前が1つ目のLvに交差マッチしてLvが入れ替わっていた回帰テスト
         // （正: 攻めの守勢Lv3,挑戦者Lv1 / 修正前の誤: 攻めの守勢Lv1,挑戦者Lv3）
         ["case6 appraisal box", "20250906064316_1.jpg", new[] { ("攻めの守勢", 3), ("挑戦者", 1) }],
+        // option 21_9: ウルトラワイド(21:9)設定でのキャプチャ。上下に黒帯が入り、ゲーム内UIは
+        // 右上コーナー基準・コンテンツ高さ/1440の比率で縮小配置される。CropSkillAreaのscale補正
+        // (LetterboxNormalizer.DetectContentBounds)で対応(2026-07-24)。
+        ["option 21_9", "20260615094726_1.jpg", new[] { ("貫通弾・竜の矢強化", 1), ("耳栓", 1), ("早食い", 1) }],
+        ["option 21_9", "20260615094741_1.jpg", new[] { ("水属性攻撃強化", 1), ("広域化", 4) }],
+        ["option 21_9", "20260615094750_1.jpg", new[] { ("フォースショット", 1), ("爆破やられ耐性", 3) }],
     ];
 
     [Fact]
@@ -138,6 +144,44 @@ public class SkillReadingPipelineTests
 
         Assert.NotNull(result);
         Assert.Equal("栄世の護石", result.CharmName);
+    }
+
+    [Fact]
+    public async Task ReadWithMetadataAsync_21x9DualPanel_PicksCharmNameFromAnchoredPanel()
+    {
+        // 21:9(黒帯付き2560x1440)の装備詳細2パネル画面。左パネル=秘歴の護石、右パネル=未解の護石。
+        // FindAnchorは生画像のフルOCRで右パネルを選ぶ(検出は拡大しない設計、詳細はCropSkillArea
+        // のXMLコメント参照)ため、護石名も右パネル(未解の護石)を返すべき回帰テスト。
+        var assetsDir = FindAssetsDir();
+        var resourcesDir = FindResourcesDir();
+        var jsonPath = Path.Combine(resourcesDir, "skill-decoration-map.json");
+        var imagePath = Path.Combine(assetsDir, "option 21_9", "20260615094750_1.jpg");
+
+        if (!File.Exists(imagePath))
+        {
+            return;
+        }
+
+        var knownSkills = SkillNameLoader.Load(jsonPath);
+        var result = await SkillReadingPipeline.ReadWithMetadataAsync(imagePath, knownSkills);
+
+        Assert.NotNull(result);
+        Assert.Equal("未解の護石", result.CharmName);
+    }
+
+    [Theory]
+    [InlineData("、未解の護石", "未解の護石")]
+    [InlineData(")秘歴の護石", "秘歴の護石")]
+    [InlineData("栄世の護石", "栄世の護石")]
+    [InlineData("x栄世の護石", "栄世の護石")]
+    [InlineData("１栄世の護石", "栄世の護石")]
+    [InlineData("の護石", "の護石")]
+    public void StripLeadingNonJapanese_RemovesGarbagePrefix(string input, string expected)
+    {
+        // 護石アイコン(装飾グラフィック)がOCRで記号として誤読され、テキスト行の先頭に混入する
+        // ケースの回帰テスト(2026-07-24、21:9スクリーンショットの黒帯除去検証で発見)。
+        var result = SkillReadingPipeline.StripLeadingNonJapanese(input);
+        Assert.Equal(expected, result);
     }
 
     [Theory]
