@@ -73,6 +73,14 @@ public class SkillReadingPipelineTests
         ["option 21_9 native", "20260726182924_1.jpg", new[] { ("匠", 3), ("広域化", 4) }],
         ["option 21_9 native", "20260726181828_1.jpg", new[] { ("攻撃", 1), ("広域化", 3), ("納刀術", 2) }],
         ["option 21_9 native", "20260726183121_1.jpg", new[] { ("攻撃", 2), ("破壊王", 1), ("回避距離ＵＰ", 1) }],
+        // option 21_9 native quest result: 真の21:9での狩猟後護石入手(鑑定BOX)画面。
+        // 「装備変更」の2パネル比較とは異なる単一パネルレイアウトだが、右端の「装備詳細」
+        // パネル位置は右上基準で共通のため、既存のDetailPanelRegionがそのまま機能する。
+        ["option 21_9 native quest result", "202A601.JPG", new[] { ("貫通弾・竜の矢強化", 1), ("雷耐性", 2), ("環境利用の知識", 1) }],
+        ["option 21_9 native quest result", "20BC111.JPG", new[] { ("見切り", 3), ("満足感", 3) }],
+        // option 21_9 native craft result: 真の21:9でのマカ錬金(お守りの錬金術)鑑定結果画面。
+        ["option 21_9 native craft result", "202FCE1.JPG", new[] { ("ＫＯ術", 2), ("心眼", 1), ("弱点特効", 1) }],
+        ["option 21_9 native craft result", "208B0D1.JPG", new[] { ("笛吹き名人", 2), ("水属性攻撃強化", 1), ("巧撃", 1) }],
     ];
 
     [Fact]
