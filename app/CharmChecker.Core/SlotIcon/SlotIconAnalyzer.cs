@@ -1,4 +1,5 @@
 using OpenCvSharp;
+using CharmChecker.Core.Image;
 
 namespace CharmChecker.Core.SlotIcon;
 
@@ -10,33 +11,38 @@ namespace CharmChecker.Core.SlotIcon;
 /// </summary>
 public static class SlotIconAnalyzer
 {
-    /// <summary>基準解像度(2560x1440)に対する実画像の拡大率(sx, sy)。</summary>
+    /// <summary>
+    /// 基準解像度(2560x1440)に対する実コンテンツの縮小率(sx, sy)。ゲーム内UIは右上コーナー基準に
+    /// 縦横等方で配置される(横に広い21:9で幅だけが増えても、UI自体の大きさ・右上からの相対距離は
+    /// 変わらない)ため、LetterboxNormalizerが返すコンテンツ高さ/1440の比率をそのまま両軸に使う。
+    /// </summary>
     public static (double Sx, double Sy) ScaleFactors(Mat img)
     {
-        return ((double)img.Width / SlotIconConstants.RefWidth, (double)img.Height / SlotIconConstants.RefHeight);
+        var (_, _, scale) = LetterboxNormalizer.DetectContentBounds(img);
+        return (scale, scale);
     }
 
     /// <summary>単一護石詳細画面のスロットアイコン探索領域を、実画像サイズに合わせて切り出す矩形。</summary>
     public static Rect DetailPanelRegion(Mat img)
     {
+        var (top, _, s) = LetterboxNormalizer.DetectContentBounds(img);
         int w = img.Width;
-        int h = img.Height;
-        int y0 = (int)(SlotIconConstants.DetailPanelY0Frac * h);
-        int y1 = (int)(SlotIconConstants.DetailPanelY1Frac * h);
-        int x0 = (int)(SlotIconConstants.DetailPanelX0Frac * w);
-        int x1 = (int)(SlotIconConstants.DetailPanelX1Frac * w);
+        int y0 = top + (int)(SlotIconConstants.DetailPanelY0 * s);
+        int y1 = top + (int)(SlotIconConstants.DetailPanelY1 * s);
+        int x0 = w - (int)((SlotIconConstants.RefWidth - SlotIconConstants.DetailPanelX0) * s);
+        int x1 = w - (int)((SlotIconConstants.RefWidth - SlotIconConstants.DetailPanelX1) * s);
         return new Rect(x0, y0, x1 - x0, y1 - y0);
     }
 
     /// <summary>装備BOX側スロットアイコンの探索領域を、実画像サイズに合わせて切り出す矩形。</summary>
     public static Rect PanelRegion(Mat img)
     {
+        var (top, _, s) = LetterboxNormalizer.DetectContentBounds(img);
         int w = img.Width;
-        int h = img.Height;
-        int y0 = (int)(SlotIconConstants.PanelY0Frac * h);
-        int y1 = (int)(SlotIconConstants.PanelY1Frac * h);
-        int x0 = (int)(SlotIconConstants.PanelX0Frac * w);
-        int x1 = (int)(SlotIconConstants.PanelX1Frac * w);
+        int y0 = top + (int)(SlotIconConstants.PanelY0 * s);
+        int y1 = top + (int)(SlotIconConstants.PanelY1 * s);
+        int x0 = w - (int)((SlotIconConstants.RefWidth - SlotIconConstants.PanelX0) * s);
+        int x1 = w - (int)((SlotIconConstants.RefWidth - SlotIconConstants.PanelX1) * s);
         return new Rect(x0, y0, x1 - x0, y1 - y0);
     }
 

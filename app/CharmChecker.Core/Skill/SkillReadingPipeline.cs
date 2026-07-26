@@ -13,6 +13,9 @@ public static class SkillReadingPipeline
 {
     private static readonly Rect SkillAreaRel = new(0, 310, 470, 390);
 
+    /// <summary>基準解像度の幅(2560)。真の21:9(3440x1440等)のOCR前縮小の目標幅として使う。</summary>
+    private const int ReferenceWidth = 2560;
+
     /// <summary>
     /// スクリーンショットからスキル一覧を読み取る。
     /// 護石パネルが見つからない場合はnullを返す。
@@ -32,7 +35,20 @@ public static class SkillReadingPipeline
         using var img = Cv2.ImRead(imagePath);
         var (_, _, scale) = LetterboxNormalizer.DetectContentBounds(img);
 
-        var fullOcr = await OcrMatAsync(img);
+        // 真の21:9(3440x1440等、基準幅2560を超える)スクリーンショットは、フルスクリーンOCRを
+        // 生のまま実行すると「装備詳細」等の複数文字テキストが1行として認識されないケースが
+        // 実測で多発する(2026-07-26、17枚中11枚でアンカー未検出)。判別変数は画像の幅であり
+        // 面積ではない(元画像より小さい右半分クロップでも同様に失敗することを確認済み)。
+        // 基準幅相当へ等方縮小したコピーでOCRすると全数成功したため、幅が基準を超える場合のみ
+        // 縮小する(拡大は既知の副作用があるため行わない。CropSkillAreaのコメント参照)。
+        double ocrScale = img.Width > ReferenceWidth ? (double)ReferenceWidth / img.Width : 1.0;
+        using var ocrTarget = new Mat();
+        if (ocrScale != 1.0)
+            Cv2.Resize(img, ocrTarget, new Size(), ocrScale, ocrScale, InterpolationFlags.Area);
+        else
+            img.CopyTo(ocrTarget);
+
+        var fullOcr = await OcrMatAsync(ocrTarget);
         var anchor = FindAnchor(fullOcr);
         if (anchor is null)
             return null;
@@ -43,7 +59,11 @@ public static class SkillReadingPipeline
 
         var charmName = ExtractCharmName(fullOcr, ax, ay);
 
-        using var crop = CropSkillArea(img, ax, ay, scale);
+        // アンカー座標はocrTarget(縮小コピー)の座標系のため、元画像でのクロップ前に戻す
+        double origAx = ax / ocrScale;
+        double origAy = ay / ocrScale;
+
+        using var crop = CropSkillArea(img, origAx, origAy, scale);
         if (crop is null) return null;
 
         var variants = ImageVariantFactory.Create(crop);

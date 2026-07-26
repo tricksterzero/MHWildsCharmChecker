@@ -19,17 +19,23 @@ public record LevelClassification(SlotLevel Level, int PeakCount, IReadOnlyList<
 
 /// <summary>
 /// 判定パラメータ。基準解像度2560x1440に対する比率・px値として定義し、実画像サイズに応じてスケーリングする。
+///
+/// パネル探索領域(PanelX0等)は「画面幅に対する比率」ではなく「右上コーナーからの固定距離」で
+/// 定義する。実測(2026-07-26、真の21:9=3440x1440ネイティブ、黒帯なし)で、ゲーム内UIは画面幅が
+/// 変わっても右上コーナー基準・絶対サイズ不変で配置される(横に広がった分は3Dシーンの表示領域が
+/// 増えるだけ)ことを確認済み。「画面幅に対する比率」で計算すると、真の21:9(3440幅)でパネルが
+/// 実際より内側にずれて誤検出・検出漏れの原因になっていた。
 /// </summary>
 public static class SlotIconConstants
 {
     public const int RefWidth = 2560;
     public const int RefHeight = 1440;
 
-    // 装備BOX側スロットアイコンの探索領域（基準解像度に対する比率）
-    public const double PanelY0Frac = 280.0 / RefHeight;
-    public const double PanelY1Frac = 420.0 / RefHeight;
-    public const double PanelX0Frac = 2200.0 / RefWidth;
-    public const double PanelX1Frac = 2500.0 / RefWidth;
+    // 装備BOX側スロットアイコンの探索領域（基準解像度でのpx、右上コーナー基準）
+    public const double PanelY0 = 280.0;
+    public const double PanelY1 = 420.0;
+    public const double PanelX0 = 2200.0;
+    public const double PanelX1 = 2500.0;
 
     // ソケット枠検出のサイズフィルタ（基準解像度でのpx範囲）
     public const double FrameWidthMin = 30;
@@ -45,9 +51,9 @@ public static class SlotIconConstants
     // レベル判定に使う枠下部の割合
     public const double LevelCropTopFraction = 0.45;
 
-    // 単一護石詳細画面のスロットアイコン探索領域（基準解像度に対する比率）
-    public const double DetailPanelY0Frac = 310.0 / RefHeight;
-    public const double DetailPanelY1Frac = 410.0 / RefHeight;
-    public const double DetailPanelX0Frac = 1400.0 / RefWidth;
-    public const double DetailPanelX1Frac = 1650.0 / RefWidth;
+    // 単一護石詳細画面のスロットアイコン探索領域（基準解像度でのpx、右上コーナー基準）
+    public const double DetailPanelY0 = 310.0;
+    public const double DetailPanelY1 = 410.0;
+    public const double DetailPanelX0 = 1400.0;
+    public const double DetailPanelX1 = 1650.0;
 }
