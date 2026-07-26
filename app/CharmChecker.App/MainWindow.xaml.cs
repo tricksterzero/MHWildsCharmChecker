@@ -469,6 +469,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
             int processed = 0;
             int detected = 0;
             int failed = 0;
+            int decorationSkipped = 0;
             bool cancelled = false;
 
             foreach (var file in targetFiles)
@@ -518,6 +519,15 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
                     results.Add((charm, Path.GetFileName(file)));
                     detected++;
                 }
+                catch (DecorationEquippedException)
+                {
+                    // 装飾品装着済みスロットはレベル判定が信頼できないため(CLAUDE.md参照)、
+                    // 護石全体を読み取り対象から除外する。エラーではなく仕様上の除外のため
+                    // failedとは別カウントし、ユーザーに区別して提示する。
+                    ErrorLogger.Log("ReadScreenshot",
+                        $"{Path.GetFileName(file)}: スロットに装飾品が装着されているため読み取りをスキップしました。");
+                    decorationSkipped++;
+                }
                 catch (Exception ex)
                 {
                     ErrorLogger.Log("ReadScreenshot", Path.GetFileName(file), ex);
@@ -539,6 +549,8 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
                 var summary = $"{processed} / {targetFiles.Count}枚まで処理（中断）、{detected}枚から護石を検出";
                 if (failed > 0)
                     summary += $"（{failed}枚で処理エラー）";
+                if (decorationSkipped > 0)
+                    summary += $"（{decorationSkipped}枚は装飾品装着のため除外）";
                 ReadingSummaryText.Text = summary;
             }
             else
@@ -547,6 +559,8 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
                 var summary = $"{allFiles.Count}枚中 新規{targetFiles.Count}枚を処理、{detected}枚から護石を検出";
                 if (failed > 0)
                     summary += $"（{failed}枚で処理エラー）";
+                if (decorationSkipped > 0)
+                    summary += $"（{decorationSkipped}枚は装飾品装着のため除外）";
                 ReadingSummaryText.Text = summary;
             }
 
@@ -639,6 +653,9 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         for (int i = 0; i < frames.Count; i++)
         {
             var frame = frames[i];
+            if (SlotIconAnalyzer.IsDecorationEquipped(gray, frame))
+                throw new DecorationEquippedException();
+
             var levelResult = SlotIconAnalyzer.ClassifyLevel(gray, frame);
 
             int lv = levelResult.Level switch

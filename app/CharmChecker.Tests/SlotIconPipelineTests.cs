@@ -172,6 +172,23 @@ public class SlotIconPipelineTests
         Assert.Equal(new List<int> { 0, 0, 0 }, weapon);
     }
 
+    [Theory]
+    [InlineData("20260726181601_1.jpg", true)]
+    [InlineData("20260726181637_1.jpg", false)]
+    [InlineData("20260726181828_1.jpg", false)]
+    public void ReadSlots_DecorationEquipped_ThrowsAndExcludesWholeCharm(string fileName, bool hasWeaponSlot)
+    {
+        // 装飾品装着済みソケットは菱形が実体色で塗りつぶされ2次元形状になり、ClassifyLevelの
+        // 列プロファイル方式(2次元形状を1次元に潰す)ではレベル誤判定を起こす
+        // (実機ユーザー報告3件、2026-07-27。詳細な原因分析はCLAUDE.md参照)。
+        // 2次元ベースの専用分類器を新設するコストとサンプル数(3枚)を鑑み、ユーザーの判断で
+        // 装飾品装着済みスロットを含む護石は読み取り対象から除外する仕様とした。
+        var path = Path.Combine(TestPaths.FindAssetsDir(), "option 21_9 native", fileName);
+
+        Assert.Throws<DecorationEquippedException>(
+            () => CharmChecker.App.MainWindow.ReadSlots(path, hasWeaponSlot));
+    }
+
     [Fact]
     public void ClassifyLevel_UniformCrop_ReturnsUnknown()
     {

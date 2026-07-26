@@ -245,6 +245,51 @@ public static class SlotIconAnalyzer
     }
 
     /// <summary>
+    /// 枠上部(菱形相当領域)の中心が装飾品で塗りつぶされているか(装着済みか)を判定する。
+    /// 装飾品装着済みのソケットは、菱形が実体色で塗りつぶされ2次元形状になり、
+    /// <see cref="ClassifyLevel"/>の列プロファイル方式(2次元形状を1次元に潰す)では
+    /// レベル誤判定を起こすことを実データで確認済み(CLAUDE.md参照)。この判定結果を使って、
+    /// 装飾品装着済みソケットを含む護石は読み取り対象から除外する運用とする。
+    /// </summary>
+    public static bool IsDecorationEquipped(Mat gray, Rect frame)
+    {
+        int upperHeight = (int)(frame.Height * SlotIconConstants.LevelCropTopFraction);
+        var upperRect = new Rect(frame.X, frame.Y, frame.Width, upperHeight);
+        using var upper = new Mat(gray, upperRect);
+
+        int upperWidth = upper.Width;
+        int upperHeightPx = upper.Height;
+        int cx0 = (int)(upperWidth * 0.30);
+        int cx1 = (int)(upperWidth * 0.70);
+        int cy0 = (int)(upperHeightPx * 0.15);
+        int cy1 = (int)(upperHeightPx * 0.85);
+        var innerRect = new Rect(cx0, cy0, Math.Max(1, cx1 - cx0), Math.Max(1, cy1 - cy0));
+        using var inner = new Mat(upper, innerRect);
+
+        double innerP25 = PercentileOfPixels(inner, SlotIconConstants.DecorationInnerLowPercentile);
+        double upperP90 = PercentileOfPixels(upper, SlotIconConstants.DecorationUpperHighPercentile);
+
+        double feature = innerP25 / Math.Max(1.0, upperP90);
+        return feature >= SlotIconConstants.DecorationFeatureThreshold;
+    }
+
+    private static double PercentileOfPixels(Mat gray, double percentile)
+    {
+        int height = gray.Height;
+        int width = gray.Width;
+        var pixels = new byte[height * width];
+        int idx = 0;
+        for (int y = 0; y < height; y++)
+            for (int x = 0; x < width; x++)
+                pixels[idx++] = gray.Get<byte>(y, x);
+
+        Array.Sort(pixels);
+        int rank = (int)(pixels.Length * percentile);
+        rank = Math.Clamp(rank, 0, pixels.Length - 1);
+        return pixels[rank];
+    }
+
+    /// <summary>
     /// 枠の下45%領域を(50,20)に正規化・Otsu二値化し、列ごとの白画素数プロファイルの
     /// ピーク数・谷比率からLv1/Lv2/Lv3を判定する。
     /// </summary>

@@ -56,4 +56,12 @@ public static class SlotIconConstants
     public const double DetailPanelY1 = 410.0;
     public const double DetailPanelX0 = 1400.0;
     public const double DetailPanelX1 = 1650.0;
+
+    // 装飾品装着判定: 枠上部(菱形相当領域)の中心部分の低輝度画素残存率(第25百分位)を、
+    // 上部領域全体の高輝度画素(第90百分位、菱形の輪郭線相当)で正規化した値。
+    // 未装着(菱形の中が暗い穴)は0.148~0.248、装着済み(菱形が実体色で塗りつぶし)は0.399~0.895で、
+    // 実データ(2026-07-27、19枠+5枠)で分離を確認済み。中間値を閾値とする。
+    public const double DecorationInnerLowPercentile = 0.25;
+    public const double DecorationUpperHighPercentile = 0.90;
+    public const double DecorationFeatureThreshold = 0.32;
 }
