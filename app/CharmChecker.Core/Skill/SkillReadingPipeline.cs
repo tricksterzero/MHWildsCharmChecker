@@ -17,6 +17,18 @@ public static class SkillReadingPipeline
     private const int ReferenceWidth = 2560;
 
     /// <summary>
+    /// フルスクリーンOCRでアンカー未検出時に試す、右端からのフォールバック幅(基準解像度でのpx、
+    /// 広い順)。実測(2026-07-26)で、ある画像は幅760pxのOCRで「装備詳細」等が1行として認識
+    /// されず失敗し、幅710pxでは成功する閾値的な挙動を確認(中央パネルの内容をマスクしても
+    /// 結果は変わらないため、視覚的な干渉ではなく対象領域の幅そのものに起因する)。
+    /// 画面パターンによってアンカーの右端距離は大きく異なる(「装備変更」「マカ錬金」は右端から
+    /// 500px程度以内だが、「狩猟後護石入手」は中央寄りで右端から約1020px)。1200pxは後者を
+    /// カバーするための幅で、900px/700pxは前者のような右端寄り画面で1200pxでも失敗した場合の
+    /// 追加の絞り込み用(中央寄り画面のアンカーはこの2段では救えない)。
+    /// </summary>
+    private static readonly int[] FallbackOcrWidths = { 1200, 900, 700 };
+
+    /// <summary>
     /// スクリーンショットからスキル一覧を読み取る。
     /// 護石パネルが見つからない場合はnullを返す。
     /// </summary>
@@ -48,7 +60,11 @@ public static class SkillReadingPipeline
         else
             img.CopyTo(ocrTarget);
 
-        var fullOcr = await OcrMatAsync(ocrTarget);
+        var anchorScan = await FindAnchorWithFallbackAsync(ocrTarget);
+        if (anchorScan is null)
+            return null;
+        var (fullOcr, anchorOffsetX) = anchorScan.Value;
+
         var anchor = FindAnchor(fullOcr);
         if (anchor is null)
             return null;
@@ -59,8 +75,10 @@ public static class SkillReadingPipeline
 
         var charmName = ExtractCharmName(fullOcr, ax, ay);
 
-        // アンカー座標はocrTarget(縮小コピー)の座標系のため、元画像でのクロップ前に戻す
-        double origAx = ax / ocrScale;
+        // アンカー座標はocrTarget(縮小コピー)の座標系のため、元画像でのクロップ前に戻す。
+        // フォールバックで右端から切り出したOCRを使った場合は、その切り出し開始位置(x0)を
+        // ocrTarget全体の座標系に戻すため加算してから、元画像の座標系へ変換する
+        double origAx = (ax + anchorOffsetX) / ocrScale;
         double origAy = ay / ocrScale;
 
         using var crop = CropSkillArea(img, origAx, origAy, scale);
@@ -125,6 +143,31 @@ public static class SkillReadingPipeline
         return (c >= '぀' && c <= 'ヿ')   // ひらがな・カタカナ
             || (c >= '一' && c <= '鿿')   // CJK統合漢字
             || (c >= '㐀' && c <= '䶿');  // CJK統合漢字拡張A
+    }
+
+    /// <summary>
+    /// フルスクリーンOCRでアンカーが見つからない場合、右端から狭い幅を順に切り出して再OCRを
+    /// 試みる。成功した場合はそのOCR結果と切り出し開始位置(ocrTarget全体の座標系でのX)を返す。
+    /// 全て失敗した場合はnullを返す。戻り値のOcrResultはフォールバックを使わなかった場合、
+    /// フルスクリーンでの結果そのもの(AnchorOffsetX=0)。
+    /// </summary>
+    private static async Task<(OcrResult Ocr, double AnchorOffsetX)?> FindAnchorWithFallbackAsync(Mat ocrTarget)
+    {
+        var fullOcr = await OcrMatAsync(ocrTarget);
+        if (FindAnchor(fullOcr) is not null)
+            return (fullOcr, 0);
+
+        foreach (var width in FallbackOcrWidths)
+        {
+            int x0 = Math.Max(0, ocrTarget.Width - width);
+            var region = new Rect(x0, 0, ocrTarget.Width - x0, ocrTarget.Height);
+            using var cropped = new Mat(ocrTarget, region);
+            var croppedOcr = await OcrMatAsync(cropped);
+            if (FindAnchor(croppedOcr) is not null)
+                return (croppedOcr, x0);
+        }
+
+        return null;
     }
 
     internal static (double X, double Y)? FindAnchor(OcrResult ocrResult)

@@ -81,6 +81,11 @@ public class SkillReadingPipelineTests
         // option 21_9 native craft result: 真の21:9でのマカ錬金(お守りの錬金術)鑑定結果画面。
         ["option 21_9 native craft result", "202FCE1.JPG", new[] { ("ＫＯ術", 2), ("心眼", 1), ("弱点特効", 1) }],
         ["option 21_9 native craft result", "208B0D1.JPG", new[] { ("笛吹き名人", 2), ("水属性攻撃強化", 1), ("巧撃", 1) }],
+        // フルスクリーンOCR(幅2560)ではアンカー未検出だった画像(2026-07-26発見)。原因は
+        // OCR対象領域の幅に依存する閾値的な現象(中央パネルの内容をマスクしても結果は不変で、
+        // 幅760pxで失敗・710pxで成功する境界を確認)。FindAnchorWithFallbackAsyncの
+        // 右端フォールバック(1200/900/700px)で解消したことの回帰テスト。
+        ["option 21_9 native craft result", "205B741.JPG", new[] { ("爆破属性強化", 1), ("防御力ＤＯＷＮ耐性", 3) }],
     ];
 
     [Fact]
