@@ -590,9 +590,12 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         OpenCvSharp.Mat gray;
         OpenCvSharp.Mat disposeGray;
 
-        // 同数の場合はBOX領域を優先する。Detail領域(x:1400-1650)は画面パターンによっては
-        // 護石画像プレビュー等の無関係な内容を誤検出しうるため、同数のタイはBOX側を信頼する。
-        if (boxFrames.Count >= detFrames.Count && boxFrames.Count > 0)
+        // BOX領域で1件以上検出できていれば常にBOX側を信頼する。Detail領域(x:1400-1650)は
+        // 画面パターンによっては護石画像プレビュー等の無関係な内容(背景テクスチャ等)を
+        // 誤検出しうるため、BOX側の検出数がDetail側を下回っていてもBOX優先とする
+        // (マカ錬金鑑定結果画面で背景の木目模様がDetail領域に2枠の偽陽性を生み、
+        // BOX側の正しい1枠より多く検出されてDetail側が誤採用される回帰を確認したため)。
+        if (boxFrames.Count > 0)
         {
             frames = boxFrames; gray = boxGray;
             disposeGray = detGray;

@@ -157,6 +157,22 @@ public class SlotIconPipelineTests
     }
 
     [Fact]
+    public void ReadSlots_BoxUndercountsDetail_StillPrefersBoxOverSpuriousDetailRegion()
+    {
+        // 真の21:9(3440x1440)のマカ錬金鑑定結果画面。BOX領域は正しく1枠(Lv3)のみ検出するが、
+        // Detail領域(x:1400-1650)は護石の背景テクスチャ(木目模様)を2枠の偽陽性として誤検出し、
+        // 検出数がBOX側(1件)を上回ってしまう(2件)。修正前は「検出数が多い方を採用」する
+        // ロジックのため誤ってDetail側(防具[3,1,0])が採用されていた回帰テスト
+        // (正: 防具[3,0,0]。BOX領域は1件でも検出できていれば常に信頼すべきで、
+        // Detail領域の検出数が上回ることは根拠にならない)。
+        var path = Path.Combine(TestPaths.FindAssetsDir(), "option 21_9 native craft result", "205B741.JPG");
+        var (armor, weapon) = CharmChecker.App.MainWindow.ReadSlots(path, hasWeaponSlot: false);
+
+        Assert.Equal(new List<int> { 3, 0, 0 }, armor);
+        Assert.Equal(new List<int> { 0, 0, 0 }, weapon);
+    }
+
+    [Fact]
     public void ClassifyLevel_UniformCrop_ReturnsUnknown()
     {
         using var gray = new Mat(100, 50, MatType.CV_8UC1, Scalar.All(0));
