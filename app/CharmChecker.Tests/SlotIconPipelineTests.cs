@@ -4,9 +4,14 @@ using OpenCvSharp;
 namespace CharmChecker.Tests;
 
 /// <summary>
-/// スロットアイコン検出+レベル判定のend-to-endテスト。
+/// スロットアイコン検出+レベル判定+装飾品検知のend-to-endテスト。
 /// BOXパネル(2護石比較画面の右側)とDetailパネル(単一護石詳細画面)の両方を対象とする。
 /// 種別(武器/防具)の判定は護石名ベースで行うため、ここではレベルのみ検証する。
+///
+/// レベル判定・装飾品検知は<see cref="SlotIconAnalyzer.MatchEmptyTemplate"/>(枠下部の三角マーク領域を
+/// 検証済み空スロットのテンプレートとカラー画素で比較する方式)に統一されている(2026-07-27、
+/// 装飾品の色・スロットサイズとの一致/不一致に左右されない設計への移行)。旧方式の
+/// ClassifyLevel(列プロファイル方式)・IsDecorationEquipped(輝度percentile方式)は削除済み。
 /// </summary>
 public class SlotIconPipelineTests
 {
@@ -31,44 +36,44 @@ public class SlotIconPipelineTests
 
     [Theory]
     [MemberData(nameof(BoxPanelCases))]
-    public void BoxPanel_DetectAndClassifyLevel(string fileName, SlotLevel[] expected)
+    public void BoxPanel_DetectAndMatchEmptyTemplate(string fileName, SlotLevel[] expected)
     {
         var path = Path.Combine(TestPaths.FindAssetsDir(), fileName);
         using var img = Cv2.ImRead(path);
         var (sx, sy) = SlotIconAnalyzer.ScaleFactors(img);
 
-        using var region = new Mat(img, SlotIconAnalyzer.PanelRegion(img));
+        using var color = new Mat(img, SlotIconAnalyzer.PanelRegion(img));
         using var gray = new Mat();
-        Cv2.CvtColor(region, gray, ColorConversionCodes.BGR2GRAY);
+        Cv2.CvtColor(color, gray, ColorConversionCodes.BGR2GRAY);
 
         var frames = SlotIconAnalyzer.DetectFrames(gray, sx, sy);
         Assert.Equal(expected.Length, frames.Count);
 
         for (int i = 0; i < frames.Count; i++)
         {
-            var result = SlotIconAnalyzer.ClassifyLevel(gray, frames[i]);
+            var result = SlotIconAnalyzer.MatchEmptyTemplate(color, frames[i]);
             Assert.Equal(expected[i], result.Level);
         }
     }
 
     [Theory]
     [MemberData(nameof(DetailPanelCases))]
-    public void DetailPanel_DetectAndClassifyLevel(string fileName, SlotLevel[] expected)
+    public void DetailPanel_DetectAndMatchEmptyTemplate(string fileName, SlotLevel[] expected)
     {
         var path = Path.Combine(TestPaths.FindAssetsDir(), fileName);
         using var img = Cv2.ImRead(path);
         var (sx, sy) = SlotIconAnalyzer.ScaleFactors(img);
 
-        using var region = new Mat(img, SlotIconAnalyzer.DetailPanelRegion(img));
+        using var color = new Mat(img, SlotIconAnalyzer.DetailPanelRegion(img));
         using var gray = new Mat();
-        Cv2.CvtColor(region, gray, ColorConversionCodes.BGR2GRAY);
+        Cv2.CvtColor(color, gray, ColorConversionCodes.BGR2GRAY);
 
         var frames = SlotIconAnalyzer.DetectFrames(gray, sx, sy);
         Assert.Equal(expected.Length, frames.Count);
 
         for (int i = 0; i < frames.Count; i++)
         {
-            var result = SlotIconAnalyzer.ClassifyLevel(gray, frames[i]);
+            var result = SlotIconAnalyzer.MatchEmptyTemplate(color, frames[i]);
             Assert.Equal(expected[i], result.Level);
         }
     }
@@ -178,25 +183,67 @@ public class SlotIconPipelineTests
     [InlineData("20260726181828_1.jpg", false)]
     public void ReadSlots_DecorationEquipped_ThrowsAndExcludesWholeCharm(string fileName, bool hasWeaponSlot)
     {
-        // 装飾品装着済みソケットは菱形が実体色で塗りつぶされ2次元形状になり、ClassifyLevelの
-        // 列プロファイル方式(2次元形状を1次元に潰す)ではレベル誤判定を起こす
-        // (実機ユーザー報告3件、2026-07-27。詳細な原因分析はCLAUDE.md参照)。
-        // 2次元ベースの専用分類器を新設するコストとサンプル数(3枚)を鑑み、ユーザーの判断で
-        // 装飾品装着済みスロットを含む護石は読み取り対象から除外する仕様とした。
+        // 装飾品装着済みソケットは装飾品の色でそのまま塗り分けられ、MatchEmptyTemplateが
+        // どの空テンプレートとも十分近くならない(実機ユーザー報告3件、2026-07-27。
+        // 詳細な原因分析・過去に試した代替特徴量の検討はCLAUDE.md参照)。
         var path = Path.Combine(TestPaths.FindAssetsDir(), "option 21_9 native", fileName);
 
         Assert.Throws<DecorationEquippedException>(
             () => CharmChecker.App.MainWindow.ReadSlots(path, hasWeaponSlot));
     }
 
-    [Fact]
-    public void ClassifyLevel_UniformCrop_ReturnsUnknown()
+    public static IEnumerable<object[]> DecorationSizeMismatchCases()
     {
-        using var gray = new Mat(100, 50, MatType.CV_8UC1, Scalar.All(0));
+        // 「case7 decoration check」: スロットサイズと装飾品サイズが一致しない場合に
+        // 装飾品装着を検知できない不具合(2026-07-27、実機ユーザー報告2件が発端)の回帰テスト。
+        // 旧方式(枠上部中心の輝度percentile)はサイズ不一致だと未装着との値域が重なり原理的に
+        // 分離不可能だったため、下部三角マークのテンプレート照合方式に置き換えた
+        // (詳細はCLAUDE.md「装飾品装着済みスロットの検知・除外」節を参照)。
+        yield return new object[] { "20260727070755_1.jpg", false, new List<int> { 3, 0, 0 } }; // Lv3スロット空
+        yield return new object[] { "20260727070818_1.jpg", true, null! };                       // Lv3+Lv3装飾品(紫)
+        yield return new object[] { "20260727070839_1.jpg", true, null! };                       // Lv3+Lv3装飾品(白)
+        yield return new object[] { "20260727070900_1.jpg", true, null! };                       // Lv3+Lv2装飾品(赤,不一致)
+        yield return new object[] { "20260727070924_1.jpg", true, null! };                       // Lv3+Lv2装飾品(灰,不一致)
+        yield return new object[] { "20260727070953_1.jpg", true, null! };                       // Lv3+Lv1装飾品(青,不一致)
+        yield return new object[] { "20260727071018_1.jpg", true, null! };                       // Lv3+Lv1装飾品(灰,不一致)
+        yield return new object[] { "20260727071034_1.jpg", false, new List<int> { 3, 0, 0 } };   // Lv3スロット空
+        yield return new object[] { "20260727071113_1.jpg", true, null! };                       // Lv2+Lv2装飾品(灰)/Lv1+Lv1装飾品(赤)
+        yield return new object[] { "20260727071132_1.jpg", true, null! };                       // Lv2+Lv2装飾品(白)/Lv1+空
+        yield return new object[] { "20260727071150_1.jpg", true, null! };                       // Lv2+Lv1装飾品(紫,不一致)/Lv1+Lv1装飾品(赤)
+        yield return new object[] { "20260727071210_1.jpg", true, null! };                       // Lv2+Lv1装飾品(灰,不一致)/Lv1+空
+        yield return new object[] { "20260727071224_1.jpg", true, null! };                       // Lv2+空/Lv1+Lv1装飾品(白)
+        yield return new object[] { "20260727071237_1.jpg", false, new List<int> { 2, 1, 0 } };   // Lv2+空/Lv1+空
+        yield return new object[] { "20260727063604_1.jpg", true, null! };                       // 実機ユーザー報告1(Lv3+サイズ不一致装飾品)
+        yield return new object[] { "20260727063633_1.jpg", true, null! };                       // 実機ユーザー報告2(Lv3+サイズ不一致装飾品)
+    }
+
+    [Theory]
+    [MemberData(nameof(DecorationSizeMismatchCases))]
+    public void ReadSlots_DecorationSizeMismatch_DetectsRegardlessOfSlotDecorationSizeMatch(
+        string fileName, bool expectException, List<int>? expectedArmor)
+    {
+        var path = Path.Combine(TestPaths.FindAssetsDir(), "case7 decoration check", fileName);
+
+        if (expectException)
+        {
+            Assert.Throws<DecorationEquippedException>(
+                () => CharmChecker.App.MainWindow.ReadSlots(path, hasWeaponSlot: false));
+        }
+        else
+        {
+            var (armor, _) = CharmChecker.App.MainWindow.ReadSlots(path, hasWeaponSlot: false);
+            Assert.Equal(expectedArmor, armor);
+        }
+    }
+
+    [Fact]
+    public void MatchEmptyTemplate_UniformCrop_ReturnsNull()
+    {
+        using var color = new Mat(100, 50, MatType.CV_8UC3, Scalar.All(0));
         var frame = new Rect(0, 0, 50, 100);
 
-        var result = SlotIconAnalyzer.ClassifyLevel(gray, frame);
+        var result = SlotIconAnalyzer.MatchEmptyTemplate(color, frame);
 
-        Assert.Equal(SlotLevel.Unknown, result.Level);
+        Assert.Null(result.Level);
     }
 }

@@ -597,12 +597,12 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         using var img = OpenCvSharp.Cv2.ImRead(imagePath);
         var (sx, sy) = SlotIconAnalyzer.ScaleFactors(img);
 
-        var (boxFrames, boxGray) = DetectInRegion(img, SlotIconAnalyzer.PanelRegion(img), sx, sy);
-        var (detFrames, detGray) = DetectInRegion(img, SlotIconAnalyzer.DetailPanelRegion(img), sx, sy);
+        var (boxFrames, boxColor) = DetectInRegion(img, SlotIconAnalyzer.PanelRegion(img), sx, sy);
+        var (detFrames, detColor) = DetectInRegion(img, SlotIconAnalyzer.DetailPanelRegion(img), sx, sy);
 
         List<OpenCvSharp.Rect> frames;
-        OpenCvSharp.Mat gray;
-        OpenCvSharp.Mat disposeGray;
+        OpenCvSharp.Mat color;
+        OpenCvSharp.Mat disposeColor;
 
         // BOX領域で1件以上検出できていれば常にBOX側を信頼する。Detail領域(x:1400-1650)は
         // 画面パターンによっては護石画像プレビュー等の無関係な内容(背景テクスチャ等)を
@@ -611,39 +611,39 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         // BOX側の正しい1枠より多く検出されてDetail側が誤採用される回帰を確認したため)。
         if (boxFrames.Count > 0)
         {
-            frames = boxFrames; gray = boxGray;
-            disposeGray = detGray;
+            frames = boxFrames; color = boxColor;
+            disposeColor = detColor;
         }
         else
         {
-            frames = detFrames; gray = detGray;
-            disposeGray = boxGray;
+            frames = detFrames; color = detColor;
+            disposeColor = boxColor;
         }
 
-        disposeGray.Dispose();
+        disposeColor.Dispose();
 
         try
         {
-            return ClassifyFrames(frames, gray, hasWeaponSlot);
+            return ClassifyFrames(frames, color, hasWeaponSlot);
         }
         finally
         {
-            gray.Dispose();
+            color.Dispose();
         }
     }
 
-    private static (List<OpenCvSharp.Rect> Frames, OpenCvSharp.Mat Gray) DetectInRegion(
+    private static (List<OpenCvSharp.Rect> Frames, OpenCvSharp.Mat Color) DetectInRegion(
         OpenCvSharp.Mat img, OpenCvSharp.Rect region, double sx, double sy)
     {
-        using var panel = new OpenCvSharp.Mat(img, region);
-        var gray = new OpenCvSharp.Mat();
-        OpenCvSharp.Cv2.CvtColor(panel, gray, OpenCvSharp.ColorConversionCodes.BGR2GRAY);
+        var color = new OpenCvSharp.Mat(img, region);
+        using var gray = new OpenCvSharp.Mat();
+        OpenCvSharp.Cv2.CvtColor(color, gray, OpenCvSharp.ColorConversionCodes.BGR2GRAY);
         var frames = SlotIconAnalyzer.DetectFrames(gray, sx, sy);
-        return (frames, gray);
+        return (frames, color);
     }
 
     private static (List<int> ArmorSlots, List<int> WeaponSlots) ClassifyFrames(
-        List<OpenCvSharp.Rect> frames, OpenCvSharp.Mat gray, bool hasWeaponSlot)
+        List<OpenCvSharp.Rect> frames, OpenCvSharp.Mat color, bool hasWeaponSlot)
     {
         var armorSlots = new List<int> { 0, 0, 0 };
         var weaponSlots = new List<int> { 0, 0, 0 };
@@ -653,12 +653,11 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         for (int i = 0; i < frames.Count; i++)
         {
             var frame = frames[i];
-            if (SlotIconAnalyzer.IsDecorationEquipped(gray, frame))
+            var match = SlotIconAnalyzer.MatchEmptyTemplate(color, frame);
+            if (match.Level is null)
                 throw new DecorationEquippedException();
 
-            var levelResult = SlotIconAnalyzer.ClassifyLevel(gray, frame);
-
-            int lv = levelResult.Level switch
+            int lv = match.Level.Value switch
             {
                 SlotLevel.Lv1 => 1,
                 SlotLevel.Lv2 => 2,

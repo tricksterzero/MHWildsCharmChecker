@@ -89,7 +89,13 @@ public static class SlotIconAnalyzer
         var filtered = FilterYCluster(merged, SlotIconConstants.ClusterYThreshold * sy);
 
         if (oversized.Count > 0 && filtered.Count > 0)
+        {
             filtered = TryRecoverFusedFrame(gray, filtered, oversized, wLo, wHi, hLo, hHi);
+            // 回復処理で別行のノイズ(例: 「RARE」テキストの誤検出)が同じ行に確定フレームの無い
+            // 融合塊から回復されると、ノイズと本物のフレームが混在した状態になりうる。
+            // 再度Yクラスタリングし、最頻グループ(=本物のスロット行)だけに絞り直す。
+            filtered = FilterYCluster(filtered, SlotIconConstants.ClusterYThreshold * sy);
+        }
 
         return filtered;
     }
@@ -152,6 +158,7 @@ public static class SlotIconAnalyzer
             // 「隣接」とみなしてしまうため、Y範囲が重なっている場合に限定する
             // (実データで、別行の無関係な形状を誤検出する回帰を確認したため必須の条件)。
             int fixedWindowWidth = (int)wHi;
+            bool recoveredViaAdjacency = false;
             foreach (var f in accepted)
             {
                 bool sameRow = oversize.Y < f.Y + f.Height && f.Y < oversize.Y + oversize.Height;
@@ -163,14 +170,31 @@ public static class SlotIconAnalyzer
                     TryRecoverSide(gray, oversize.Y, oversize.Height,
                         f.X - fixedWindowWidth, fixedWindowWidth,
                         wLo, wHi, hLo, hHi, result);
+                    recoveredViaAdjacency = true;
                 }
                 else if (Math.Abs(f.Right - oversize.X) < adjacencyThreshold)
                 {
                     TryRecoverSide(gray, oversize.Y, oversize.Height,
                         f.Right, fixedWindowWidth,
                         wLo, wHi, hLo, hHi, result);
+                    recoveredViaAdjacency = true;
                 }
             }
+
+            if (recoveredViaAdjacency)
+                continue;
+
+            // 同じ行に確定フレームが1つも無い(=護石の唯一のスロットが丸ごと融合した、
+            // または他候補が全て別行のノイズだった)場合のフォールバック。手掛かりが無いため
+            // 塊自体の左端・右端それぞれから固定幅の窓で再探索し、有効な候補が出た方を採用する
+            // (実データで、真のソケット枠は融合塊の左端から始まるケースを確認済みだが、
+            // 将来別の画面パターンで右端から始まるケースもありうるため両側を試す)。
+            TryRecoverSide(gray, oversize.Y, oversize.Height,
+                oversize.X, fixedWindowWidth,
+                wLo, wHi, hLo, hHi, result);
+            TryRecoverSide(gray, oversize.Y, oversize.Height,
+                oversize.Right - fixedWindowWidth, fixedWindowWidth,
+                wLo, wHi, hLo, hHi, result);
         }
 
         result.Sort((a, b) => a.X.CompareTo(b.X));
@@ -245,155 +269,70 @@ public static class SlotIconAnalyzer
     }
 
     /// <summary>
-    /// 枠上部(菱形相当領域)の中心が装飾品で塗りつぶされているか(装着済みか)を判定する。
-    /// 装飾品装着済みのソケットは、菱形が実体色で塗りつぶされ2次元形状になり、
-    /// <see cref="ClassifyLevel"/>の列プロファイル方式(2次元形状を1次元に潰す)では
-    /// レベル誤判定を起こすことを実データで確認済み(CLAUDE.md参照)。この判定結果を使って、
-    /// 装飾品装着済みソケットを含む護石は読み取り対象から除外する運用とする。
+    /// 枠下部の三角マーク(レベル表示)領域を、検証済み空スロットのテンプレート(<see cref="EmptySlotTemplates"/>)
+    /// とカラー画素で比較し、最も近いLvのテンプレートとその差分値を返す。
+    /// 差分が<see cref="SlotIconConstants.EmptyTemplateThreshold"/>以下なら「空スロット」とみなしLevelを返す。
+    /// それ以外(装飾品で塗り分けられ差分が大きい)はLevel=nullを返す(装着済みとして護石全体を除外する運用)。
+    /// 三角マークは装飾品の色でそのまま塗り分けられるため、色情報が必須(グレースケールでは分離できない
+    /// ことを実データで確認済み、詳細はCLAUDE.md参照)。装飾品の色・サイズ(スロットサイズとの一致/不一致)に
+    /// 左右されない安定した判定を狙った設計で、旧方式(枠上部中心の輝度percentile方式、削除済み)が
+    /// サイズ不一致ケースで機能しなかった問題への対応として新設した。
+    /// 各Lvのテンプレートは画面パターンごとに複数件を個別保持し、最も近い1件(最近傍)との差分を採用する
+    /// (画面ごとに背景色が異なるため、単純平均するとどの画面にも合わない中間値になり精度が落ちることを
+    /// 実データで確認済み)。
     /// </summary>
-    public static bool IsDecorationEquipped(Mat gray, Rect frame)
-    {
-        int upperHeight = (int)(frame.Height * SlotIconConstants.LevelCropTopFraction);
-        var upperRect = new Rect(frame.X, frame.Y, frame.Width, upperHeight);
-        using var upper = new Mat(gray, upperRect);
-
-        int upperWidth = upper.Width;
-        int upperHeightPx = upper.Height;
-        int cx0 = (int)(upperWidth * 0.30);
-        int cx1 = (int)(upperWidth * 0.70);
-        int cy0 = (int)(upperHeightPx * 0.15);
-        int cy1 = (int)(upperHeightPx * 0.85);
-        var innerRect = new Rect(cx0, cy0, Math.Max(1, cx1 - cx0), Math.Max(1, cy1 - cy0));
-        using var inner = new Mat(upper, innerRect);
-
-        double innerP25 = PercentileOfPixels(inner, SlotIconConstants.DecorationInnerLowPercentile);
-        double upperP90 = PercentileOfPixels(upper, SlotIconConstants.DecorationUpperHighPercentile);
-
-        double feature = innerP25 / Math.Max(1.0, upperP90);
-        return feature >= SlotIconConstants.DecorationFeatureThreshold;
-    }
-
-    private static double PercentileOfPixels(Mat gray, double percentile)
-    {
-        int height = gray.Height;
-        int width = gray.Width;
-        var pixels = new byte[height * width];
-        int idx = 0;
-        for (int y = 0; y < height; y++)
-            for (int x = 0; x < width; x++)
-                pixels[idx++] = gray.Get<byte>(y, x);
-
-        Array.Sort(pixels);
-        int rank = (int)(pixels.Length * percentile);
-        rank = Math.Clamp(rank, 0, pixels.Length - 1);
-        return pixels[rank];
-    }
-
-    /// <summary>
-    /// 枠の下45%領域を(50,20)に正規化・Otsu二値化し、列ごとの白画素数プロファイルの
-    /// ピーク数・谷比率からLv1/Lv2/Lv3を判定する。
-    /// </summary>
-    public static LevelClassification ClassifyLevel(Mat gray, Rect frame)
+    public static EmptyTemplateMatch MatchEmptyTemplate(Mat colorRegion, Rect frame)
     {
         int y0 = frame.Y + (int)(frame.Height * SlotIconConstants.LevelCropTopFraction);
-        var cropRect = new Rect(frame.X, y0, frame.Width, frame.Y + frame.Height - y0);
-        using var crop = new Mat(gray, cropRect);
+        var bandRect = new Rect(frame.X, y0, frame.Width, frame.Y + frame.Height - y0);
+        using var band = new Mat(colorRegion, bandRect);
         using var resized = new Mat();
-        Cv2.Resize(crop, resized, new Size(50, 20));
-        using var binImg = new Mat();
-        Cv2.Threshold(resized, binImg, 0, 255, ThresholdTypes.Binary | ThresholdTypes.Otsu);
+        Cv2.Resize(band, resized, new Size(EmptySlotTemplates.TemplateWidth, EmptySlotTemplates.TemplateHeight));
 
-        const int width = 50;
-        const int height = 20;
-        var profile = new double[width];
-        for (int col = 0; col < width; col++)
+        var candidates = new (SlotLevel Level, byte[][] Templates)[]
         {
-            int count = 0;
-            for (int row = 0; row < height; row++)
+            (SlotLevel.Lv1, EmptySlotTemplates.Lv1),
+            (SlotLevel.Lv2, EmptySlotTemplates.Lv2),
+            (SlotLevel.Lv3, EmptySlotTemplates.Lv3),
+        };
+
+        SlotLevel bestLevel = SlotLevel.Unknown;
+        double bestDiff = double.MaxValue;
+        foreach (var (level, templates) in candidates)
+        {
+            foreach (var template in templates)
             {
-                if (binImg.Get<byte>(row, col) > 127) count++;
-            }
-            profile[col] = count;
-        }
-
-        // np.convolve(profile, ones(3)/3, mode="same") 相当の移動平均（範囲外は0扱い）
-        var smoothed = new double[width];
-        for (int i = 0; i < width; i++)
-        {
-            double sum = profile[i];
-            sum += i > 0 ? profile[i - 1] : 0;
-            sum += i < width - 1 ? profile[i + 1] : 0;
-            smoothed[i] = sum / 3.0;
-        }
-
-        double peak = smoothed.Max();
-        if (peak <= 0)
-        {
-            return new LevelClassification(SlotLevel.Unknown, 0, []);
-        }
-        double threshold = peak * 0.75;
-
-        var groups = new List<List<int>>();
-        List<int>? current = null;
-        for (int i = 0; i < smoothed.Length; i++)
-        {
-            if (smoothed[i] >= threshold)
-            {
-                current ??= [];
-                current.Add(i);
-            }
-            else if (current != null)
-            {
-                groups.Add(current);
-                current = null;
-            }
-        }
-        if (current != null) groups.Add(current);
-
-        var ratios = new List<double?>();
-        for (int i = 0; i < groups.Count - 1; i++)
-        {
-            int segStart = groups[i][^1] + 1;
-            int segEnd = groups[i + 1][0];
-            if (segEnd > segStart)
-            {
-                double segMin = double.MaxValue;
-                for (int j = segStart; j < segEnd; j++)
+                double diff = MeanAbsDiff(resized, template);
+                if (diff < bestDiff)
                 {
-                    segMin = Math.Min(segMin, smoothed[j]);
+                    bestDiff = diff;
+                    bestLevel = level;
                 }
-                ratios.Add(segMin / peak);
             }
-            else
+        }
+
+        bool isEmpty = bestDiff <= SlotIconConstants.EmptyTemplateThreshold;
+        return new EmptyTemplateMatch(isEmpty ? bestLevel : null, bestDiff);
+    }
+
+    private static double MeanAbsDiff(Mat resizedBgr, byte[] template)
+    {
+        int w = EmptySlotTemplates.TemplateWidth;
+        int h = EmptySlotTemplates.TemplateHeight;
+        long sum = 0;
+        int idx = 0;
+        for (int y = 0; y < h; y++)
+        {
+            for (int x = 0; x < w; x++)
             {
-                ratios.Add(null);
+                var px = resizedBgr.Get<Vec3b>(y, x);
+                sum += Math.Abs(px.Item0 - template[idx])
+                     + Math.Abs(px.Item1 - template[idx + 1])
+                     + Math.Abs(px.Item2 - template[idx + 2]);
+                idx += 3;
             }
         }
-
-        int n = groups.Count;
-        SlotLevel level;
-        if (n == 1)
-        {
-            level = SlotLevel.Lv1;
-        }
-        else if (n == 2 && ratios[0] is double r0 && r0 < 0.5)
-        {
-            level = SlotLevel.Lv1;
-        }
-        else if (n == 2 && ratios[0] is double r1 && r1 >= 0.50)
-        {
-            level = SlotLevel.Lv2;
-        }
-        else if (n >= 3)
-        {
-            level = SlotLevel.Lv3;
-        }
-        else
-        {
-            level = SlotLevel.Unknown;
-        }
-
-        return new LevelClassification(level, n, ratios);
+        return sum / (double)(w * h * 3);
     }
 
     private static List<Rect> MergeOverlapping(List<Rect> sorted, double threshold)
