@@ -52,6 +52,24 @@ public class EmptySlotTemplateGenerator
         new(@"case6 appraisal box\20250906064316_1.jpg", true, 145, 53, 39, 33, SlotLevel.Lv1, "鑑定BOX画面 防具スロット空"),
         new(@"case6 appraisal box\20250906064316_1.jpg", true, 90, 49, 49, 37, SlotLevel.Lv1, "鑑定BOX画面 武器スロット空(防具スロットと見た目が異なる専用テンプレート)"),
         new(@"option 21_9 native craft result\205B741.JPG", false, 105, 78, 50, 38, SlotLevel.Lv3, "真の21:9ネイティブ マカ錬金鑑定結果 防具スロット空"),
+
+        // --- 真の21:9ネイティブ(3440x1440)追加分(2026-07-27、ユーザー報告の過検出調査で発覚) ---
+        // 「装備変更」画面のBOX領域Lv1/Lv2、「狩猟後護石入手」画面のDetail領域Lv1が未収録だったため、
+        // 25枚中23枚が誤って装飾品装着扱いされていた(目視確認の結果、実際に装飾品ありは3枚のみ)。
+        new(@"option 21_9 native\20260726181604_1.jpg", false, 106, 83, 38, 33, SlotLevel.Lv1, "真の21:9ネイティブ 装備変更 BOX Lv1スロット空(1)"),
+        new(@"option 21_9 native\20260726181711_1.jpg", false, 106, 83, 38, 33, SlotLevel.Lv1, "真の21:9ネイティブ 装備変更 BOX Lv1スロット空(2)"),
+        new(@"option 21_9 native\20260726182952_1.jpg", false, 106, 83, 38, 33, SlotLevel.Lv1, "真の21:9ネイティブ 装備変更 BOX Lv1スロット空(3)"),
+        new(@"option 21_9 native\20260726181617_1.jpg", false, 106, 78, 49, 38, SlotLevel.Lv2, "真の21:9ネイティブ 装備変更 BOX Lv2スロット空(1)"),
+        new(@"option 21_9 native\20260726182924_1.jpg", false, 106, 78, 49, 38, SlotLevel.Lv2, "真の21:9ネイティブ 装備変更 BOX Lv2スロット空(2)"),
+        new(@"option 21_9 native craft result\202EA81.JPG", false, 106, 78, 49, 38, SlotLevel.Lv2, "真の21:9ネイティブ マカ錬金鑑定結果 BOX Lv2スロット空"),
+        new(@"option 21_9 native quest result\2005B31.JPG", true, 52, 53, 38, 33, SlotLevel.Lv1, "真の21:9ネイティブ 狩猟後護石入手 Detail Lv1スロット空(1)"),
+        new(@"option 21_9 native quest result\2005B31.JPG", true, 106, 53, 38, 33, SlotLevel.Lv1, "真の21:9ネイティブ 狩猟後護石入手 Detail Lv1スロット空(2)"),
+        new(@"option 21_9 native quest result\20BC111.JPG", true, 52, 53, 38, 33, SlotLevel.Lv1, "真の21:9ネイティブ 狩猟後護石入手 Detail Lv1スロット空(3)"),
+        new(@"option 21_9 native quest result\20660C1.JPG", true, 52, 53, 38, 33, SlotLevel.Lv1, "真の21:9ネイティブ 狩猟後護石入手 Detail Lv1スロット空(4)"),
+        // 3連スロットの中央位置(x≈159)は両隣の装備アイコンに挟まれ、上記追加後もdiff≈4.2〜4.35と
+        // 閾値(3.0)付近まで残っていたため、中央位置専用のサンプルも追加。
+        new(@"option 21_9 native\20260726181604_1.jpg", false, 159, 83, 38, 33, SlotLevel.Lv1, "真の21:9ネイティブ 装備変更 BOX Lv1スロット空(中央位置)"),
+        new(@"option 21_9 native craft result\202EA81.JPG", false, 157, 83, 40, 33, SlotLevel.Lv1, "真の21:9ネイティブ マカ錬金鑑定結果 BOX Lv1スロット空(中央位置)"),
     ];
 
     [Fact(Skip = "手動実行専用: EmptySlotTemplates.csを実データから再生成するツール。実行するとリポジトリのソースファイルを上書きする。新しい画面パターンを追加する場合のみ、フィルタ指定で明示的に実行すること。")]
