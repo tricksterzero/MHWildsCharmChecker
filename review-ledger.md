@@ -47,12 +47,28 @@ App.xaml.csのMutex所有権誤解放）。詳細は[review-log.md](review-log.m
 （7種は装飾品専用スキルと確認、対応不要。残る1種「オトモへの采配」は`extra_skills`から削除、
 正規名121種→120種）。詳細は[review-log.md](review-log.md#skillnameloadercs)を参照。
 
-**未反映の後続変更（2026-08-03時点の既知課題）**: CLAUDE.mdには2026-07-24〜2026-07-27の間に
+**未反映の後続変更（2026-08-03時点の既知課題、2026-08-05解消）**: CLAUDE.mdには2026-07-24〜2026-07-27の間に
 実装された機能（ウルトラワイド21:9対応・真の21:9モニタ対応・空スロットテンプレート照合による
 装飾品検知の全面再設計・融合フレーム回復のフォールバック拡張等）が記載されているが、本台帳・
-review-log.mdの精査履歴（Codex相談）はいずれもこれらの変更より前の時点で止まっている
+review-log.mdの精査履歴（Codex相談）はいずれもこれらの変更より前の時点で止まっていた
 （SlotIconAnalyzer.cs・SkillReadingPipeline.cs・MainWindow.xaml.csの各行に「追記」として
-未反映であることを明記済み）。次回精査の優先対象とする。
+未反映であることを明記済み）。
+
+**第4巡完了（2026-08-05、Codex相談あり）**: 上記未反映分3ファイルをまとめて1つの意思決定として
+Codexへ相談し敵対的検証を実施。自分の机上レビューで洗い出した5点の懸念に加え、Codex独自の
+指摘（高2件・中3件）を得て、`charm-combinations.json`の一次データ確認等で裏取りした上で実バグ
+候補4件を確認、うち3件を修正: (1)スロット検出0件が「穴なし護石」として正常保存される実装漏れ
+（新規`SlotDetectionFailedException`追加）、(2)護石名OCR失敗時に栄世の護石の武器スロットが
+防具スロットとして誤保存される実装漏れ（新規発見）、(3)21:9(黒帯付き・真のネイティブ両方)で
+「装備スキル」逆算アンカーの固定オフセットが座標スケールで補正されていない座標系バグ
+（新規発見、テストカバレッジ未確認のまま修正）。**(2)(3)は内蔵advisorとの最終レビューで初版の
+修正が不完全（(2)は`charm-types.json`未登録の正当な護石=希望の護石等まで誤って除外する過剰対応、
+(3)は黒帯付き21:9のケースが未対応）と判明し、各1回設計を訂正**（詳細はreview-log.mdの各節）。
+**(4)融合フレーム回復の呼び出し条件変更は、advisor指摘を受けた実データ検証(全78枚×BOX/DETAIL
+156領域のblast-radius比較)で、既存の正しい護石読み取り結果を壊す回帰（BOX領域の「RARE」ラベル
+偽陽性を誤って「回復」しBOX優先ロジックにより正しいDETAIL側結果を上書き）が判明したため撤回**
+（コード変更なし、詳細はreview-log.mdのSlotIconAnalyzer.cs節）。全221テスト成功、既存機能への
+回帰なし。詳細は各ファイルのreview-log.md該当節（2026-08-05追記）を参照。
 
 ## 精査手順（1本あたり）
 
@@ -73,10 +89,10 @@ review-log.mdの精査履歴（Codex相談）はいずれもこれらの変更�
 
 | ファイル | 状態 | 相互作用チェック相手 |
 |---|---|---|
-| SlotIconAnalyzer.cs | 済(2026-07-21、Codex相談、実バグ2件修正+観察点2件)+変更(2026-07-27未反映) | SlotIconTypes(定数)・SlotValidation(判定結果の検証)・SkillReadingPipeline(護石名ベース種別判定の受け渡し)。既知課題: 融合フレーム回復の観察点2件+MergeOverlapping/FilterYCluster観察点3件(据え置き、実害小)。**2026-07-27の融合フレーム回復フォールバック拡張・再クラスタリング追加は未精査**。詳細: [review-log.md](review-log.md#sloticonanalyzercs) |
+| SlotIconAnalyzer.cs | 済(2026-08-05、Codex相談、実バグ0件・修正案1件は実データ検証で回帰確認し撤回) | SlotIconTypes(定数)・SlotValidation(判定結果の検証)・SkillReadingPipeline(護石名ベース種別判定の受け渡し)・MainWindow.ReadSlots(BOX優先ロジックとの相互作用に要注意、撤回の経緯を参照)。既知課題: 融合フレーム回復の観察点2件+MergeOverlapping/FilterYCluster観察点3件+RangesOverlapのY非考慮1件+「filtered完全に空」ケースへの対応は安全に実現できず据え置き(いずれも実害小、詳細はreview-log.md)。詳細: [review-log.md](review-log.md#sloticonanalyzercs) |
 | SlotIconTypes.cs | 済(2026-07-19、Codex相談、0件) | SlotIconAnalyzer(定数消費)・SlotValidation(ArmorSlotMaxByPositionとの整合)。既知課題なし。詳細: [review-log.md](review-log.md#sloticontypescs) |
 | SlotValidation.cs | 済(2026-07-19、Codex相談、実バグ1件修正) | SlotIconAnalyzer(判定結果)・MainWindow.ClassifyFrames(武器/防具振り分け後の呼び出し元)。既知課題: 武器スロット非ソートは将来Lv2/Lv3許可時に要再設計(据え置き)。詳細: [review-log.md](review-log.md#slotvalidationcs) |
-| SkillReadingPipeline.cs | 済(2026-07-21、Codex相談、実バグ3件修正)+変更(2026-07-24〜27未反映) | ImageVariantFactory・LvParser・SkillNameNormalizer・SkillNameLoader・TextOcrReader・SlotIconAnalyzer(護石名の受け渡し)・CharmTypeLoader。既知課題: 過去データ(2026-07-19以前読み取りのCSV)の護石名誤帰属可能性(ユーザー報告済み)、観察点2件(据え置き)。**21:9対応・真の21:9モニタ対応の追加は未精査**。詳細: [review-log.md](review-log.md#skillreadingpipelinecs) |
+| SkillReadingPipeline.cs | 済(2026-08-05、Codex相談、実バグ1件修正) | ImageVariantFactory・LvParser・SkillNameNormalizer・SkillNameLoader・TextOcrReader・SlotIconAnalyzer(護石名の受け渡し)・CharmTypeLoader。既知課題: 過去データ(2026-07-19以前読み取りのCSV)の護石名誤帰属可能性(ユーザー報告済み)、観察点3件(据え置き)。**「装備スキル」逆算アンカーのocrScale補正は修正済みだが、この経路を実際に通る実データでの検証は未確認**。詳細: [review-log.md](review-log.md#skillreadingpipelinecs) |
 | ImageVariantFactory.cs | 済(2026-07-19、Codex相談、0件・観察点1件) | SkillReadingPipeline(5バリエーション生成・幅ガード)。既知課題: Createメソッドの例外時ネイティブメモリリーク(観察点、据え置き)。詳細: [review-log.md](review-log.md#imagevariantfactorycs) |
 | LvParser.cs | 済(2026-07-19、Codex相談、実バグ1件修正) | SkillReadingPipeline(184行目、右側候補のみ適用)。既知課題なし。詳細: [review-log.md](review-log.md#lvparsercs) |
 | SkillNameNormalizer.cs | 済(2026-07-21、Codex相談、実バグ1件修正) | SkillNameLoader(正解候補120種)・SkillReadingPipeline。既知課題: 特殊・分解形式の濁点は現行データに該当なしのため見送り(観察点)。詳細: [review-log.md](review-log.md#skillnamenormalizercs) |
@@ -87,7 +103,7 @@ review-log.mdの精査履歴（Codex相談）はいずれもこれらの変更�
 | RarityInference.cs | 済(2026-07-19)+変更(2026-07-21、Codex相談で再精査済み) | skill-groups.json/charm-combinations.json・CharmEditWindow・MainWindow(CSV一括推定)・CharmProbabilityEstimator・CharmTheoreticalValueChecker(共有ロジック提供元)。既知課題: 観察点2件(据え置き、将来データ変更時要再検討)。詳細: [review-log.md](review-log.md#rarityinferencecs) |
 | CharmProbabilityEstimator.cs | 済(2026-07-21、Codex相談、実バグなし・共有ロジック集約1件) | RarityInference(共有ロジック)・MainWindow(詳細パネル表示)。既知課題なし。詳細: [review-log.md](review-log.md#charmprobabilityestimatorcs) |
 | CharmTheoreticalValueChecker.cs | 済(2026-07-21、Codex相談、実バグ1件修正+テスト強化2件) | RarityInference(共有ロジック)・CharmProbabilityEstimator(スロット一致判定ロジック共有)・MainWindow(詳細パネル表示)。既知課題なし。詳細: [review-log.md](review-log.md#charmtheoreticalvaluecheckercs) |
-| CharmTypeLoader.cs | 済(2026-07-19、Codex相談、実バグ1件修正(MainWindow側)+設計強化1件+観察点2件) | charm-types.json・SkillReadingPipeline(武器スロット有無判定)・MainWindow(ReadScreenshotでのRarity設定)・RarityInference(InferRarityBatchでの補完)。既知課題: Lookupの末尾一致が「入力順の最初一致」で将来部分文字列関係の護石名追加時に誤マッチしうる(観察点、据え置き)。詳細: [review-log.md](review-log.md#charmtypeloadercs) |
+| CharmTypeLoader.cs | 済(2026-07-19、Codex相談、実バグ1件修正(MainWindow側)+設計強化1件+観察点2件)+追記(2026-08-05) | charm-types.json・SkillReadingPipeline(武器スロット有無判定)・MainWindow(ReadScreenshotでのRarity設定・hasWeaponSlot受け渡し)・RarityInference(InferRarityBatchでの補完)。既知課題: Lookupの末尾一致が「入力順の最初一致」で将来部分文字列関係の護石名追加時に誤マッチしうる(観察点、据え置き)。**2026-08-05: `Lookup`のnull戻り値をMainWindow側が`hasWeaponSlot=false`にフォールバックしていたため栄世の護石で誤混同する実バグが判明・MainWindow側で修正済み(本ファイル自体の変更なし)**。詳細: [review-log.md](review-log.md#charmtypeloadercs) |
 
 ## 中優先（データモデル・UI本体）
 
@@ -95,7 +111,7 @@ review-log.mdの精査履歴（Codex相談）はいずれもこれらの変更�
 |---|---|---|
 | CharmModel.cs | 済(2026-07-19、Codex相談、0件・観察点3件) | DuplicateChecker・CharmCsvConverter・RarityInference・MainWindow・CharmEditWindow(共通データモデル)。既知課題: 観察点3件(据え置き、b級)+GameVersion.Ascendance未使用(将来拡張スキャフォールド)。詳細: [review-log.md](review-log.md#charmmodelcs) |
 | CharmCsvConverter.cs | 済(2026-07-19、Codex相談、実バグ2件修正+観察点2件) | CharmModel・MainWindow(インポート/エクスポート)。既知課題: 未知スキル名の無検証受理(ユーザー判断で見送り)・ParseTextの行番号ずれ(低優先度)。詳細: [review-log.md](review-log.md#charmcsvconvertercs) |
-| MainWindow.xaml.cs | 済(2026-07-21、Codex相談、軽微な不具合1件修正)+変更(2026-07-27未反映) | 全モジュールのオーケストレーション中枢(SkillReadingPipeline・SlotIconAnalyzer・CharmCsvConverter・DuplicateChecker・RarityInference・CharmTypeLoader・ErrorLogger・GameSkillOrder・SettingsWindow・CharmEditWindow・DuplicateCheckWindow)。既知課題: 観察点3件(据え置き、IsExactDuplicateのコード重複・武器スロット表示不整合・Dispose漏れリスク)。**2026-07-27のReadSlots採用条件変更・カラーMat伝播化は未精査**。詳細: [review-log.md](review-log.md#mainwindowxamlcs) |
+| MainWindow.xaml.cs | 済(2026-08-05、Codex相談、実バグ2件修正) | 全モジュールのオーケストレーション中枢(SkillReadingPipeline・SlotIconAnalyzer・CharmCsvConverter・DuplicateChecker・RarityInference・CharmTypeLoader・ErrorLogger・GameSkillOrder・SettingsWindow・CharmEditWindow・DuplicateCheckWindow)。既知課題: 観察点3件(据え置き、IsExactDuplicateのコード重複・武器スロット表示不整合・Dispose漏れリスク)。**DecorationEquippedException.csのXMLコメントが削除済みの旧方式(ClassifyLevel)を参照したまま(次回要修正)**。詳細: [review-log.md](review-log.md#mainwindowxamlcs) |
 | CharmEditWindow.xaml.cs | 済(2026-07-19、Codex相談、実バグ2件修正、実機動作確認済み) | SkillNameLoader・GameSkillOrder・RarityInference(レアリティ動的更新)。既知課題: BuildCharmのサイレントスキップ・TitleBar表示不整合(観察点、据え置き)。詳細: [review-log.md](review-log.md#charmeditwindowxamlcs) |
 | DuplicateCheckWindow.xaml.cs | 済(2026-07-19、Codex相談、実バグ1件修正+観察点1件) | DuplicateChecker(消費者)・MainWindow(CharmItemsを渡す)。既知課題: 完全同一グループのRarity表示不整合(観察点、据え置き、実害は大幅軽減済み)。詳細: [review-log.md](review-log.md#duplicatecheckwindowxamlcs) |
 | SettingsWindow.xaml.cs | 済(2026-07-19、Codex相談、0件) | MainWindow(設定永続化: ウィンドウサイズ・位置・スクショフォルダ)。既知課題: BrowseFolder_ClickのDirectory.Exists未検証(観察点、実害極小)。詳細: [review-log.md](review-log.md#settingswindowxamlcs) |

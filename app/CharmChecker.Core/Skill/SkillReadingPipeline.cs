@@ -60,12 +60,20 @@ public static class SkillReadingPipeline
         else
             img.CopyTo(ocrTarget);
 
-        var anchorScan = await FindAnchorWithFallbackAsync(ocrTarget);
+        // 「装備スキル」逆算アンカー(FindSkillLabelAnchorCandidates)の固定pxオフセットを補正する
+        // 係数はscale(LetterboxNormalizer由来、黒帯付き21:9でUI自体がコンテンツ高さ/1440に縮小
+        // 配置される比率)とocrScale(真の21:9ネイティブでOCR専用に基準幅へ縮小する比率)の積。
+        // 両者は排他的に働く(黒帯付き21:9はimg.Width<=2560のためocrScale=1.0、真の21:9ネイティブは
+        // 黒帯が無いためscale=1.0)ため、積を取ればどちらのケースも正しく補正できる
+        // (2026-08-05発見、真の21:9ネイティブのみ対応していたのは修正漏れだった)。
+        double anchorLabelScale = scale * ocrScale;
+
+        var anchorScan = await FindAnchorWithFallbackAsync(ocrTarget, anchorLabelScale);
         if (anchorScan is null)
             return null;
         var (fullOcr, anchorOffsetX) = anchorScan.Value;
 
-        var anchor = FindAnchor(fullOcr);
+        var anchor = FindAnchor(fullOcr, anchorLabelScale);
         if (anchor is null)
             return null;
 
@@ -151,10 +159,10 @@ public static class SkillReadingPipeline
     /// 全て失敗した場合はnullを返す。戻り値のOcrResultはフォールバックを使わなかった場合、
     /// フルスクリーンでの結果そのもの(AnchorOffsetX=0)。
     /// </summary>
-    private static async Task<(OcrResult Ocr, double AnchorOffsetX)?> FindAnchorWithFallbackAsync(Mat ocrTarget)
+    private static async Task<(OcrResult Ocr, double AnchorOffsetX)?> FindAnchorWithFallbackAsync(Mat ocrTarget, double ocrScale)
     {
         var fullOcr = await OcrMatAsync(ocrTarget);
-        if (FindAnchor(fullOcr) is not null)
+        if (FindAnchor(fullOcr, ocrScale) is not null)
             return (fullOcr, 0);
 
         foreach (var width in FallbackOcrWidths)
@@ -163,14 +171,21 @@ public static class SkillReadingPipeline
             var region = new Rect(x0, 0, ocrTarget.Width - x0, ocrTarget.Height);
             using var cropped = new Mat(ocrTarget, region);
             var croppedOcr = await OcrMatAsync(cropped);
-            if (FindAnchor(croppedOcr) is not null)
+            if (FindAnchor(croppedOcr, ocrScale) is not null)
                 return (croppedOcr, x0);
         }
 
         return null;
     }
 
-    internal static (double X, double Y)? FindAnchor(OcrResult ocrResult)
+    /// <summary>
+    /// ocrScaleは<see cref="FindSkillLabelAnchorCandidates"/>の固定pxオフセット(基準解像度前提)を
+    /// 補正するために使う。「装備詳細」「備詳細」経路は検出したテキスト自体の座標をそのまま返すため
+    /// 補正不要だが、「装備スキル」からの逆算経路は基準解像度でのオフセット値を直接引くため、
+    /// OCR対象がocrScaleで縮小済みの場合はオフセットも同率で縮小しないと座標系が食い違う
+    /// (2026-08-05発見、真の21:9ネイティブでY方向に約100px級のずれが生じる計算上のバグだった)。
+    /// </summary>
+    internal static (double X, double Y)? FindAnchor(OcrResult ocrResult, double ocrScale = 1.0)
     {
         // 3段フォールバック、最右優先
         var candidates = FindAnchorCandidates(ocrResult, "装備詳細", "装");
@@ -181,7 +196,7 @@ public static class SkillReadingPipeline
         if (candidates.Count > 0)
             return candidates.MaxBy(c => c.X);
 
-        candidates = FindSkillLabelAnchorCandidates(ocrResult);
+        candidates = FindSkillLabelAnchorCandidates(ocrResult, ocrScale);
         if (candidates.Count > 0)
             return candidates.MaxBy(c => c.X);
 
@@ -207,9 +222,11 @@ public static class SkillReadingPipeline
         return candidates;
     }
 
-    private static List<(double X, double Y)> FindSkillLabelAnchorCandidates(OcrResult ocrResult)
+    private static List<(double X, double Y)> FindSkillLabelAnchorCandidates(OcrResult ocrResult, double ocrScale)
     {
         var candidates = new List<(double X, double Y)>();
+        double offsetX = -20 * ocrScale;
+        double offsetY = -310 * ocrScale;
         foreach (var line in ocrResult.Lines)
         {
             var lineText = line.Text.Replace(" ", "");
@@ -219,9 +236,9 @@ public static class SkillReadingPipeline
             var y0 = line.Words.Min(w => w.BoundingRect.Y);
             var matched = line.Words.FirstOrDefault(w => w.Text.Contains("装"));
             if (matched != null)
-                candidates.Add((matched.BoundingRect.X - 20, y0 - 310));
+                candidates.Add((matched.BoundingRect.X + offsetX, y0 + offsetY));
             else
-                candidates.Add((line.Words.Min(w => w.BoundingRect.X) - 20, y0 - 310));
+                candidates.Add((line.Words.Min(w => w.BoundingRect.X) + offsetX, y0 + offsetY));
         }
         return candidates;
     }

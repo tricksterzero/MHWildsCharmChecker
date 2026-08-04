@@ -192,6 +192,31 @@ public class SlotIconPipelineTests
             () => CharmChecker.App.MainWindow.ReadSlots(path, hasWeaponSlot));
     }
 
+    [Fact]
+    public void ReadSlots_NoFramesDetectedInEitherRegion_ThrowsSlotDetectionFailedException()
+    {
+        // BOX領域・Detail領域とも1件もソケット枠を検出できない場合、修正前は空リストのまま
+        // armorSlots=[0,0,0]が「穴なし護石」として正常保存されていた。charm-combinations.jsonの
+        // 全パターン(RARE5〜8)にスロット完全ゼロの組み合わせは存在しないため、0件は検出失敗として
+        // 扱うべき回帰テスト(2026-08-05発見)。単色画像はソケット枠の輪郭を一切含まないため、
+        // 両領域とも確実に0件になる。
+        var tempPath = Path.Combine(Path.GetTempPath(), $"charmchecker_blank_{Guid.NewGuid():N}.png");
+        using (var blank = new Mat(new OpenCvSharp.Size(2560, 1440), MatType.CV_8UC3, new Scalar(128, 128, 128)))
+        {
+            Cv2.ImWrite(tempPath, blank);
+        }
+
+        try
+        {
+            Assert.Throws<SlotDetectionFailedException>(
+                () => CharmChecker.App.MainWindow.ReadSlots(tempPath, hasWeaponSlot: false));
+        }
+        finally
+        {
+            File.Delete(tempPath);
+        }
+    }
+
     public static IEnumerable<object[]> DecorationSizeMismatchCases()
     {
         // 「case7 decoration check」: スロットサイズと装飾品サイズが一致しない場合に

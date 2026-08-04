@@ -504,6 +504,24 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
                         continue;
                     }
 
+                    if (readResult.CharmName is null)
+                    {
+                        // 護石名テキスト自体が読み取れなかった場合、charm-types.json登録4種
+                        // (未解/史伝/秘歴/栄世)のどれに該当するかも、そもそも該当しない一般護石・
+                        // 希望の護石等かも判別できない。hasWeaponSlot=falseのままReadSlotsへ渡すと、
+                        // 実際は栄世の護石(武器スロット持ち)だった場合に武器スロットの検出値が
+                        // 防具スロットとして誤保存されるリスクがある(2026-08-05発見)。
+                        // スロット値自体は妥当範囲に収まるためSlotValidationでは検出できないサイレント
+                        // 誤りになるため、護石名が完全に不明な場合のみ読み取り失敗として除外する。
+                        // 護石名は読めたがcharm-types.jsonに未登録(希望の護石等)の場合は、従来通り
+                        // hasWeaponSlot=false・Rarity=nullで処理を続け、後続のRarityInferenceによる
+                        // 補完に委ねる(未登録=栄世の護石ではないと確定できるため誤混同のリスクがない)。
+                        ErrorLogger.Log("ReadScreenshot",
+                            $"{Path.GetFileName(file)}: 護石名を読み取れず武器スロット有無が不明なため読み取りをスキップしました。");
+                        failed++;
+                        continue;
+                    }
+
                     var charmType = CharmTypeLoader.Lookup(readResult.CharmName, charmTypes);
                     var slots = await Task.Run(() => ReadSlots(file, charmType?.HasWeaponSlot ?? false));
 
@@ -527,6 +545,15 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
                     ErrorLogger.Log("ReadScreenshot",
                         $"{Path.GetFileName(file)}: スロットに装飾品が装着されているため読み取りをスキップしました。");
                     decorationSkipped++;
+                }
+                catch (SlotDetectionFailedException)
+                {
+                    // BOX/Detail両領域からスロットアイコンが1件も検出できなかったケース。
+                    // 対象護石にスロット完全ゼロの構成は存在しない(charm-combinations.json参照)ため
+                    // 検出失敗として扱い、[0,0,0]のまま正常保存されることを防ぐ(2026-08-05発見)。
+                    ErrorLogger.Log("ReadScreenshot",
+                        $"{Path.GetFileName(file)}: スロットアイコンを検出できなかったため読み取りをスキップしました。");
+                    failed++;
                 }
                 catch (Exception ex)
                 {
@@ -624,6 +651,9 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
 
         try
         {
+            if (frames.Count == 0)
+                throw new SlotDetectionFailedException();
+
             return ClassifyFrames(frames, color, hasWeaponSlot);
         }
         finally
