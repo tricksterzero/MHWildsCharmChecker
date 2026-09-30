@@ -1,0 +1,74 @@
+name: 不具合の報告
+description: 読み取りミスや、アプリの動作・表示の不具合を報告する
+title: "[不具合] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        報告ありがとうございます。わかる範囲で記入してください。
+        読み取りミスは、元のスクリーンショットがないと再現できないことが多いため、できるだけ添付をお願いします。
+  - type: input
+    id: version
+    attributes:
+      label: アプリのバージョン
+      description: タイトルバーの「アプリ情報」で確認できます。
+      placeholder: 例) 1.3.1
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: 不具合の種類
+      options:
+        - スキル名・Lvの読み取りミス
+        - スロットの読み取りミス
+        - 護石が読み取られない・除外される
+        - アプリの動作・表示の不具合
+        - その他
+    validations:
+      required: true
+  - type: dropdown
+    id: screen
+    attributes:
+      label: 読み取ったゲームの画面
+      description: 読み取りに関する不具合の場合に選んでください。
+      options:
+        - 狩猟後の護石入手画面
+        - マカ錬金後の護石鑑定画面
+        - 装備画面
+        - その他・読み取りとは関係ない
+  - type: input
+    id: resolution
+    attributes:
+      label: スクリーンショットの解像度
+      description: 読み取りに関する不具合の場合に記入してください。ゲーム内の画面比率(16:9、21:9など)もわかれば書いてください。
+      placeholder: 例) 2560×1440(16:9)
+  - type: textarea
+    id: what
+    attributes:
+      label: 起きたこと
+      description: どの操作をしたときに、何が起きたかを書いてください。
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 本来どうなってほしいか
+      description: 読み取りミスの場合は、正しいスキル名・Lv・スロットを書いてください。
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: スクリーンショット
+      description: 読み取りに使ったゲームのスクリーンショットや、アプリの画面を、ここにドラッグ&ドロップして添付してください。
+  - type: textarea
+    id: log
+    attributes:
+      label: error.log の内容
+      description: アプリと同じフォルダにある error.log のうち、不具合が起きた時刻の部分を貼り付けてください(なくても構いません)。
+      render: text
+  - type: input
+    id: os
+    attributes:
+      label: Windowsのバージョン
+      placeholder: 例) Windows 11 24H2
