@@ -996,6 +996,17 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         }
     }
 
+    /// <summary>タイトルバー内のメニューボタン: 左クリックでも自身のContextMenuをボタン直下に開く。</summary>
+    private void TitleMenuButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { ContextMenu: { } menu } button)
+        {
+            menu.PlacementTarget = button;
+            menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+            menu.IsOpen = true;
+        }
+    }
+
     private void SettingsMenu_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new SettingsWindow(ScreenshotFolderPath.Text) { Owner = this };

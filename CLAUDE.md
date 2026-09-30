@@ -108,6 +108,8 @@ node legacy/charm-duplicate-checker.js <CSVパス>
 
 ### ウィンドウ構成（全4ウィンドウ、FluentWindow + Mica backdrop）
 - `MainWindow` — メインウィンドウ（3タブ: 護石一覧 / スクショ読み取り / CSVインポート・エクスポート）
+  - メニューはタイトルバーに統合（2026-09-30、独立したメニュー行は廃止）: `ui:TitleBar.Header`にアプリ名と、タブ行と同じ見た目のボタン（`TitleMenuButton`スタイル）「データ管理 ▾」「設定」「アプリ情報」を並べる。「データ管理」のみクリックでContextMenu（エクスポート/インポート/初期化）を開き、他の2つは直接ダイアログを開く。一覧を開いている間はボタンをホバー時と同じ表示に保つ（`Style.Triggers`の`DataTrigger`で`ContextMenu.IsOpen`を`RelativeSource Self`参照。同じ条件を`ControlTemplate.Triggers`内に`RelativeSource TemplatedParent`参照で書いた版は表示が変わらなかった）
+  - `TitleBar.Header`を指定すると標準のタイトル表示は消えるため、アプリ名は`TextBlock`で自前表示している。Header内の要素はクリックを受け取りウィンドウのドラッグ領域から外れるため、アプリ名の`TextBlock`には`IsHitTestVisible="False"`を付けてドラッグ可能にしている（実マウス操作で確認済み）
 - `DuplicateCheckWindow` — 重複チェック結果ダイアログ（護石一覧タブのボタンから起動）
 - `CharmEditWindow` — 護石編集・手動入力ダイアログ
 - `SettingsWindow` — 設定ダイアログ
@@ -115,7 +117,7 @@ node legacy/charm-duplicate-checker.js <CSVパス>
 ### フォント
 - ウィンドウ既定: BIZ UDGothic 16px
 - DataGrid: 14px（明示設定）
-- TitleBar: 16px（明示設定）
+- TitleBar: 16px（明示設定）。タイトルバー内のメニューボタンはタブ行と同じ13px
 
 ### wpfui TitleBar・DataGridのフォント非継承
 **wpfui TitleBarはウィンドウのFontFamily/FontSizeを継承しない。** DataGridも同様。新しいウィンドウを追加する際は、TitleBarとDataGridに`FontFamily="BIZ UDGothic" FontSize="..."`を明示的に設定すること。設定を忘れるとシステムフォント（Yu Gothic UI等）にフォールバックし、見た目が不統一になる。
