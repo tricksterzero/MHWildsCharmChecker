@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+<defs><linearGradient id="plate" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#3a4049"/><stop offset="1" stop-color="#23272e"/></linearGradient></defs>
+<polygon points="128,10 246,128 128,246 10,128" fill="url(#plate)" stroke="#9aa4b0" stroke-width="9" stroke-linejoin="round"/>
+
+<rect x="115" y="52" width="26" height="19" rx="5" fill="#e78640" stroke="#15171a" stroke-width="5.5"/>
+<polygon points="128,69 183,100 128,131" fill="#eca069"/>
+<polygon points="128,69 73,100 128,131" fill="#f4c5a4"/>
+<polygon points="73,100 73,162 128,131" fill="#e78640"/>
+<polygon points="183,100 183,162 128,131" fill="#c35f18"/>
+<polygon points="73,162 128,193 128,131" fill="#da6a1b"/>
+<polygon points="183,162 128,193 128,131" fill="#964913"/>
+<polygon points="128,69 183,100 183,162 128,193 73,162 73,100" fill="none" stroke="#15171a" stroke-width="8" stroke-linejoin="round"/>
+<circle cx="155.8" cy="72.8" r="8.5" fill="#ce9c78" stroke="#15171a" stroke-width="2.5"/><circle cx="175.0" cy="81.5" r="8.5" fill="#ce9c78" stroke="#15171a" stroke-width="2.5"/><circle cx="190.8" cy="95.3" r="8.5" fill="#ce9c78" stroke="#15171a" stroke-width="2.5"/><circle cx="201.9" cy="113.1" r="8.5" fill="#ce9c78" stroke="#15171a" stroke-width="2.5"/><circle cx="207.5" cy="133.3" r="8.5" fill="#ce9c78" stroke="#15171a" stroke-width="2.5"/><polygon points="86,189 106,189 96,204" fill="#e78640" stroke="#15171a" stroke-width="3" stroke-linejoin="round"/><polygon points="116,202 140,202 128,222" fill="#e78640" stroke="#15171a" stroke-width="3" stroke-linejoin="round"/><polygon points="150,189 170,189 160,204" fill="#e78640" stroke="#15171a" stroke-width="3" stroke-linejoin="round"/>
+</svg>

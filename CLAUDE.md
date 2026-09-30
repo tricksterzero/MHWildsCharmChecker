@@ -20,6 +20,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - `charm-types.json` — 護石名→武器スロット有無のテーブル。スロット種別判定に使用
   - `skill-name-checklist.md` — ゲーム内スキル一覧との突き合わせチェックリスト
   - `deco_checklist.txt` — ゲーム内装飾品一覧との突き合わせチェックリスト（361件照合済み）
+  - `app-icon.svg` — アプリアイコンの元データ（ビルドには含まれない）
+  - `build_app_icon.py` — `app-icon.svg`から`app/CharmChecker.App/app.ico`（16/24/32/48/256px）を再生成するスクリプト（要resvg CLI + Pillow）
 - `charm-lists/` — 護石読み取り結果CSV（出力物。ローカルのみ、`.gitignore`対象）
 - `assets/` — OCR/CV検証用スクリーンショット（ローカルのみ、`.gitignore`対象）
 - `LICENSE` — MIT License
