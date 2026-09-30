@@ -48,6 +48,55 @@
                     </Setter.Value>
                 </Setter>
             </Style>
+            <!-- タイトルバー内のメニューボタン用のContextMenu。見た目はWPF-UIのContextMenu(4.3.0の
+                 Controls/ContextMenu/ContextMenu.xaml)を踏襲するが、WPF-UI版は開くときに本体を90px上から
+                 滑らせるため、タイトルバー内のボタンでは本体がウィンドウ上端からタイトルバーに重なって降りてくる。
+                 ここでは外側のGridでClipToBoundsし、ポップアップ上端(=ボタン下端)より上を描画しないことで、
+                 ボタンの下から引き出されるように見せる。左右・下の余白は影を切らないためのもので、左余白の分は
+                 HorizontalOffsetで打ち消してボタン左端に揃える -->
+            <Style x:Key="TitleMenuContextMenu" TargetType="ContextMenu"
+                   BasedOn="{StaticResource {x:Type ContextMenu}}">
+                <Setter Property="HorizontalOffset" Value="-8" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ContextMenu">
+                            <Grid ClipToBounds="True">
+                                <Border x:Name="Border" Margin="8,0,8,16" Padding="0,3,0,3"
+                                        Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="1" CornerRadius="8">
+                                    <Border.Effect>
+                                        <DropShadowEffect BlurRadius="20" Direction="270" Opacity="0.135"
+                                                          ShadowDepth="10" Color="#202020" />
+                                    </Border.Effect>
+                                    <Border.RenderTransform>
+                                        <TranslateTransform />
+                                    </Border.RenderTransform>
+                                    <StackPanel ClipToBounds="True" IsItemsHost="True" Orientation="Vertical"
+                                                KeyboardNavigation.DirectionalNavigation="Cycle" />
+                                </Border>
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsOpen" Value="True">
+                                    <Trigger.EnterActions>
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <DoubleAnimation Storyboard.TargetName="Border"
+                                                                 Storyboard.TargetProperty="(Border.RenderTransform).(TranslateTransform.Y)"
+                                                                 From="-120" To="0" Duration="00:00:00.167">
+                                                    <DoubleAnimation.EasingFunction>
+                                                        <CircleEase EasingMode="EaseOut" />
+                                                    </DoubleAnimation.EasingFunction>
+                                                </DoubleAnimation>
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </Trigger.EnterActions>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
             <!-- タイトルバー内のメニュー: タブ行(TabItem)と同じ見た目のボタン。クリックでContextMenuを開く -->
             <Style x:Key="TitleMenuButton" TargetType="Button">
                 <Setter Property="Padding" Value="14,6" />
@@ -97,7 +146,7 @@
                         <ui:SymbolIcon Symbol="ChevronDown12" FontSize="10" Margin="5,1,0,0" VerticalAlignment="Center" />
                     </StackPanel>
                     <Button.ContextMenu>
-                        <ContextMenu>
+                        <ContextMenu Style="{StaticResource TitleMenuContextMenu}">
                             <MenuItem Header="ローカルデータのエクスポート(_E)" Click="ExportLocalDataMenu_Click" />
                             <MenuItem Header="ローカルデータのインポート(_I)" Click="ImportLocalDataMenu_Click" />
                             <Separator />

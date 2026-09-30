@@ -109,6 +109,7 @@ node legacy/charm-duplicate-checker.js <CSVパス>
 ### ウィンドウ構成（全4ウィンドウ、FluentWindow + Mica backdrop）
 - `MainWindow` — メインウィンドウ（3タブ: 護石一覧 / スクショ読み取り / CSVインポート・エクスポート）
   - メニューはタイトルバーに統合（2026-09-30、独立したメニュー行は廃止）: `ui:TitleBar.Header`にアプリ名と、タブ行と同じ見た目のボタン（`TitleMenuButton`スタイル）「データ管理 ▾」「設定」「アプリ情報」を並べる。「データ管理」のみクリックでContextMenu（エクスポート/インポート/初期化）を開き、他の2つは直接ダイアログを開く。一覧を開いている間はボタンをホバー時と同じ表示に保つ（`Style.Triggers`の`DataTrigger`で`ContextMenu.IsOpen`を`RelativeSource Self`参照。同じ条件を`ControlTemplate.Triggers`内に`RelativeSource TemplatedParent`参照で書いた版は表示が変わらなかった）
+  - 「データ管理」の一覧は専用スタイル`TitleMenuContextMenu`を使う: WPF-UI 4.3.0のContextMenuは開くときに本体を90px上から滑らせる（`Controls/ContextMenu/ContextMenu.xaml`の`From="-90"`）ため、タイトルバー内のボタンでは一覧がタイトルバーに重なってウィンドウ上端から降りてくるように見えた。専用スタイルではWPF-UIの見た目を踏襲しつつ外側のGridを`ClipToBounds`し、ポップアップ上端（=ボタン下端）より上を描画しないことで、ボタンの下から引き出されるように見せている（連続撮影で確認済み）
   - `TitleBar.Header`を指定すると標準のタイトル表示は消えるため、アプリ名は`TextBlock`で自前表示している。Header内の要素はクリックを受け取りウィンドウのドラッグ領域から外れるため、アプリ名の`TextBlock`には`IsHitTestVisible="False"`を付けてドラッグ可能にしている（実マウス操作で確認済み）
 - `DuplicateCheckWindow` — 重複チェック結果ダイアログ（護石一覧タブのボタンから起動）
 - `CharmEditWindow` — 護石編集・手動入力ダイアログ
