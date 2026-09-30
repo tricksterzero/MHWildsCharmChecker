@@ -84,7 +84,11 @@ OCR・スロットの判定は自動で行っているため、**読み取り結
 
 ## フィードバック・不具合報告
 
-使いにくい点・足りない機能・バグなどを見つけたら、[GitHub Issues](https://github.com/tricksterzero/MHWildsCharmChecker/issues)または[X(Twitter)](https://x.com/tsZ)までお気軽にご連絡ください。
+不具合の報告や要望は、次のいずれかまでお気軽にお寄せください。
+
+- 作者へのメール: [mail@tszero.jp](mailto:mail@tszero.jp)
+- [このリポジトリの Issues](https://github.com/tricksterzero/MHWildsCharmChecker/issues)
+- [作者のX（Twitter）アカウント](https://x.com/tsZ)
 
 ## 免責・帰属表示
 
