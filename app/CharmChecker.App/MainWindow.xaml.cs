@@ -1124,20 +1124,8 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         MessageBox.Show("護石データを初期化しました。", "データの初期化");
     }
 
-    private async void AboutMenu_Click(object sender, RoutedEventArgs e)
+    private void AboutMenu_Click(object sender, RoutedEventArgs e)
     {
-        var version = typeof(MainWindow).Assembly.GetName().Version;
-        var versionText = version is not null ? $"{version.Major}.{version.Minor}.{version.Build}" : "不明";
-        var dialog = new Wpf.Ui.Controls.MessageBox
-        {
-            Title = "アプリ情報",
-            Content = $"MHWilds 護石チェッカー Ver.{versionText}\n\n"
-                + "使用ライブラリ:\n"
-                + "  OpenCvSharp4 4.13.0.20260602\n"
-                + "  WPF-UI 4.3.0\n"
-                + "  Windows.Media.Ocr (Windows 組み込み)",
-            CloseButtonText = "OK",
-        };
-        await dialog.ShowDialogAsync();
+        new AboutWindow { Owner = this }.ShowDialog();
     }
 }

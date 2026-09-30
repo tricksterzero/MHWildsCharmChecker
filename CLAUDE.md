@@ -106,7 +106,7 @@ node legacy/charm-duplicate-checker.js <CSVパス>
 
 ## WPF UI構成
 
-### ウィンドウ構成（全4ウィンドウ、FluentWindow + Mica backdrop）
+### ウィンドウ構成（全5ウィンドウ、FluentWindow + Mica backdrop）
 - `MainWindow` — メインウィンドウ（3タブ: 護石一覧 / スクショ読み取り / CSVインポート・エクスポート）
   - メニューはタイトルバーに統合（2026-09-30、独立したメニュー行は廃止）: `ui:TitleBar.Header`にアプリ名と、タブ行と同じ見た目のボタン（`TitleMenuButton`スタイル）「データ管理 ▾」「設定」「アプリ情報」を並べる。「データ管理」のみクリックでContextMenu（エクスポート/インポート/初期化）を開き、他の2つは直接ダイアログを開く。一覧を開いている間はボタンをホバー時と同じ表示に保つ（`Style.Triggers`の`DataTrigger`で`ContextMenu.IsOpen`を`RelativeSource Self`参照。同じ条件を`ControlTemplate.Triggers`内に`RelativeSource TemplatedParent`参照で書いた版は表示が変わらなかった）
   - 「データ管理」の一覧は専用スタイル`TitleMenuContextMenu`を使う: WPF-UI 4.3.0のContextMenuは開くときに本体を90px上から滑らせる（`Controls/ContextMenu/ContextMenu.xaml`の`From="-90"`）ため、タイトルバー内のボタンでは一覧がタイトルバーに重なってウィンドウ上端から降りてくるように見えた。専用スタイルではWPF-UIの見た目を踏襲しつつ外側のGridを`ClipToBounds`し、ポップアップ上端（=ボタン下端）より上を描画しないことで、ボタンの下から引き出されるように見せている（連続撮影で確認済み）
@@ -114,6 +114,7 @@ node legacy/charm-duplicate-checker.js <CSVパス>
 - `DuplicateCheckWindow` — 重複チェック結果ダイアログ（護石一覧タブのボタンから起動）
 - `CharmEditWindow` — 護石編集・手動入力ダイアログ
 - `SettingsWindow` — 設定ダイアログ
+- `AboutWindow` — アプリ情報ダイアログ（2026-09-30、WPF-UIのMessageBoxから専用ウィンドウに置き換え）。アイコン・アプリ名（アクセント色）・バージョン（アセンブリから取得）・説明・Copyright・ライセンス・非公式ツールである旨（README「免責・帰属表示」の要約）を上部に、使用ライブラリを背景色の異なる下部の帯に表示。使用ライブラリのバージョンは文字列で直書きのため、パッケージ更新時は手動で合わせる必要がある
 
 ### フォント
 - ウィンドウ既定: BIZ UDGothic 16px
