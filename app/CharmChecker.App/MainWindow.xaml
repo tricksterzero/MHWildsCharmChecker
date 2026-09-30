@@ -11,6 +11,18 @@
         FontFamily="BIZ UDGothic" FontSize="16"
         ExtendsContentIntoTitleBar="True"
         WindowBackdropType="Mica">
+    <!-- タイトルバーのメニューボタンのショートカット。メニュー行をタイトルバーに統合した際に失われた
+         旧メニューのAlt+D(データ)と、旧「ヘルプ」内の設定(S)・アプリ情報(A)を、表示を変えずに割り当てる -->
+    <ui:FluentWindow.InputBindings>
+        <KeyBinding Modifiers="Alt" Key="D" Command="{x:Static local:MainWindow.OpenDataMenuCommand}" />
+        <KeyBinding Modifiers="Alt" Key="S" Command="{x:Static local:MainWindow.OpenSettingsCommand}" />
+        <KeyBinding Modifiers="Alt" Key="A" Command="{x:Static local:MainWindow.OpenAboutCommand}" />
+    </ui:FluentWindow.InputBindings>
+    <ui:FluentWindow.CommandBindings>
+        <CommandBinding Command="{x:Static local:MainWindow.OpenDataMenuCommand}" Executed="OpenDataMenuCommand_Executed" />
+        <CommandBinding Command="{x:Static local:MainWindow.OpenSettingsCommand}" Executed="OpenSettingsCommand_Executed" />
+        <CommandBinding Command="{x:Static local:MainWindow.OpenAboutCommand}" Executed="OpenAboutCommand_Executed" />
+    </ui:FluentWindow.CommandBindings>
     <DockPanel>
         <DockPanel.Resources>
             <!-- 色はPalette/Dark.xaml・Light.xamlで定義し、テーマ切り替えに追従するようDynamicResourceで参照する -->
@@ -137,7 +149,10 @@
                 <TextBlock Text="MHWilds 護石チェッカー" VerticalAlignment="Center" Margin="0,0,12,0"
                            IsHitTestVisible="False" />
                 <Border Width="1" Background="{DynamicResource SplitterColor}" Margin="0,10" />
-                <Button Style="{StaticResource TitleMenuButton}" Click="TitleMenuButton_Click">
+                <!-- 右クリック・Shift+F10で開く場合(ContextMenuService経由)もボタン直下に出すため、配置はここで指定する -->
+                <Button x:Name="DataMenuButton" Style="{StaticResource TitleMenuButton}" Click="TitleMenuButton_Click"
+                        ContextMenuService.Placement="Bottom" AutomationProperties.Name="データ管理"
+                        ToolTip="データ管理 (Alt+D)">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="データ管理" VerticalAlignment="Center" />
                         <ui:SymbolIcon Symbol="ChevronDown12" FontSize="10" Margin="5,1,0,0" VerticalAlignment="Center" />
@@ -151,8 +166,10 @@
                         </ContextMenu>
                     </Button.ContextMenu>
                 </Button>
-                <Button Content="設定" Style="{StaticResource TitleMenuButton}" Click="SettingsMenu_Click" />
-                <Button Content="アプリ情報" Style="{StaticResource TitleMenuButton}" Click="AboutMenu_Click" />
+                <Button Content="設定" Style="{StaticResource TitleMenuButton}" Click="SettingsMenu_Click"
+                        ToolTip="設定 (Alt+S)" />
+                <Button Content="アプリ情報" Style="{StaticResource TitleMenuButton}" Click="AboutMenu_Click"
+                        ToolTip="アプリ情報 (Alt+A)" />
                 </StackPanel>
             </ui:TitleBar.Header>
         </ui:TitleBar>

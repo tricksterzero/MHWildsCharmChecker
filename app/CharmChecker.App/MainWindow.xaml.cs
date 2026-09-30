@@ -1004,6 +1004,20 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         }
     }
 
+    /// <summary>タイトルバーのメニューボタンのショートカット(Alt+D/Alt+S/Alt+A、MainWindow.xamlのInputBindings)。</summary>
+    public static readonly System.Windows.Input.RoutedCommand OpenDataMenuCommand = new();
+    public static readonly System.Windows.Input.RoutedCommand OpenSettingsCommand = new();
+    public static readonly System.Windows.Input.RoutedCommand OpenAboutCommand = new();
+
+    private void OpenDataMenuCommand_Executed(object sender, System.Windows.Input.ExecutedRoutedEventArgs e)
+        => TitleMenuButton_Click(DataMenuButton, e);
+
+    private void OpenSettingsCommand_Executed(object sender, System.Windows.Input.ExecutedRoutedEventArgs e)
+        => SettingsMenu_Click(sender, e);
+
+    private void OpenAboutCommand_Executed(object sender, System.Windows.Input.ExecutedRoutedEventArgs e)
+        => AboutMenu_Click(sender, e);
+
     /// <summary>タイトルバー内のメニューボタン: 左クリックでも自身のContextMenuをボタン直下に開く。</summary>
     private void TitleMenuButton_Click(object sender, RoutedEventArgs e)
     {

@@ -108,7 +108,7 @@ node legacy/charm-duplicate-checker.js <CSVパス>
 
 ### ウィンドウ構成（全5ウィンドウ、FluentWindow + Mica backdrop）
 - `MainWindow` — メインウィンドウ（3タブ: 護石一覧 / スクショ読み取り / CSVインポート・エクスポート）
-  - メニューはタイトルバーに統合（2026-09-30、独立したメニュー行は廃止）: `ui:TitleBar.Header`にアプリ名と、タブ行と同じ見た目のボタン（`TitleMenuButton`スタイル）「データ管理 ▾」「設定」「アプリ情報」を並べる。「データ管理」のみクリックでContextMenu（エクスポート/インポート/初期化）を開き、他の2つは直接ダイアログを開く。一覧を開いている間はボタンをホバー時と同じ表示に保つ（`Style.Triggers`の`DataTrigger`で`ContextMenu.IsOpen`を`RelativeSource Self`参照。同じ条件を`ControlTemplate.Triggers`内に`RelativeSource TemplatedParent`参照で書いた版は表示が変わらなかった）
+  - メニューはタイトルバーに統合（2026-09-30、独立したメニュー行は廃止）: `ui:TitleBar.Header`にアプリ名と、タブ行と同じ見た目のボタン（`TitleMenuButton`スタイル）「データ管理 ▾」「設定」「アプリ情報」を並べる。「データ管理」のみクリックでContextMenu（エクスポート/インポート/初期化）を開き、他の2つは直接ダイアログを開く。ショートカットはAlt+D/Alt+S/Alt+A（`MainWindow.xaml`のInputBindings、メニュー行を統合した際に失われた旧メニューのアクセスキーを表示を変えずに復元、各ボタンのツールチップに表示）。一覧を開いている間はボタンをホバー時と同じ表示に保つ（`Style.Triggers`の`DataTrigger`で`ContextMenu.IsOpen`を`RelativeSource Self`参照。同じ条件を`ControlTemplate.Triggers`内に`RelativeSource TemplatedParent`参照で書いた版は表示が変わらなかった）
   - 「データ管理」の一覧は専用スタイル`TitleMenuContextMenu`を使う: WPF-UI 4.3.0のContextMenuは開くときに本体を90px上から滑らせる（`Controls/ContextMenu/ContextMenu.xaml`の`From="-90"`）ため、タイトルバー内のボタンでは一覧がタイトルバーに重なってウィンドウ上端から降りてくるように見えた。専用スタイルではWPF-UIの見た目を踏襲しつつ外側のGridを`ClipToBounds`し、ポップアップ上端（=ボタン下端）より上を描画しないことで、ボタンの下から引き出されるように見せている（連続撮影で確認済み）
   - `TitleBar.Header`を指定すると標準のタイトル表示は消えるため、アプリ名は`TextBlock`で自前表示している。Header内の要素はクリックを受け取りウィンドウのドラッグ領域から外れるため、アプリ名の`TextBlock`には`IsHitTestVisible="False"`を付けてドラッグ可能にしている（実マウス操作で確認済み）
 - `DuplicateCheckWindow` — 重複チェック結果ダイアログ（護石一覧タブのボタンから起動）
@@ -117,7 +117,7 @@ node legacy/charm-duplicate-checker.js <CSVパス>
 - `AboutWindow` — アプリ情報ダイアログ（2026-09-30、WPF-UIのMessageBoxから専用ウィンドウに置き換え）。アイコン・アプリ名（アクセント色）・バージョン（アセンブリから取得）・説明・Copyright・ライセンス・非公式ツールである旨（README「免責・帰属表示」の要約）を上部に、使用ライブラリを背景色の異なる下部の帯に表示。使用ライブラリのバージョンは文字列で直書きのため、パッケージ更新時は手動で合わせる必要がある
 
 ### フォント
-- ウィンドウ既定: BIZ UDGothic 16px
+- ウィンドウ既定: BIZ UDGothic 16px（AboutWindowのみ本文14px。タイトルバーは他と同じ16px）
 - DataGrid: 14px（明示設定）
 - TitleBar: 16px（明示設定）。タイトルバー内のメニューボタンはタブ行と同じ13px
 
