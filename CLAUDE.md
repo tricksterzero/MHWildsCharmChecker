@@ -22,6 +22,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - `deco_checklist.txt` — ゲーム内装飾品一覧との突き合わせチェックリスト（361件照合済み）
   - `app-icon.svg` — アプリアイコンの元データ（ビルドには含まれない）
   - `build_app_icon.py` — `app-icon.svg`から`app/CharmChecker.App/app.ico`（16/24/32/48/256px）を再生成するスクリプト（要resvg CLI + Pillow）
+- `docs/` — README用スクリーンショット（直下の`*.jpg`のみリリースzipに同梱）
+  - `review/review-ledger.md` / `review/review-log.md` — コード精査台帳（本体＋詳細アーカイブ）
 - `charm-lists/` — 護石読み取り結果CSV（出力物。ローカルのみ、`.gitignore`対象）
 - `assets/` — OCR/CV検証用スクリーンショット（ローカルのみ、`.gitignore`対象）
 - `LICENSE` — MIT License
