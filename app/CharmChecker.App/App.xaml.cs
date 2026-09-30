@@ -2,7 +2,6 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Windows;
-using Wpf.Ui.Appearance;
 
 namespace CharmChecker.App;
 
@@ -29,7 +28,8 @@ public partial class App : Application
             return;
         }
 
-        ApplicationThemeManager.Apply(ApplicationTheme.Dark);
+        // テーマ自体は設定(settings.json)を読むMainWindowのコンストラクタで適用する
+        ThemeService.Initialize();
 
         var mainWindow = new MainWindow();
         MainWindow = mainWindow;

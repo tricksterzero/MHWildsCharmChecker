@@ -94,6 +94,9 @@ public class AppSettings
     public string ScreenshotFolder { get; set; } = "";
     [JsonPropertyName("detailPanelHeight")]
     public double DetailPanelHeight { get; set; } = double.NaN;
+    /// <summary>"system"(Windowsの設定に合わせる、既定)/"light"/"dark"。<see cref="ThemeService.Parse"/>参照。</summary>
+    [JsonPropertyName("theme")]
+    public string Theme { get; set; } = "system";
 }
 
 public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
@@ -111,11 +114,14 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     private static string CharmsFilePath => Path.Combine(DataDir, "charms.json");
     private static string SettingsFilePath => Path.Combine(DataDir, "settings.json");
 
+    private AppThemeMode _themeMode = AppThemeMode.System;
+
     public MainWindow()
     {
         InitializeComponent();
         ErrorLogger.LogStartup();
         LoadSettings();
+        ThemeService.Apply(_themeMode, this);
         LoadCharms();
         Closing += MainWindow_Closing;
     }
@@ -147,6 +153,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
                 ScreenshotFolderPath.Text = settings.ScreenshotFolder;
             if (!double.IsNaN(settings.DetailPanelHeight) && settings.DetailPanelHeight >= 80)
                 DetailRowDef.Height = new GridLength(settings.DetailPanelHeight);
+            _themeMode = ThemeService.Parse(settings.Theme);
         }
         catch (Exception ex) { ErrorLogger.Log("LoadSettings", SettingsFilePath, ex); }
     }
@@ -163,6 +170,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
                 WindowTop = Top,
                 ScreenshotFolder = ScreenshotFolderPath.Text,
                 DetailPanelHeight = DetailRowDef.ActualHeight,
+                Theme = ThemeService.ToSettingString(_themeMode),
             };
             var json = JsonSerializer.Serialize(settings, JsonOptions);
             File.WriteAllText(SettingsFilePath, json);
@@ -1009,10 +1017,16 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
 
     private void SettingsMenu_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new SettingsWindow(ScreenshotFolderPath.Text) { Owner = this };
+        var dialog = new SettingsWindow(ScreenshotFolderPath.Text, _themeMode) { Owner = this };
         if (dialog.ShowDialog() == true)
         {
             ScreenshotFolderPath.Text = dialog.ScreenshotFolder;
+            // テーマは設定ダイアログを閉じた後に適用する(開いているダイアログがない状態で色定義を差し替える)
+            if (dialog.SelectedTheme != _themeMode)
+            {
+                _themeMode = dialog.SelectedTheme;
+                ThemeService.Apply(_themeMode, this);
+            }
             SaveSettings();
         }
     }

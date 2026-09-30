@@ -1,0 +1,26 @@
+<!-- アプリ独自の色定義(ライト)。Dark.xamlと同じキーを持ち、ThemeServiceがテーマに応じて差し替える。
+     各画面からはDynamicResourceで参照すること(StaticResourceだと実行中のテーマ切り替えに追従しない) -->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- 詳細パネル・重複チェック結果のカード背景 -->
+    <SolidColorBrush x:Key="CardBackground" Color="#FFFBFBFB" />
+    <!-- アプリ情報の下部の帯 -->
+    <SolidColorBrush x:Key="FooterBackground" Color="#FFEAEAEA" />
+    <!-- 区切り線・グリッド線・GridSplitter -->
+    <SolidColorBrush x:Key="SplitterColor" Color="#FFD0D0D0" />
+    <!-- 補足的な文字(未選択のタブ・メニューボタン、注記) -->
+    <SolidColorBrush x:Key="SecondaryText" Color="#FF5F5F5F" />
+    <!-- 選択中のタブ・ホバー中のメニューボタンの文字 -->
+    <SolidColorBrush x:Key="EmphasisText" Color="#FF1A1A1A" />
+    <!-- タブ・メニューボタンのホバー背景 -->
+    <SolidColorBrush x:Key="HoverBackground" Color="#14000000" />
+    <!-- 選択中のタブの下線・アプリ情報のアプリ名 -->
+    <SolidColorBrush x:Key="AccentLine" Color="#FF005FB8" />
+    <!-- 護石一覧(DataGrid) -->
+    <!-- 通常の行は背景を塗らずMica(ライトで約#F3F3F3)が透けるため、それと区別できる色にする -->
+    <SolidColorBrush x:Key="GridAlternatingRow" Color="#FFFFFFFF" />
+    <SolidColorBrush x:Key="GridHeaderBackground" Color="#FFE8E8E8" />
+    <SolidColorBrush x:Key="GridHeaderForeground" Color="#FF303030" />
+    <SolidColorBrush x:Key="GridSelectedBackground" Color="#FFCCE4F7" />
+    <SolidColorBrush x:Key="GridSelectedForeground" Color="#FF000000" />
+</ResourceDictionary>

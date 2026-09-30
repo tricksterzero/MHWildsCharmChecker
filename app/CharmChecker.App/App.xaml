@@ -8,6 +8,8 @@
             <ResourceDictionary.MergedDictionaries>
                 <ui:ThemesDictionary Theme="Dark" />
                 <ui:ControlsDictionary />
+                <!-- アプリ独自の色定義。ThemeServiceがテーマに応じてSourceをDark/Lightに差し替える -->
+                <ResourceDictionary Source="pack://application:,,,/MHWildsCharmChecker;component/Palette/Dark.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

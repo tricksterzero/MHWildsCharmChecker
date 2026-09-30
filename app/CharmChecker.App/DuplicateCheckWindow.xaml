@@ -8,10 +8,6 @@
         ExtendsContentIntoTitleBar="True"
         WindowBackdropType="Mica">
     <DockPanel>
-        <DockPanel.Resources>
-            <SolidColorBrush x:Key="CardBackground" Color="#FF2A2A2A" />
-            <SolidColorBrush x:Key="SecondaryText" Color="#FF9E9E9E" />
-        </DockPanel.Resources>
         <ui:TitleBar DockPanel.Dock="Top" Title="重複チェック" FontFamily="BIZ UDGothic" FontSize="16" />
         <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
                     HorizontalAlignment="Right" Margin="16,0,16,12">
@@ -29,7 +25,7 @@
                     <ItemsControl x:Name="DupIdenticalList" Margin="0,8,0,0">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Background="{StaticResource CardBackground}"
+                                <Border Background="{DynamicResource CardBackground}"
                                         Padding="12,8" Margin="0,0,0,8"
                                         CornerRadius="4">
                                     <StackPanel>
@@ -37,7 +33,7 @@
                                                    FontWeight="SemiBold" />
                                         <TextBlock Text="{Binding Detail}"
                                                    Margin="12,4,0,0"
-                                                   Foreground="{StaticResource SecondaryText}" />
+                                                   Foreground="{DynamicResource SecondaryText}" />
                                     </StackPanel>
                                 </Border>
                             </DataTemplate>
@@ -52,7 +48,7 @@
                     <ItemsControl x:Name="DupInferiorList" Margin="0,8,0,0">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Background="{StaticResource CardBackground}"
+                                <Border Background="{DynamicResource CardBackground}"
                                         Padding="12,8" Margin="0,0,0,8"
                                         CornerRadius="4">
                                     <StackPanel>
@@ -60,7 +56,7 @@
                                                    FontWeight="SemiBold" />
                                         <TextBlock Text="{Binding Detail}"
                                                    Margin="12,4,0,0"
-                                                   Foreground="{StaticResource SecondaryText}" />
+                                                   Foreground="{DynamicResource SecondaryText}" />
                                     </StackPanel>
                                 </Border>
                             </DataTemplate>

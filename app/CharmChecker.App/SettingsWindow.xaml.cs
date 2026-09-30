@@ -4,13 +4,19 @@ namespace CharmChecker.App;
 
 public partial class SettingsWindow : Wpf.Ui.Controls.FluentWindow
 {
-    public string ScreenshotFolder { get; private set; } = "";
+    /// <summary>ThemeComboBoxの項目の並び順(SettingsWindow.xamlと対応)。</summary>
+    private static readonly AppThemeMode[] ThemeOrder = [AppThemeMode.System, AppThemeMode.Light, AppThemeMode.Dark];
 
-    public SettingsWindow(string currentFolder)
+    public string ScreenshotFolder { get; private set; } = "";
+    public AppThemeMode SelectedTheme { get; private set; }
+
+    public SettingsWindow(string currentFolder, AppThemeMode currentTheme)
     {
         InitializeComponent();
         ScreenshotFolder = currentFolder;
         FolderPathBox.Text = currentFolder;
+        SelectedTheme = currentTheme;
+        ThemeComboBox.SelectedIndex = Array.IndexOf(ThemeOrder, currentTheme);
     }
 
     private void BrowseFolder_Click(object sender, RoutedEventArgs e)
@@ -25,6 +31,8 @@ public partial class SettingsWindow : Wpf.Ui.Controls.FluentWindow
     private void OkButton_Click(object sender, RoutedEventArgs e)
     {
         ScreenshotFolder = FolderPathBox.Text;
+        if (ThemeComboBox.SelectedIndex >= 0)
+            SelectedTheme = ThemeOrder[ThemeComboBox.SelectedIndex];
         DialogResult = true;
     }
 }

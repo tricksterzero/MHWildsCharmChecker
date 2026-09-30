@@ -125,8 +125,11 @@ node legacy/charm-duplicate-checker.js <CSVパス>
 **wpfui TitleBarはウィンドウのFontFamily/FontSizeを継承しない。** DataGridも同様。新しいウィンドウを追加する際は、TitleBarとDataGridに`FontFamily="BIZ UDGothic" FontSize="..."`を明示的に設定すること。設定を忘れるとシステムフォント（Yu Gothic UI等）にフォールバックし、見た目が不統一になる。
 
 ### テーマ
-- ダーク固定。wpfui標準のDynamicResourceはダークモードで視認性が極端に低いため、カスタムカラーリソース（PanelBackground/CardBackground/SplitterColor/SecondaryText）で明示的に上書きしている
-- ライトテーマ対応は将来タスク（カスタムカラーのDynamicResource化が必要）
+- **設定画面で「Windowsの設定に合わせる（既定）/ライト/ダーク」を選択できる**（2026-09-30、それまでのダーク固定から変更。`settings.json`の`theme`に`system`/`light`/`dark`で保存し、項目が無い・不明な値は`system`扱い）。**以前のコード精査（2026-07-19第2巡）で「OS追従はダーク固定の設計意図と矛盾する」として修正した経緯があるが、2026-09-30にユーザー判断で設計意図そのものを「選択式・既定はOS追従」に変更した**。OS追従を「矛盾」として戻さないこと
+- 切り替えは`ThemeService`（`app/CharmChecker.App/ThemeService.cs`）: WPF-UIのテーマ（`ApplicationThemeManager`）を適用し、その`Changed`イベントを受けてアプリ独自の色定義（`Palette/Dark.xaml`・`Palette/Light.xaml`、同じキーを持つ）を`Application.Resources.MergedDictionaries`内で差し替える。「Windowsの設定に合わせる」のときだけ`SystemThemeWatcher`でメインウィンドウを監視し（二重登録すると多重にフックするため自前のフラグで管理）、ライト/ダーク指定時は監視を外す。設定画面での変更はダイアログを閉じた後に適用する
+- 独自の色（カード背景・区切り線・補足文字・ホバー背景・アクセント線・一覧の見出し/選択行など）は各画面に直書きせず、`Palette/*.xaml`のキーを**`DynamicResource`で参照する**（`StaticResource`や画面ごとの同名ブラシ定義は実行中の切り替えに追従しない）。wpfui標準の色だけではダーク時の視認性が極端に低いため独自の色で上書きしている点は従来通りで、ダーク側の値は従来の直書き値そのまま（変更前後の全5画面を画素比較し、ウィンドウの縁1pxを除き一致を確認）
+- `AppThemeMode`という名前は、WPF（.NET 9以降）の`Window.ThemeMode`プロパティ・`System.Windows.ThemeMode`型との衝突を避けるため（`ThemeMode`だと`Window`派生クラス内でWPF側に解決されビルドエラーになる）
+- 未検証: 実行中にWindows側のテーマを切り替えたときの追従（ユーザーのOS設定を変える必要があるため未実施）、ハイコントラスト時（独自の色はライトで代用）
 
 ## 技術構成・実装方針
 

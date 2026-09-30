@@ -8,19 +8,15 @@
         FontFamily="BIZ UDGothic" FontSize="14"
         ExtendsContentIntoTitleBar="True"
         WindowBackdropType="Mica">
+    <!-- 色はPalette/Dark.xaml・Light.xamlで定義し、DynamicResourceで参照する -->
     <DockPanel>
-        <DockPanel.Resources>
-            <SolidColorBrush x:Key="SecondaryText" Color="#FF9E9E9E" />
-            <SolidColorBrush x:Key="FooterBackground" Color="#FF2A2A2A" />
-            <SolidColorBrush x:Key="SplitterColor" Color="#FF505050" />
-        </DockPanel.Resources>
         <ui:TitleBar DockPanel.Dock="Top" Title="アプリ情報" FontFamily="BIZ UDGothic" FontSize="16"
                      ShowMinimize="False" ShowMaximize="False" />
 
         <!-- 下部の帯: 使用ライブラリ -->
-        <Border DockPanel.Dock="Bottom" Background="{StaticResource FooterBackground}"
-                BorderBrush="{StaticResource SplitterColor}" BorderThickness="0,1,0,0" Padding="20,12">
-            <StackPanel TextElement.Foreground="{StaticResource SecondaryText}">
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource FooterBackground}"
+                BorderBrush="{DynamicResource SplitterColor}" BorderThickness="0,1,0,0" Padding="20,12">
+            <StackPanel TextElement.Foreground="{DynamicResource SecondaryText}">
                 <TextBlock Text="使用ライブラリ" FontSize="13" Margin="0,0,0,4" />
                 <TextBlock Text="OpenCvSharp4 4.13.0.20260602 / WPF-UI 4.3.0" FontSize="13" />
                 <TextBlock Text="Windows.Media.Ocr（Windows 組み込み）" FontSize="13" />
@@ -44,14 +40,14 @@
                    RenderOptions.BitmapScalingMode="HighQuality" />
 
             <StackPanel Grid.Column="1">
-                <TextBlock Text="MHWilds 護石チェッカー" FontSize="22" Foreground="#FF60CDFF" />
+                <TextBlock Text="MHWilds 護石チェッカー" FontSize="22" Foreground="{DynamicResource AccentLine}" />
                 <TextBlock x:Name="VersionText" Margin="0,6,0,0" />
                 <TextBlock Text="モンスターハンターワイルズの護石読み取り・重複チェッカー"
                            TextWrapping="Wrap" />
                 <TextBlock Text="Copyright (c) 2026 tsZ" Margin="0,14,0,0" />
                 <TextBlock Text="MIT License" />
                 <TextBlock Margin="0,14,0,0" TextWrapping="Wrap" FontSize="12"
-                           Foreground="{StaticResource SecondaryText}"
+                           Foreground="{DynamicResource SecondaryText}"
                            Text="本ツールはカプコンが権利を有する「モンスターハンターワイルズ」に関連する非公式のファンツールです。カプコンおよび同社の関連会社とは一切関係がありません。" />
             </StackPanel>
 

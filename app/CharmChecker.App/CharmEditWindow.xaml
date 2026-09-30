@@ -110,7 +110,7 @@
         <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,0,0,8">
             <TextBlock Text="レアリティ:" FontWeight="Bold" VerticalAlignment="Center" />
             <TextBlock x:Name="InferredRarityText" Text="-" Margin="8,0,0,0"
-                       VerticalAlignment="Center" Foreground="#FF9E9E9E" />
+                       VerticalAlignment="Center" Foreground="{DynamicResource SecondaryText}" />
         </StackPanel>
 
         <!-- ボタン -->

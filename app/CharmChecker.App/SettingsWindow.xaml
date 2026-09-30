@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-        Title="設定" Height="220" Width="500"
+        Title="設定" Width="500" SizeToContent="Height"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         FontFamily="BIZ UDGothic" FontSize="16"
@@ -17,6 +17,14 @@
             <Button Content="参照..." Margin="8,0,0,0" Padding="12,4"
                     Click="BrowseFolder_Click" />
         </StackPanel>
+
+        <TextBlock Text="テーマ" FontWeight="Bold" Margin="0,16,0,0" />
+        <!-- 並び順はSettingsWindow.xaml.csのThemeOrderと対応 -->
+        <ComboBox x:Name="ThemeComboBox" Width="360" HorizontalAlignment="Left" Margin="0,4,0,0">
+            <ComboBoxItem Content="Windowsの設定に合わせる" />
+            <ComboBoxItem Content="ライト" />
+            <ComboBoxItem Content="ダーク" />
+        </ComboBox>
 
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
                     Margin="0,20,0,0">
