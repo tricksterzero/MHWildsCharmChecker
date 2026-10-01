@@ -1,0 +1,10 @@
+* text=auto eol=lf
+
+# Windows バッチは CRLF 必須(cmd.exe が CRLF 前提のため)
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# バイナリ
+*.jpg binary
+*.png binary
+*.ico binary
