@@ -1,7 +1,7 @@
 # コード精査台帳
 
 実装モジュールを1本ずつ精査するための進行管理台帳（2026-07-12作成）。
-[Ragmas 6v6動画解析ツールの台帳](../../../../Knowledge/Games/Ragmas/tools/6v6-video-analysis/review-ledger.md)の方式を踏襲。
+[Ragmas 6v6動画解析ツールの台帳](../../../Ragmas/6v6-video-analysis/review-ledger.md)の方式を踏襲。
 2026-08-03、[コード精査台帳テンプレート](../../../../Knowledge/Tech/ClaudeCode/code-review-ledger-template.md)に基づき、
 台帳本体（本ファイル）と詳細アーカイブ（[review-log.md](review-log.md)）の2ファイル構成に再構成した
 （テーブルの1セルが最大8000字超まで肥大化し読みづらくなっていたため）。
