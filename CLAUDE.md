@@ -37,7 +37,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 cd app
 dotnet build
 dotnet run --project CharmChecker.App
-dotnet test --project CharmChecker.Tests
+dotnet test CharmChecker.Tests
 ```
 
 ### legacy（参考用）
