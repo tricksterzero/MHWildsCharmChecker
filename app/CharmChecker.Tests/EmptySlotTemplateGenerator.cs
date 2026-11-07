@@ -21,6 +21,8 @@ namespace CharmChecker.Tests;
 /// (SlotIconConstants.EmptyTemplateThreshold)が保証するのは「このテンプレート集合に十分近い
 /// 画面パターンのサンプルが複数存在する場合」のみ。新しい画面パターンの空スロットは、都度
 /// サンプルを追加してテンプレートを拡充するのが正攻法。
+/// (上記の数値は生の色差分での値。2026-11-07に比較方式(チャネル平均を引く・枠を±2pxずらす)と
+/// 閾値(3.0→5.0)を変更した。現在の測定値はSlotIconConstants.EmptyTemplateThresholdのコメント参照)
 /// </summary>
 public class EmptySlotTemplateGenerator
 {
@@ -65,11 +67,23 @@ public class EmptySlotTemplateGenerator
         new(@"option 21_9 native quest result\2005B31.JPG", true, 52, 53, 38, 33, SlotLevel.Lv1, "真の21:9ネイティブ 狩猟後護石入手 Detail Lv1スロット空(1)"),
         new(@"option 21_9 native quest result\2005B31.JPG", true, 106, 53, 38, 33, SlotLevel.Lv1, "真の21:9ネイティブ 狩猟後護石入手 Detail Lv1スロット空(2)"),
         new(@"option 21_9 native quest result\20BC111.JPG", true, 52, 53, 38, 33, SlotLevel.Lv1, "真の21:9ネイティブ 狩猟後護石入手 Detail Lv1スロット空(3)"),
-        new(@"option 21_9 native quest result\20660C1.JPG", true, 52, 53, 38, 33, SlotLevel.Lv1, "真の21:9ネイティブ 狩猟後護石入手 Detail Lv1スロット空(4)"),
+        // 2026-11-07修正: 当初Lv1として登録していたが、拡大して目視すると三角が3つのLv3空スロットだった
+        // (この画面ではLv3のアイコンも幅38px前後で、三角の数だけが異なる)。Lv1のままだと似た画面の
+        // Lv3スロットをLv1と読み違え、実物の防具[3,0,0]が[1,0,0]と読まれていた。
+        new(@"option 21_9 native quest result\20660C1.JPG", true, 52, 53, 38, 33, SlotLevel.Lv3, "真の21:9ネイティブ 狩猟後護石入手 Detail Lv3スロット空"),
         // 3連スロットの中央位置(x≈159)は両隣の装備アイコンに挟まれ、上記追加後もdiff≈4.2〜4.35と
         // 閾値(3.0)付近まで残っていたため、中央位置専用のサンプルも追加。
         new(@"option 21_9 native\20260726181604_1.jpg", false, 159, 83, 38, 33, SlotLevel.Lv1, "真の21:9ネイティブ 装備変更 BOX Lv1スロット空(中央位置)"),
         new(@"option 21_9 native craft result\202EA81.JPG", false, 157, 83, 40, 33, SlotLevel.Lv1, "真の21:9ネイティブ マカ錬金鑑定結果 BOX Lv1スロット空(中央位置)"),
+
+        // --- 半透明パネルで背景の色が透けるケース(2026-11-07、2560x1440、実機で誤って除外された3枚) ---
+        // 鑑定BOX画面の武器スロットは、検出される枠が武器マークを含む幅(47px)と含まない幅(38px)の
+        // 2通りあり、±2pxの位置ずらしでは吸収できないため、両方を見本にする。
+        new(@"case8 translucent panel\20261102104710_1.jpg", true, 92, 49, 47, 37, SlotLevel.Lv1, "狩猟後の鑑定BOX Detail 武器スロット空(武器マークを含む枠)"),
+        new(@"case8 translucent panel\20261102104710_1.jpg", true, 146, 53, 38, 33, SlotLevel.Lv1, "狩猟後の鑑定BOX Detail 防具Lv1スロット空(1)"),
+        new(@"case8 translucent panel\20261102110031_1.jpg", true, 92, 53, 38, 33, SlotLevel.Lv1, "狩猟後の鑑定BOX Detail 武器スロット空(武器マークを含まない枠)"),
+        new(@"case8 translucent panel\20261102110031_1.jpg", true, 146, 53, 40, 34, SlotLevel.Lv1, "狩猟後の鑑定BOX Detail 防具Lv1スロット空(2)"),
+        new(@"case8 translucent panel\20261102204634_1.jpg", false, 146, 78, 49, 38, SlotLevel.Lv2, "マカ錬金(お守りの錬金術) BOX Lv2スロット空"),
     ];
 
     [Fact(Skip = "手動実行専用: EmptySlotTemplates.csを実データから再生成するツール。実行するとリポジトリのソースファイルを上書きする。新しい画面パターンを追加する場合のみ、フィルタ指定で明示的に実行すること。")]
@@ -163,7 +177,8 @@ public class EmptySlotTemplateGenerator
         }
         sb.AppendLine("}");
 
-        File.WriteAllText(OutputPath, sb.ToString());
+        // リポジトリは.gitattributesで改行をLFに統一しているため、AppendLineのCRLFをLFにそろえる
+        File.WriteAllText(OutputPath, sb.ToString().Replace("\r\n", "\n"));
 
         Assert.True(samples[SlotLevel.Lv1].Count > 0, "Lv1テンプレートが1件も生成されなかった");
         Assert.True(samples[SlotLevel.Lv2].Count > 0, "Lv2テンプレートが1件も生成されなかった");

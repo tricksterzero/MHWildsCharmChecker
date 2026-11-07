@@ -280,8 +280,73 @@ public static class SlotIconAnalyzer
     /// 各Lvのテンプレートは画面パターンごとに複数件を個別保持し、最も近い1件(最近傍)との差分を採用する
     /// (画面ごとに背景色が異なるため、単純平均するとどの画面にも合わない中間値になり精度が落ちることを
     /// 実データで確認済み)。
+    ///
+    /// 比較は、照合対象・テンプレートの両方からチャネルごとの平均を引いてから行う。パネルが半透明で
+    /// 背景(3Dシーン)の色が透けるため、同じ画面の空スロットでも全体の明るさ・色味がずれ、色の
+    /// 絶対値で比べると閾値を超えて除外されていた(2026-11-07)。三角マークの形・塗り分けの違いは
+    /// 平均を引いても残るため、装飾品ありとの分離は保たれる(装飾品ありの最小差分6.71→7.77)。
+    /// また、枠そのままで閾値を超えた場合のみ、枠の位置・大きさを±<see cref="SlotIconConstants.FrameJitterSearchPx"/>px
+    /// ずらして最小差分を探す(輪郭検出による枠の揺れ対策)。
+    ///
+    /// 事前条件: <paramref name="colorRegion"/>は3チャネル(BGR)、<paramref name="frame"/>は幅・高さが正で
+    /// <paramref name="colorRegion"/>の範囲内。満たさない場合は例外を投げる。
+    /// 事後条件: 戻り値のBestDiffは0以上。Levelは、BestDiffが閾値以下ならLv1〜Lv3のいずれか、超えればnull。
     /// </summary>
     public static EmptyTemplateMatch MatchEmptyTemplate(Mat colorRegion, Rect frame)
+    {
+        ArgumentNullException.ThrowIfNull(colorRegion);
+        if (colorRegion.Type() != MatType.CV_8UC3)
+            throw new ArgumentException("colorRegionは3チャネル(BGR)の画像である必要があります。", nameof(colorRegion));
+        if (frame.Width <= 0 || frame.Height <= 0 || !IsInside(frame, colorRegion))
+            throw new ArgumentOutOfRangeException(nameof(frame), frame, "frameの幅・高さが0以下か、colorRegionの範囲外です。");
+
+        var best = FindNearestTemplate(CenteredLevelBand(colorRegion, frame));
+        if (best.Diff > SlotIconConstants.EmptyTemplateThreshold)
+        {
+            int jitter = SlotIconConstants.FrameJitterSearchPx;
+            for (int dx = -jitter; dx <= jitter; dx++)
+            for (int dy = -jitter; dy <= jitter; dy++)
+            for (int ds = -jitter; ds <= jitter; ds++)
+            {
+                if (dx == 0 && dy == 0 && ds == 0) continue;
+                var shifted = new Rect(frame.X + dx, frame.Y + dy, frame.Width + ds, frame.Height + ds);
+                if (!IsInside(shifted, colorRegion)) continue;
+                var candidate = FindNearestTemplate(CenteredLevelBand(colorRegion, shifted));
+                if (candidate.Diff < best.Diff) best = candidate;
+            }
+        }
+
+        bool isEmpty = best.Diff <= SlotIconConstants.EmptyTemplateThreshold;
+        return new EmptyTemplateMatch(isEmpty ? best.Level : null, best.Diff);
+    }
+
+    /// <summary>平均を引いた全テンプレート(Lvごと)。EmptySlotTemplatesは不変のため初回参照時に1度だけ作る。</summary>
+    private static readonly (SlotLevel Level, float[] Centered)[] CenteredTemplates =
+        EmptySlotTemplates.Lv1.Select(t => (SlotLevel.Lv1, CenterPerChannel(t)))
+            .Concat(EmptySlotTemplates.Lv2.Select(t => (SlotLevel.Lv2, CenterPerChannel(t))))
+            .Concat(EmptySlotTemplates.Lv3.Select(t => (SlotLevel.Lv3, CenterPerChannel(t))))
+            .ToArray();
+
+    private static bool IsInside(Rect rect, Mat region) =>
+        rect.X >= 0 && rect.Y >= 0 && rect.Right <= region.Width && rect.Bottom <= region.Height;
+
+    /// <summary>平均を引いた照合対象に最も近いテンプレートのLvと差分を返す(副作用なし)。</summary>
+    private static (SlotLevel Level, double Diff) FindNearestTemplate(float[] centeredBand)
+    {
+        var best = (Level: SlotLevel.Unknown, Diff: double.MaxValue);
+        foreach (var (level, template) in CenteredTemplates)
+        {
+            double diff = MeanAbsDiff(centeredBand, template);
+            if (diff < best.Diff) best = (level, diff);
+        }
+        return best;
+    }
+
+    /// <summary>
+    /// 枠下部(三角マーク)の領域をテンプレートと同じサイズへ縮小し、チャネルごとの平均を引いた
+    /// 画素列(BGR、行優先)を返す。frameはregionの範囲内であること(呼び出し側で保証)。
+    /// </summary>
+    private static float[] CenteredLevelBand(Mat colorRegion, Rect frame)
     {
         int y0 = frame.Y + (int)(frame.Height * SlotIconConstants.LevelCropTopFraction);
         var bandRect = new Rect(frame.X, y0, frame.Width, frame.Y + frame.Height - y0);
@@ -289,50 +354,43 @@ public static class SlotIconAnalyzer
         using var resized = new Mat();
         Cv2.Resize(band, resized, new Size(EmptySlotTemplates.TemplateWidth, EmptySlotTemplates.TemplateHeight));
 
-        var candidates = new (SlotLevel Level, byte[][] Templates)[]
+        var flat = new byte[EmptySlotTemplates.TemplateWidth * EmptySlotTemplates.TemplateHeight * 3];
+        int idx = 0;
+        for (int y = 0; y < EmptySlotTemplates.TemplateHeight; y++)
         {
-            (SlotLevel.Lv1, EmptySlotTemplates.Lv1),
-            (SlotLevel.Lv2, EmptySlotTemplates.Lv2),
-            (SlotLevel.Lv3, EmptySlotTemplates.Lv3),
-        };
-
-        SlotLevel bestLevel = SlotLevel.Unknown;
-        double bestDiff = double.MaxValue;
-        foreach (var (level, templates) in candidates)
-        {
-            foreach (var template in templates)
+            for (int x = 0; x < EmptySlotTemplates.TemplateWidth; x++)
             {
-                double diff = MeanAbsDiff(resized, template);
-                if (diff < bestDiff)
-                {
-                    bestDiff = diff;
-                    bestLevel = level;
-                }
+                var px = resized.Get<Vec3b>(y, x);
+                flat[idx++] = px.Item0;
+                flat[idx++] = px.Item1;
+                flat[idx++] = px.Item2;
             }
         }
-
-        bool isEmpty = bestDiff <= SlotIconConstants.EmptyTemplateThreshold;
-        return new EmptyTemplateMatch(isEmpty ? bestLevel : null, bestDiff);
+        return CenterPerChannel(flat);
     }
 
-    private static double MeanAbsDiff(Mat resizedBgr, byte[] template)
+    /// <summary>BGRの画素列(長さは3の倍数)から、B・G・Rそれぞれの平均を引いた値を返す(副作用なし)。</summary>
+    internal static float[] CenterPerChannel(byte[] bgr)
     {
-        int w = EmptySlotTemplates.TemplateWidth;
-        int h = EmptySlotTemplates.TemplateHeight;
-        long sum = 0;
-        int idx = 0;
-        for (int y = 0; y < h; y++)
-        {
-            for (int x = 0; x < w; x++)
-            {
-                var px = resizedBgr.Get<Vec3b>(y, x);
-                sum += Math.Abs(px.Item0 - template[idx])
-                     + Math.Abs(px.Item1 - template[idx + 1])
-                     + Math.Abs(px.Item2 - template[idx + 2]);
-                idx += 3;
-            }
-        }
-        return sum / (double)(w * h * 3);
+        ArgumentNullException.ThrowIfNull(bgr);
+        if (bgr.Length == 0 || bgr.Length % 3 != 0)
+            throw new ArgumentException("画素列の長さは3の正の倍数である必要があります。", nameof(bgr));
+
+        var mean = new double[3];
+        for (int i = 0; i < bgr.Length; i++) mean[i % 3] += bgr[i];
+        int pixels = bgr.Length / 3;
+        for (int c = 0; c < 3; c++) mean[c] /= pixels;
+
+        var centered = new float[bgr.Length];
+        for (int i = 0; i < bgr.Length; i++) centered[i] = (float)(bgr[i] - mean[i % 3]);
+        return centered;
+    }
+
+    private static double MeanAbsDiff(float[] a, float[] b)
+    {
+        double sum = 0;
+        for (int i = 0; i < a.Length; i++) sum += Math.Abs(a[i] - b[i]);
+        return sum / a.Length;
     }
 
     private static List<Rect> MergeOverlapping(List<Rect> sorted, double threshold)

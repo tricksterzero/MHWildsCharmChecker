@@ -191,6 +191,146 @@ public class SkillReadingPipelineTests
         Assert.Equal("未解の護石", result.CharmName);
     }
 
+    [Fact]
+    public void ChooseAnchor_SkillLabelOfSamePanel_KeepsDetailLabelPosition()
+    {
+        // 同じパネルの逆算候補(実測でX差-36〜+42)は位置が粗いため採用せず、「装備詳細」の位置を使う
+        var result = SkillReadingPipeline.ChooseAnchor([(2082, 132)], [(2086 + 113, 134)], 1.0);
+        Assert.Equal((2082d, 132d), result);
+    }
+
+    [Fact]
+    public void ChooseAnchor_SkillLabelExactlyAtSeparateDistance_PicksSkillLabel()
+    {
+        // 境界値: ちょうど200px右(scale=1)なら別パネルとみなす
+        var result = SkillReadingPipeline.ChooseAnchor([(1602, 132)], [(1606, 135), (1802, 134)], 1.0);
+        Assert.Equal((1802d, 134d), result);
+    }
+
+    [Fact]
+    public void ChooseAnchor_SkillLabelJustBelowSeparateDistance_KeepsDetailLabel()
+    {
+        var result = SkillReadingPipeline.ChooseAnchor([(1602, 132)], [(1801, 134)], 1.0);
+        Assert.Equal((1602d, 132d), result);
+    }
+
+    [Fact]
+    public void ChooseAnchor_SeparateDistanceScalesWithUiScale()
+    {
+        // 黒帯付き21:9等でUIが縮小される場合は距離も縮小する(scale=0.5なら100px)
+        var result = SkillReadingPipeline.ChooseAnchor([(1000, 100)], [(1100, 100)], 0.5);
+        Assert.Equal((1100d, 100d), result);
+    }
+
+    [Fact]
+    public void ChooseAnchor_NoDetailLabel_FallsBackToRightmostSkillLabel()
+    {
+        var result = SkillReadingPipeline.ChooseAnchor([], [(1606, 135), (2086, 134)], 1.0);
+        Assert.Equal((2086d, 134d), result);
+    }
+
+    [Fact]
+    public void ChooseAnchor_NoCandidates_ReturnsNull()
+    {
+        Assert.Null(SkillReadingPipeline.ChooseAnchor([], [], 1.0));
+    }
+
+    [Theory]
+    [InlineData(0.0)]
+    [InlineData(-1.0)]
+    [InlineData(double.NaN)]
+    public void ChooseAnchor_NonPositiveScale_Throws(double scale)
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => SkillReadingPipeline.ChooseAnchor([(0, 0)], [], scale));
+    }
+
+    [Fact]
+    public async Task ReadWithMetadataAsync_AllBlackImage_ReturnsNull()
+    {
+        // 真っ黒な画像ではLetterboxNormalizerの倍率が0になる。アンカー候補が無いので、倍率の検査
+        // (ChooseAnchorの事前条件)で例外にせずnullを返すべき回帰テスト(2026-11-07、Steamのスクショで発見)
+        var resourcesDir = FindResourcesDir();
+        var knownSkills = SkillNameLoader.Load(Path.Combine(resourcesDir, "skill-decoration-map.json"));
+        var tempPath = Path.Combine(Path.GetTempPath(), $"charmchecker_black_{Guid.NewGuid():N}.png");
+        using (var black = new OpenCvSharp.Mat(new OpenCvSharp.Size(2560, 1440), OpenCvSharp.MatType.CV_8UC3, OpenCvSharp.Scalar.All(0)))
+        {
+            OpenCvSharp.Cv2.ImWrite(tempPath, black);
+        }
+
+        try
+        {
+            var result = await SkillReadingPipeline.ReadWithMetadataAsync(tempPath, knownSkills);
+            Assert.Null(result);
+        }
+        finally
+        {
+            File.Delete(tempPath);
+        }
+    }
+
+    public static IEnumerable<object[]> RightPanelAnchorCases()
+    {
+        yield return new object[] { "20251202231937_1.jpg", new[] { ("強化持続", 3), ("破壊王", 1), ("ひるみ軽減", 1) } };
+        yield return new object[] { "20260516104120_1.jpg", new[] { ("見切り", 3), ("挑戦者", 1) } };
+    }
+
+    [Fact]
+    public async Task ReadWithMetadataAsync_RightPanelCharmNameAlsoUnreadable_ReturnsNullInsteadOfLeftPanel()
+    {
+        // 上と同じ状況だが、右パネルの護石名(栄世の護石)も全画面OCRで読めない画像。右パネルが
+        // アンカーに選ばれた上でIsCharmPanelが成立せずnull(護石画面ではない扱い)になる。修正前は
+        // 左パネル(史伝の護石)のスキルと右パネルのスロットが混ざった結果を返していたため、
+        // 左パネルを読まずに除外されることを確かめる(右パネルを読めるようにするのは今後の課題)。
+        var assetsDir = FindAssetsDir();
+        var resourcesDir = FindResourcesDir();
+        var jsonPath = Path.Combine(resourcesDir, "skill-decoration-map.json");
+        var imagePath = Path.Combine(assetsDir, "case9 right panel anchor", "20260523212858_1.jpg");
+
+        if (!File.Exists(imagePath))
+        {
+            return;
+        }
+
+        var knownSkills = SkillNameLoader.Load(jsonPath);
+        var result = await SkillReadingPipeline.ReadWithMetadataAsync(imagePath, knownSkills);
+
+        Assert.Null(result);
+    }
+
+    [Theory]
+    [MemberData(nameof(RightPanelAnchorCases))]
+    public async Task ReadWithMetadataAsync_RightPanelDetailLabelUnreadable_StillPicksRightPanel(
+        string file, (string Name, int Lv)[] expected)
+    {
+        // 装備変更の2護石比較画面で、右パネルの「装備詳細」が半透明の背景のためOCRで読めず、
+        // 左パネルの「装備詳細」だけが見つかるケース(2026-11-07発見)。修正前は「装備詳細」が
+        // 1つでも見つかると「装備スキル」からの逆算候補を使わなかったため左パネルが採用され、
+        // スキル・護石名は左、スロットは右(固定の探索領域)という2つの護石が混ざった結果になっていた。
+        // 右パネルの「装備スキル」は読めているので、それを別パネルの候補として採用し、右パネル
+        // (いずれも栄世の護石)を読むべき回帰テスト。
+        var assetsDir = FindAssetsDir();
+        var resourcesDir = FindResourcesDir();
+        var jsonPath = Path.Combine(resourcesDir, "skill-decoration-map.json");
+        var imagePath = Path.Combine(assetsDir, "case9 right panel anchor", file);
+
+        if (!File.Exists(imagePath))
+        {
+            return;
+        }
+
+        var knownSkills = SkillNameLoader.Load(jsonPath);
+        var result = await SkillReadingPipeline.ReadWithMetadataAsync(imagePath, knownSkills);
+
+        Assert.NotNull(result);
+        Assert.Equal("栄世の護石", result.CharmName);
+        Assert.Equal(expected.Length, result.Skills.Count);
+        for (int i = 0; i < expected.Length; i++)
+        {
+            Assert.Equal(expected[i].Name, result.Skills[i].Name);
+            Assert.Equal(expected[i].Lv, result.Skills[i].Lv);
+        }
+    }
+
     [Theory]
     [InlineData("、未解の護石", "未解の護石")]
     [InlineData(")秘歴の護石", "秘歴の護石")]

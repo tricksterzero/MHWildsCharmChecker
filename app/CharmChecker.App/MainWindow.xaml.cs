@@ -503,6 +503,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
             int detected = 0;
             int failed = 0;
             int decorationSkipped = 0;
+            int inconsistentSkipped = 0;
 
             for (int i = 0; i < outcomes.Length; i++)
             {
@@ -543,6 +544,13 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
                             $"{fileName}: スロットアイコンを検出できなかったため読み取りをスキップしました。");
                         failed++;
                         break;
+                    case ScreenshotOutcomeKind.InconsistentWithCombinations:
+                        // 実在しない構成の読み取り結果(スキルの読み落とし等)を保存しないための除外。
+                        // 装飾品装着と同じく、処理エラーとは別に数えてユーザーに区別して提示する。
+                        ErrorLogger.Log("ReadScreenshot",
+                            $"{fileName}: 読み取ったスキル・スロットが護石の組み合わせ表のどれにも当てはまらないため、読み取りをスキップしました。");
+                        inconsistentSkipped++;
+                        break;
                     case ScreenshotOutcomeKind.Error:
                         ErrorLogger.Log("ReadScreenshot", fileName, outcome.Error!);
                         failed++;
@@ -566,6 +574,8 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
                     summary += $"（{failed}枚で処理エラー）";
                 if (decorationSkipped > 0)
                     summary += $"（{decorationSkipped}枚は装飾品装着のため除外）";
+                if (inconsistentSkipped > 0)
+                    summary += $"（{inconsistentSkipped}枚は読み取り結果が組み合わせ表に当てはまらないため除外）";
                 ReadingSummaryText.Text = summary;
             }
             else
@@ -576,6 +586,8 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
                     summary += $"（{failed}枚で処理エラー）";
                 if (decorationSkipped > 0)
                     summary += $"（{decorationSkipped}枚は装飾品装着のため除外）";
+                if (inconsistentSkipped > 0)
+                    summary += $"（{inconsistentSkipped}枚は読み取り結果が組み合わせ表に当てはまらないため除外）";
                 ReadingSummaryText.Text = summary;
             }
 
@@ -614,6 +626,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         NoCharmName,
         DecorationEquipped,
         SlotDetectionFailed,
+        InconsistentWithCombinations,
         Error,
     }
 
@@ -699,6 +712,13 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
                 Source = CharmSource.Screenshot,
                 SourceTimestamp = File.GetLastWriteTime(file),
             };
+
+            // スキル・スロットが構成表のどの組み合わせにも当てはまらない護石は実在しないため、
+            // 読み取りの誤り(スキルの読み落とし、スロットLvの読み違い等)として保存せずに除外する
+            // (2026-11-07、2スキルのうち1つしか読めず1スキルの護石として保存されかけた事例による)。
+            if (!CharmCombinationValidator.MatchesAnyCombination(charm))
+                return new(ScreenshotOutcomeKind.InconsistentWithCombinations);
+
             return new(ScreenshotOutcomeKind.Detected, charm);
         }
         catch (DecorationEquippedException)

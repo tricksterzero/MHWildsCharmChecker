@@ -177,6 +177,19 @@ public class SlotIconPipelineTests
         Assert.Equal(new List<int> { 0, 0, 0 }, weapon);
     }
 
+    [Fact]
+    public void ReadSlots_QuestResultLv3Slot_ReadAsLv3()
+    {
+        // 真の21:9(3440x1440)の狩猟後護石入手画面。この画面ではLv3のアイコンもLv1と同じ幅38px前後で、
+        // 下部の三角の数だけが異なる。空スロットの見本がLv1として誤登録されていたため、実物の
+        // Lv3スロットが防具[1,0,0]と読まれていた回帰テスト(2026-11-07、正: [3,0,0])。
+        var path = Path.Combine(TestPaths.FindAssetsDir(), "option 21_9 native quest result", "20660C1.JPG");
+        var (armor, weapon) = CharmChecker.App.MainWindow.ReadSlots(path, hasWeaponSlot: false);
+
+        Assert.Equal(new List<int> { 3, 0, 0 }, armor);
+        Assert.Equal(new List<int> { 0, 0, 0 }, weapon);
+    }
+
     [Theory]
     [InlineData("20260726181601_1.jpg", true)]
     [InlineData("20260726181637_1.jpg", false)]

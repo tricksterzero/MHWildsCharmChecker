@@ -187,20 +187,52 @@ public static class SkillReadingPipeline
     /// </summary>
     internal static (double X, double Y)? FindAnchor(OcrResult ocrResult, double ocrScale = 1.0)
     {
-        // 3段フォールバック、最右優先
-        var candidates = FindAnchorCandidates(ocrResult, "装備詳細", "装");
-        if (candidates.Count > 0)
-            return candidates.MaxBy(c => c.X);
+        // 「装備詳細」(読めなければ「備詳細」)の候補と、「装備スキル」からの逆算候補を集め、最右を採る
+        var detailLabels = FindAnchorCandidates(ocrResult, "装備詳細", "装");
+        if (detailLabels.Count == 0)
+            detailLabels = FindAnchorCandidates(ocrResult, "備詳細", "備");
+        var skillLabels = FindSkillLabelAnchorCandidates(ocrResult, ocrScale);
+        // 文字が無い画像(真っ黒な画像等)ではLetterboxNormalizerの倍率が0になりうるため、
+        // 候補が無ければ倍率を使う前にnullを返す
+        if (detailLabels.Count == 0 && skillLabels.Count == 0)
+            return null;
+        return ChooseAnchor(detailLabels, skillLabels, ocrScale);
+    }
 
-        candidates = FindAnchorCandidates(ocrResult, "備詳細", "備");
-        if (candidates.Count > 0)
-            return candidates.MaxBy(c => c.X);
+    /// <summary>
+    /// 「装備スキル」からの逆算候補を、どの「装備詳細」候補からもこの距離(基準解像度でのpx)以上
+    /// 右にある場合に限り別パネルの候補とみなす。実測(2026-11-07、護石画面の全画像)で、同じパネルの
+    /// 逆算候補と「装備詳細」候補のX差は-36〜+42、2護石比較画面の左右パネル間の距離は476〜484だった。
+    /// </summary>
+    private const double SeparatePanelMinDistance = 200.0;
 
-        candidates = FindSkillLabelAnchorCandidates(ocrResult, ocrScale);
-        if (candidates.Count > 0)
-            return candidates.MaxBy(c => c.X);
+    /// <summary>
+    /// アンカー候補から最右のパネルのアンカーを選ぶ(副作用なし)。「装備詳細」候補を優先し(逆算候補は
+    /// 位置が粗いため、同じパネルでは「装備詳細」の位置を使う)、「装備詳細」候補のどれよりも
+    /// <see cref="SeparatePanelMinDistance"/>×<paramref name="scale"/>以上右にある逆算候補だけを
+    /// 別パネルとして加える。2護石比較画面で右パネルの「装備詳細」が半透明の背景のためOCRで読めず、
+    /// 左パネルだけが見つかる場合に、右パネルの「装備スキル」から右パネルを選ぶため(2026-11-07。
+    /// 修正前は「装備詳細」が1つでも見つかると逆算候補を使わず、左パネルのスキルと右パネルの
+    /// スロットが混ざっていた)。
+    /// 事前条件: scaleは正の値。事後条件: どちらの候補も空ならnull、それ以外はいずれかの候補を返す。
+    /// </summary>
+    internal static (double X, double Y)? ChooseAnchor(
+        IReadOnlyList<(double X, double Y)> detailLabels,
+        IReadOnlyList<(double X, double Y)> skillLabels,
+        double scale)
+    {
+        ArgumentNullException.ThrowIfNull(detailLabels);
+        ArgumentNullException.ThrowIfNull(skillLabels);
+        if (!(scale > 0))
+            throw new ArgumentOutOfRangeException(nameof(scale), scale, "scaleは正の値である必要があります。");
 
-        return null;
+        if (detailLabels.Count == 0)
+            return skillLabels.Count > 0 ? skillLabels.MaxBy(c => c.X) : null;
+
+        var rightmostDetail = detailLabels.MaxBy(c => c.X);
+        double minDistance = SeparatePanelMinDistance * scale;
+        var separatePanels = skillLabels.Where(c => c.X - rightmostDetail.X >= minDistance).ToList();
+        return separatePanels.Count > 0 ? separatePanels.MaxBy(c => c.X) : rightmostDetail;
     }
 
     private static List<(double X, double Y)> FindAnchorCandidates(OcrResult ocrResult, string pattern, string wordChar)
