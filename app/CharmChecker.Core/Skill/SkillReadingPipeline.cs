@@ -349,17 +349,20 @@ public static class SkillReadingPipeline
 
             foreach (var t in filtered)
             {
+                // 拡大した前処理のY座標は、元のクロップの座標に戻してから他の前処理と同じ扱いにする
+                // (X座標はLvXThresholdと同じ画像の座標で比べるため戻さない)
+                double y = t.Y0 / v.CoordinateScale;
                 if (t.X0 >= v.LvXThreshold)
                 {
                     var parsed = LvParser.Parse(t.Text);
                     if (parsed is not null)
-                        lvs.Add((t.Y0, parsed.Value));
+                        lvs.Add((y, parsed.Value));
                 }
                 else
                 {
                     var normalized = SkillNameNormalizer.Normalize(t.Text, knownSkills, knownSkillSet);
                     if (normalized is not null)
-                        names.Add((t.Y0, normalized));
+                        names.Add((y, normalized));
                 }
             }
 

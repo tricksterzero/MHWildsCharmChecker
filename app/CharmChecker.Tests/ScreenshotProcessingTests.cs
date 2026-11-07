@@ -8,11 +8,12 @@ namespace CharmChecker.Tests;
 public class ScreenshotProcessingTests
 {
     [Fact]
-    public async Task ProcessScreenshotAsync_OneOfTwoSkillsUnread_ExcludedAsInconsistent()
+    public async Task ProcessScreenshotAsync_ShortSkillRowUnreadAtOriginalSize_ReadWithScaledVariants()
     {
-        // 狩猟後の鑑定BOX画面。実物は栄世の護石 達人芸1/巧撃1 だが、OCRが巧撃の行を検出できず
-        // 達人芸1だけが読める(2026-11-07)。1スキルの護石は構成表に存在しないため、
-        // 誤った護石として保存せずに除外されるべき回帰テスト。
+        // 狩猟後の鑑定BOX画面。実物は栄世の護石 達人芸1/巧撃1 だが、元の大きさの前処理5種では
+        // OCRが巧撃の行(名前・Lvとも)を検出できず、達人芸1だけの護石として読まれていた(2026-11-07)。
+        // スキル欄の切り出しを1.5倍に拡大した前処理で2行とも読めるようになったことを確かめる回帰テスト
+        // (拡大した前処理を入れる前は、構成表との照合で除外されていた)。
         var path = Path.Combine(TestPaths.FindAssetsDir(), "case8 translucent panel", "20261102110031_1.jpg");
         if (!File.Exists(path))
             return;
@@ -20,7 +21,9 @@ public class ScreenshotProcessingTests
         var outcome = await ProcessScreenshotAsync(
             path, SkillNameLoader.LoadFromEmbeddedResource(), CharmTypeLoader.LoadFromEmbeddedResource());
 
-        Assert.Equal(ScreenshotOutcomeKind.InconsistentWithCombinations, outcome.Kind);
-        Assert.Null(outcome.Charm);
+        Assert.Equal(ScreenshotOutcomeKind.Detected, outcome.Kind);
+        Assert.Equal([new CharmSkill("達人芸", 1), new CharmSkill("巧撃", 1)], outcome.Charm!.Skills);
+        Assert.Equal([1, 0, 0], outcome.Charm.ArmorSlots);
+        Assert.Equal([1, 0, 0], outcome.Charm.WeaponSlots);
     }
 }
