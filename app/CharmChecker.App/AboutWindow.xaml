@@ -18,7 +18,7 @@
                 BorderBrush="{DynamicResource SplitterColor}" BorderThickness="0,1,0,0" Padding="20,12">
             <StackPanel TextElement.Foreground="{DynamicResource SecondaryText}">
                 <TextBlock Text="使用ライブラリ" FontSize="13" Margin="0,0,0,4" />
-                <TextBlock Text="OpenCvSharp4 4.13.0.20260602 / WPF-UI 4.3.0" FontSize="13" />
+                <TextBlock Text="OpenCvSharp4 4.13.0.20261107 / WPF-UI 4.3.0" FontSize="13" />
                 <TextBlock Text="Windows.Media.Ocr（Windows 組み込み）" FontSize="13" />
                 <TextBlock Text="ライセンス表示は同梱の THIRD-PARTY-NOTICES を参照してください。" FontSize="12"
                            Margin="0,6,0,0" TextWrapping="Wrap" />
