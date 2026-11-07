@@ -26,4 +26,20 @@ public class ScreenshotProcessingTests
         Assert.Equal([1, 0, 0], outcome.Charm.ArmorSlots);
         Assert.Equal([1, 0, 0], outcome.Charm.WeaponSlots);
     }
+
+    [Fact]
+    public async Task ProcessScreenshotAsync_SkillAndSlotFromDifferentPanels_ExcludedAsPanelMismatch()
+    {
+        // 2護石比較画面で、アンカーは左パネル(x=1602)、スロット枠は右パネル(アンカーから744px右)で
+        // 検出される画像。スキル欄とスロット欄が別の護石のため、位置の確認で除外されることを確かめる
+        // (2026-11-08。確認を入れる前は、空スロットの照合で「装飾品あり」として除外されていた)。
+        var path = Path.Combine(TestPaths.FindAssetsDir(), "option 1280x720", "20260615094829_1.jpg");
+        if (!File.Exists(path))
+            return;
+
+        var outcome = await ProcessScreenshotAsync(
+            path, SkillNameLoader.LoadFromEmbeddedResource(), CharmTypeLoader.LoadFromEmbeddedResource());
+
+        Assert.Equal(ScreenshotOutcomeKind.SlotPanelMismatch, outcome.Kind);
+    }
 }

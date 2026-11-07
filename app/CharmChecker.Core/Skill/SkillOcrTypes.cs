@@ -11,6 +11,7 @@ public readonly record struct OcrTextItem(string Text, double X0, double Y0, dou
 public readonly record struct SkillEntry(string? Name, int? Lv);
 
 /// <summary>
-/// スキル読み取りパイプラインの結果。スキル一覧と護石名を含む。
+/// スキル読み取りパイプラインの結果。スキル一覧と護石名、スキル欄の基準にしたアンカーの位置
+/// (元画像の座標。スロット欄が同じパネルにあるかの確認に使う)を含む。
 /// </summary>
-public record SkillReadResult(IReadOnlyList<SkillEntry> Skills, string? CharmName);
+public record SkillReadResult(IReadOnlyList<SkillEntry> Skills, string? CharmName, double AnchorX, double AnchorY);

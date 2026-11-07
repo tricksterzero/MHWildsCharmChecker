@@ -96,7 +96,7 @@ public static class SkillReadingPipeline
         try
         {
             var skills = await RunVariantsAndMerge(variants, knownSkills);
-            return new SkillReadResult(skills, charmName);
+            return new SkillReadResult(skills, charmName, origAx, origAy);
         }
         finally
         {

@@ -84,4 +84,12 @@ public static class SlotIconConstants
     // 取りこぼし(護石ごと除外)が増えた場合は、その画面の空スロットサンプルをEmptySlotTemplatesに
     // 追加する。
     public const double EmptyTemplateThreshold = 5.0;
+
+    // スロット枠がスキル欄と同じパネルにあるか(SlotPanelConsistency)の許容範囲: 枠の左端X−アンカーX
+    // (基準解像度でのpx。UIの倍率を掛けて使う)。2026-11-08、護石画面の159枚・303枠で測ると、
+    // 読み取り成功の画像は221〜389、スキル欄とスロット欄が別のパネルだった3枚は-49・744・1218
+    // (2護石比較画面の左右パネルの間隔は約480px)。両側に60〜70pxの余裕を取った値。Y方向は、
+    // 「装備スキル」からの逆算などでアンカーが最大約100pxずれる(読み取り成功でも185〜329)ため使わない。
+    public const double SlotFrameMinDxFromAnchor = 150.0;
+    public const double SlotFrameMaxDxFromAnchor = 450.0;
 }

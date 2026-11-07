@@ -504,6 +504,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
             int failed = 0;
             int decorationSkipped = 0;
             int inconsistentSkipped = 0;
+            int panelMismatchSkipped = 0;
 
             for (int i = 0; i < outcomes.Length; i++)
             {
@@ -551,6 +552,13 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
                             $"{fileName}: 読み取ったスキル・スロットが護石の組み合わせ表のどれにも当てはまらないため、読み取りをスキップしました。");
                         inconsistentSkipped++;
                         break;
+                    case ScreenshotOutcomeKind.SlotPanelMismatch:
+                        // 2つの護石が混ざった結果(スキル欄とスロット欄が別のパネル)を保存しないための除外。
+                        // 組み合わせ表との照合と同じく、処理エラーとは別に数える。
+                        ErrorLogger.Log("ReadScreenshot",
+                            $"{fileName}: スキル欄とスロット欄が別の護石パネルのものと判定されたため、読み取りをスキップしました。");
+                        panelMismatchSkipped++;
+                        break;
                     case ScreenshotOutcomeKind.Error:
                         ErrorLogger.Log("ReadScreenshot", fileName, outcome.Error!);
                         failed++;
@@ -576,6 +584,8 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
                     summary += $"（{decorationSkipped}枚は装飾品装着のため除外）";
                 if (inconsistentSkipped > 0)
                     summary += $"（{inconsistentSkipped}枚は読み取り結果が組み合わせ表に当てはまらないため除外）";
+                if (panelMismatchSkipped > 0)
+                    summary += $"（{panelMismatchSkipped}枚はスキル欄とスロット欄の位置が合わないため除外）";
                 ReadingSummaryText.Text = summary;
             }
             else
@@ -588,6 +598,8 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
                     summary += $"（{decorationSkipped}枚は装飾品装着のため除外）";
                 if (inconsistentSkipped > 0)
                     summary += $"（{inconsistentSkipped}枚は読み取り結果が組み合わせ表に当てはまらないため除外）";
+                if (panelMismatchSkipped > 0)
+                    summary += $"（{panelMismatchSkipped}枚はスキル欄とスロット欄の位置が合わないため除外）";
                 ReadingSummaryText.Text = summary;
             }
 
@@ -627,6 +639,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         DecorationEquipped,
         SlotDetectionFailed,
         InconsistentWithCombinations,
+        SlotPanelMismatch,
         Error,
     }
 
@@ -701,7 +714,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
             }
 
             var charmType = CharmTypeLoader.Lookup(readResult.CharmName, charmTypes);
-            var slots = ReadSlots(file, charmType?.HasWeaponSlot ?? false);
+            var slots = ReadSlots(file, charmType?.HasWeaponSlot ?? false, readResult.AnchorX);
 
             var charm = new Charm
             {
@@ -725,6 +738,10 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         {
             return new(ScreenshotOutcomeKind.DecorationEquipped);
         }
+        catch (SlotPanelMismatchException)
+        {
+            return new(ScreenshotOutcomeKind.SlotPanelMismatch);
+        }
         catch (SlotDetectionFailedException)
         {
             // BOX/Detail両領域からスロットアイコンが1件も検出できなかったケース。
@@ -738,16 +755,24 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         }
     }
 
+    /// <summary>
+    /// スクショからスロット構成を読み取る。<paramref name="anchorX"/>(スキル欄のアンカーX、元画像の座標)を
+    /// 渡した場合は、採用したスロット枠がスキル欄と同じパネルにあるかを確かめ、別のパネルなら
+    /// <see cref="SlotPanelMismatchException"/>をスローする(nullなら確かめない)。
+    /// </summary>
     internal static (List<int> ArmorSlots, List<int> WeaponSlots) ReadSlots(
-        string imagePath, bool hasWeaponSlot)
+        string imagePath, bool hasWeaponSlot, double? anchorX = null)
     {
         using var img = OpenCvSharp.Cv2.ImRead(imagePath);
         var (sx, sy) = SlotIconAnalyzer.ScaleFactors(img);
 
-        var (boxFrames, boxColor) = DetectInRegion(img, SlotIconAnalyzer.PanelRegion(img), sx, sy);
-        var (detFrames, detColor) = DetectInRegion(img, SlotIconAnalyzer.DetailPanelRegion(img), sx, sy);
+        var boxRegion = SlotIconAnalyzer.PanelRegion(img);
+        var detRegion = SlotIconAnalyzer.DetailPanelRegion(img);
+        var (boxFrames, boxColor) = DetectInRegion(img, boxRegion, sx, sy);
+        var (detFrames, detColor) = DetectInRegion(img, detRegion, sx, sy);
 
         List<OpenCvSharp.Rect> frames;
+        OpenCvSharp.Rect region;
         OpenCvSharp.Mat color;
         OpenCvSharp.Mat disposeColor;
 
@@ -758,12 +783,12 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         // BOX側の正しい1枠より多く検出されてDetail側が誤採用される回帰を確認したため)。
         if (boxFrames.Count > 0)
         {
-            frames = boxFrames; color = boxColor;
+            frames = boxFrames; region = boxRegion; color = boxColor;
             disposeColor = detColor;
         }
         else
         {
-            frames = detFrames; color = detColor;
+            frames = detFrames; region = detRegion; color = detColor;
             disposeColor = boxColor;
         }
 
@@ -773,6 +798,14 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         {
             if (frames.Count == 0)
                 throw new SlotDetectionFailedException();
+
+            // 空スロットの照合(ClassifyFrames)より前に確かめる。別のパネルの枠は照合でも
+            // 「装飾品あり」と判定されることが多く、後に置くと除外理由が装飾品になってしまうため。
+            // 枠の座標は探索領域内の座標のため、領域の左端を足して元画像の座標にする(sxはUIの倍率)。
+            if (anchorX is { } ax &&
+                !SlotPanelConsistency.AreFramesInSkillPanel(
+                    frames.Select(f => (double)(region.X + f.X)).ToList(), ax, sx))
+                throw new SlotPanelMismatchException();
 
             return ClassifyFrames(frames, color, hasWeaponSlot);
         }
