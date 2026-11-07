@@ -68,6 +68,11 @@ public static class SlotIconConstants
     // (2026-11-07)。
     public const int FrameJitterSearchPx = 2;
 
+    // スロットアイコンの縦横比(幅/高さ)。探索領域の右端に接する枠を照合し直すときの幅に使う
+    // (MatchEmptyTemplate)。2026-11-08、空スロットと照合できた枠の実測で、Lv1は38x33が151件と大半、
+    // Lv2は49x38、Lv3は50〜51x38。
+    public static readonly IReadOnlyList<double> SlotIconAspectRatios = [38.0 / 33.0, 50.0 / 38.0];
+
     // 空スロットテンプレート照合(MatchEmptyTemplate)の閾値: 枠下部の三角マーク領域とEmptySlotTemplatesを、
     // チャネルごとの平均を引いたBGR平均絶対差分で比較し(枠を±FrameJitterSearchPxずらした最小値)、
     // この値以下なら空スロットとみなす。

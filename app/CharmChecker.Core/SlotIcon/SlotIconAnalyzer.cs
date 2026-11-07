@@ -287,6 +287,8 @@ public static class SlotIconAnalyzer
     /// 平均を引いても残るため、装飾品ありとの分離は保たれる(装飾品ありの最小差分6.71→7.77)。
     /// また、枠そのままで閾値を超えた場合のみ、枠の位置・大きさを±<see cref="SlotIconConstants.FrameJitterSearchPx"/>px
     /// ずらして最小差分を探す(輪郭検出による枠の揺れ対策)。
+    /// さらに、枠の右端が<paramref name="colorRegion"/>の右端に接していて閾値を超えた場合は、幅を
+    /// <see cref="EdgeFrameRetryWidths"/>の値にした枠でも照合し、最小差分を使う(右端の飾りとの融合対策)。
     ///
     /// 事前条件: <paramref name="colorRegion"/>は3チャネル(BGR)、<paramref name="frame"/>は幅・高さが正で
     /// <paramref name="colorRegion"/>の範囲内。満たさない場合は例外を投げる。
@@ -300,24 +302,63 @@ public static class SlotIconAnalyzer
         if (frame.Width <= 0 || frame.Height <= 0 || !IsInside(frame, colorRegion))
             throw new ArgumentOutOfRangeException(nameof(frame), frame, "frameの幅・高さが0以下か、colorRegionの範囲外です。");
 
-        var best = FindNearestTemplate(CenteredLevelBand(colorRegion, frame));
-        if (best.Diff > SlotIconConstants.EmptyTemplateThreshold)
+        var best = FindNearestTemplateWithJitter(colorRegion, frame);
+
+        // 探索領域の右端に接する枠は、スロット欄の右端の飾りと1つの枠として検出され、実際のアイコンより
+        // 幅が広くなることがある(2護石比較画面の右パネルの3つ目のスロット、2026-11-08)。そのままで
+        // 照合に失敗した場合のみ、左端と高さはそのままに、幅をアイコンの縦横比から求めた値にして照合し直す。
+        if (best.Diff > SlotIconConstants.EmptyTemplateThreshold && frame.Right >= colorRegion.Width - 1)
         {
-            int jitter = SlotIconConstants.FrameJitterSearchPx;
-            for (int dx = -jitter; dx <= jitter; dx++)
-            for (int dy = -jitter; dy <= jitter; dy++)
-            for (int ds = -jitter; ds <= jitter; ds++)
+            foreach (int width in EdgeFrameRetryWidths(frame))
             {
-                if (dx == 0 && dy == 0 && ds == 0) continue;
-                var shifted = new Rect(frame.X + dx, frame.Y + dy, frame.Width + ds, frame.Height + ds);
-                if (!IsInside(shifted, colorRegion)) continue;
-                var candidate = FindNearestTemplate(CenteredLevelBand(colorRegion, shifted));
+                var candidate = FindNearestTemplateWithJitter(colorRegion, new Rect(frame.X, frame.Y, width, frame.Height));
                 if (candidate.Diff < best.Diff) best = candidate;
             }
         }
 
         bool isEmpty = best.Diff <= SlotIconConstants.EmptyTemplateThreshold;
         return new EmptyTemplateMatch(isEmpty ? best.Level : null, best.Diff);
+    }
+
+    /// <summary>
+    /// 枠そのままで照合し、閾値を超えた場合のみ枠の位置・大きさを±<see cref="SlotIconConstants.FrameJitterSearchPx"/>px
+    /// ずらした最小差分を返す(副作用なし)。frameはcolorRegionの範囲内であること(呼び出し側で保証)。
+    /// </summary>
+    private static (SlotLevel Level, double Diff) FindNearestTemplateWithJitter(Mat colorRegion, Rect frame)
+    {
+        var best = FindNearestTemplate(CenteredLevelBand(colorRegion, frame));
+        if (best.Diff <= SlotIconConstants.EmptyTemplateThreshold)
+            return best;
+
+        int jitter = SlotIconConstants.FrameJitterSearchPx;
+        for (int dx = -jitter; dx <= jitter; dx++)
+        for (int dy = -jitter; dy <= jitter; dy++)
+        for (int ds = -jitter; ds <= jitter; ds++)
+        {
+            if (dx == 0 && dy == 0 && ds == 0) continue;
+            var shifted = new Rect(frame.X + dx, frame.Y + dy, frame.Width + ds, frame.Height + ds);
+            if (!IsInside(shifted, colorRegion)) continue;
+            var candidate = FindNearestTemplate(CenteredLevelBand(colorRegion, shifted));
+            if (candidate.Diff < best.Diff) best = candidate;
+        }
+        return best;
+    }
+
+    /// <summary>
+    /// 探索領域の右端に接する枠を照合し直すときの幅(枠の高さ×<see cref="SlotIconConstants.SlotIconAspectRatios"/>の
+    /// 各縦横比を丸めた値)のうち、元の枠より狭いものを重複なく返す(副作用なし)。
+    /// 事前条件: frameの幅・高さが正。
+    /// </summary>
+    internal static IReadOnlyList<int> EdgeFrameRetryWidths(Rect frame)
+    {
+        if (frame.Width <= 0 || frame.Height <= 0)
+            throw new ArgumentOutOfRangeException(nameof(frame), frame, "frameの幅・高さは正である必要があります。");
+
+        return SlotIconConstants.SlotIconAspectRatios
+            .Select(ratio => (int)Math.Round(frame.Height * ratio))
+            .Where(width => width > 0 && width < frame.Width)
+            .Distinct()
+            .ToList();
     }
 
     /// <summary>平均を引いた全テンプレート(Lvごと)。EmptySlotTemplatesは不変のため初回参照時に1度だけ作る。</summary>

@@ -191,6 +191,40 @@ public class SlotIconPipelineTests
     }
 
     [Theory]
+    [InlineData("case2 equip change", "20260615054234_1.jpg")]
+    [InlineData("case9 right panel anchor", "20260516104120_1.jpg")]
+    public void ReadSlots_ThirdSlotFusedWithBarRightEnd_ReadAsEmptyLv1(string folder, string fileName)
+    {
+        // 2護石比較画面の右パネル、栄世の護石(武器Lv1+防具Lv1×2、すべて空)。3つ目のスロットの右端が
+        // スロット欄の右端の飾りと1つの枠(幅48px、正しくは38px)として検出され、見本と合わずに
+        // 「装飾品あり」で除外されていた回帰テスト(2026-11-08)。右端に接する枠は、幅をアイコンの
+        // 縦横比から求めた値にして照合し直す。
+        var path = Path.Combine(TestPaths.FindAssetsDir(), folder, fileName);
+        var (armor, weapon) = CharmChecker.App.MainWindow.ReadSlots(path, hasWeaponSlot: true);
+
+        Assert.Equal(new List<int> { 1, 1, 0 }, armor);
+        Assert.Equal(new List<int> { 1, 0, 0 }, weapon);
+    }
+
+    [Fact]
+    public void EdgeFrameRetryWidths_ReturnsWidthsFromAspectRatiosNarrowerThanFrame()
+    {
+        // 高さ33: Lv1の比(38/33)で38、Lv2・Lv3の比(50/38)で43
+        Assert.Equal([38, 43], SlotIconAnalyzer.EdgeFrameRetryWidths(new Rect(252, 83, 48, 33)));
+        // 境界値: 求めた幅が元の枠の幅と同じ(43)なら含めない
+        Assert.Equal([38], SlotIconAnalyzer.EdgeFrameRetryWidths(new Rect(0, 0, 43, 33)));
+        // 元の枠が求めた幅より狭ければ空
+        Assert.Empty(SlotIconAnalyzer.EdgeFrameRetryWidths(new Rect(0, 0, 38, 33)));
+    }
+
+    [Fact]
+    public void EdgeFrameRetryWidths_InvalidFrame_Throws()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => SlotIconAnalyzer.EdgeFrameRetryWidths(new Rect(0, 0, 0, 33)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => SlotIconAnalyzer.EdgeFrameRetryWidths(new Rect(0, 0, 48, 0)));
+    }
+
+    [Theory]
     [InlineData("20260726181601_1.jpg", true)]
     [InlineData("20260726181637_1.jpg", false)]
     [InlineData("20260726181828_1.jpg", false)]
