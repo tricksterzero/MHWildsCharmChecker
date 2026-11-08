@@ -11,6 +11,12 @@ public partial class CharmEditWindow : Wpf.Ui.Controls.FluentWindow
     private readonly IReadOnlyList<string> _skillNames;
     public Charm? ResultCharm { get; private set; }
 
+    /// <summary>
+    /// 編集対象の護石を、この画面の選択肢で欠けなく表せるか(新規入力では常にtrue)。falseなら呼び出し側は
+    /// 画面を開かずに知らせる(過去のCSV取り込みで入った、スキルLv5以上や防具[2,2,0]などの護石)。
+    /// </summary>
+    public bool CanRepresentExisting { get; } = true;
+
     public CharmEditWindow(Charm? existing = null)
     {
         InitializeComponent();
@@ -38,6 +44,10 @@ public partial class CharmEditWindow : Wpf.Ui.Controls.FluentWindow
         {
             Title = "護石の編集";
             LoadFromCharm(existing);
+            // 編集画面の選択肢(スキルLv0〜4、防具1つ目0〜3・2つ目0〜1、武器0〜1)で表せない値を持つ護石は、
+            // 開いてOKすると値が黙って変わってしまうため、読み込んだ値から組み立て直して元と同じかを確かめる
+            var (rebuilt, _) = TryBuildCharm();
+            CanRepresentExisting = rebuilt is not null && DuplicateChecker.AreIdentical(rebuilt, existing);
         }
         else
         {
@@ -95,17 +105,16 @@ public partial class CharmEditWindow : Wpf.Ui.Controls.FluentWindow
 
     private void UpdateInferredRarity()
     {
-        var charm = BuildCharm();
-        if (charm is null)
-        {
-            InferredRarityText.Text = "-";
-            return;
-        }
-        var rarity = RarityInference.Infer(charm);
-        InferredRarityText.Text = rarity.HasValue ? $"RARE {rarity}" : "-";
+        // 入力の途中(同じスキルを2つ選んでいる等)で護石を作れないときは「-」を表示するだけにする
+        var (charm, _) = TryBuildCharm();
+        InferredRarityText.Text = charm?.Rarity is int rarity ? $"RARE {rarity}" : "-";
     }
 
-    private Charm? BuildCharm()
+    /// <summary>
+    /// 画面の入力から護石を作る(RAREは推定して入れる)。名前の重複など護石の不変条件を満たさない入力なら、
+    /// 護石の代わりに理由を返す。名前が空・Lv0の欄は空き欄として読み飛ばす。
+    /// </summary>
+    private (Charm? Charm, string? Error) TryBuildCharm()
     {
         var skills = new List<CharmSkill>();
         var skillInputs = new[]
@@ -136,63 +145,55 @@ public partial class CharmEditWindow : Wpf.Ui.Controls.FluentWindow
             0,
         };
 
-        var charm = new Charm
+        // 同じスキル名の重複は護石の不変条件に反するため、護石を作る前に理由を返す
+        var duplicateNames = skills.GroupBy(s => s.Name, StringComparer.Ordinal)
+            .Where(g => g.Count() > 1).Select(g => g.Key).ToList();
+        if (duplicateNames.Count > 0)
+            return (null, $"同じスキルが複数入力されています: {string.Join(", ", duplicateNames)}");
+
+        try
         {
-            Skills = skills,
-            ArmorSlots = armorSlots,
-            WeaponSlots = weaponSlots,
-            Source = CharmSource.Manual,
-            SourceTimestamp = DateTime.Now,
-        };
-        charm.Rarity = RarityInference.Infer(charm);
-        return charm;
+            var charm = new Charm
+            {
+                Skills = skills,
+                ArmorSlots = armorSlots,
+                WeaponSlots = weaponSlots,
+                Source = CharmSource.Manual,
+                SourceTimestamp = DateTime.Now,
+            };
+            return (RarityInference.WithInferredRarity(charm), null);
+        }
+        catch (ArgumentException ex)
+        {
+            return (null, ex.Message);
+        }
     }
 
     private void OkButton_Click(object sender, RoutedEventArgs e)
     {
-        var charm = BuildCharm();
-        if (charm is null || charm.Skills.Count == 0)
+        var (charm, error) = TryBuildCharm();
+        if (charm is null)
         {
-            MessageBox.Show("スキルを1つ以上入力してください。", "入力エラー",
-                MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(error, "入力エラー", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
-        // 同一スキル名の重複検証(DuplicateCheckerは重複スキル名を比較不能として扱うため、
-        // 手動入力の時点で弾く)
-        var duplicateNames = charm.Skills
-            .GroupBy(s => s.Name)
-            .Where(g => g.Count() > 1)
-            .Select(g => g.Key)
-            .ToList();
-        if (duplicateNames.Count > 0)
+        // ゲームとしてありうるかの検査(全入口共通のCharmValidator)。Errorは保存しない。
+        // Warning(スキル候補一覧にない名前)は確認して、はいなら保存する
+        var issues = CharmValidator.Validate(charm);
+        var firstError = issues.FirstOrDefault(i => i.Severity == CharmIssueSeverity.Error);
+        if (firstError is not null)
         {
-            MessageBox.Show(
-                $"同じスキルが複数入力されています: {string.Join(", ", duplicateNames)}",
-                "入力エラー", MessageBoxButton.OK, MessageBoxImage.Warning);
+            var message = charm.Skills.Count == 0 ? "スキルを1つ以上入力してください。" : firstError.Message;
+            MessageBox.Show(message, "入力エラー", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
-
-        // スキル名・Lvの検証
-        var skillGroups = RarityInference.LoadSkillGroups();
-        foreach (var skill in charm.Skills)
+        foreach (var warning in issues)
         {
-            if (!_skillNames.Contains(skill.Name))
-            {
-                var result = MessageBox.Show(
-                    $"「{skill.Name}」はスキル候補一覧にありません。このまま保存しますか？",
-                    "確認", MessageBoxButton.YesNo, MessageBoxImage.Question);
-                if (result != MessageBoxResult.Yes) return;
-            }
-            else if (!skillGroups.Any(g => g.Name == skill.Name && g.Level == skill.Lv))
-            {
-                // ComboBoxのLv選択肢は全スキル共通で0〜4だが、実際のLv上限はスキルごとに異なる
-                // (skill-groups.jsonの113種中109種はLv上限2〜3)。存在しない組み合わせを弾く。
-                MessageBox.Show(
-                    $"「{skill.Name}」にLv{skill.Lv}は存在しません。",
-                    "入力エラー", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
+            var result = MessageBox.Show(
+                $"{warning.Message}このまま保存しますか？",
+                "確認", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (result != MessageBoxResult.Yes) return;
         }
 
         ResultCharm = charm;

@@ -60,9 +60,11 @@ public class RarityInferenceTests
     public void Rare7_Group3_ArmorOnly()
     {
         // Group 3 skill → RARE 7 (armor slots only, not 8)
+        // スキルグループ[3,6,5]はRARE7・RARE8の両方にあるが、武器スロットがないのでRARE7
+        // (2026-11-08、同じスキルを2つ持つ実在しない護石だったため、グループ5を別のスキルに替えた)
         var charm = new Charm
         {
-            Skills = [new("ＫＯ術", 3), new("アイテム使用強化", 2), new("アイテム使用強化", 1)],
+            Skills = [new("ＫＯ術", 3), new("アイテム使用強化", 2), new("ボマー", 1)],
             ArmorSlots = [2, 0, 0],
             WeaponSlots = [0, 0, 0],
         };

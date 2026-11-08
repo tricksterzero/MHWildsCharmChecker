@@ -160,21 +160,13 @@ public class CharmCsvConverterTests
     }
 
     [Fact]
-    public void ToLine_NullSkillName_DoesNotThrowAndRendersAsEmpty()
+    public void ParseLine_DuplicateSkillNames_ThrowsFormatException()
     {
-        // System.Text.Jsonのデシリアライズ等でCharmSkill.Nameがnullになりうる
-        // （非nullable宣言でもランタイムのnull代入は防げない）ため、
-        // 既存挙動(string.Joinがnullを空文字として扱う)を壊さないことを確認する。
-        var charm = new Charm
-        {
-            Skills = [new(null!, 3)],
-            ArmorSlots = [0, 0, 0],
-            WeaponSlots = [0, 0, 0],
-        };
-
-        var line = CharmCsvConverter.ToLine(charm);
-
-        Assert.Equal(",3,,0,,0,0,0,0,0,0,0", line);
+        // 同じスキル名の重複は護石の不変条件に反する。行番号を付けられるよう、ArgumentExceptionではなく
+        // FormatExceptionになることを確かめる(2026-11-08。それまでは重複のある行も取り込んでいた)
+        Assert.Throws<FormatException>(() => CharmCsvConverter.ParseLine("攻撃,4,攻撃,2,,0,0,0,0,0,0,0"));
+        var ex = Assert.Throws<FormatException>(() => CharmCsvConverter.ParseText("攻撃,4,,0,,0,0,0,0,0,0,0\n攻撃,4,攻撃,2,,0,0,0,0,0,0,0"));
+        Assert.StartsWith("行 2:", ex.Message);
     }
 
     [Fact]

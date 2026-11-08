@@ -81,14 +81,23 @@ public static class CharmCsvConverter
         for (int i = 0; i < MaxSlots; i++)
             weaponSlots.Add(ParseSlotValue(cols[9 + i].Trim(), line));
 
-        return new Charm
+        // 名前の重複など護石の不変条件の違反は、他の形式エラーと同じくFormatExceptionにして、
+        // ParseTextが行番号を付けられるようにする
+        try
         {
-            Skills = skills,
-            ArmorSlots = armorSlots,
-            WeaponSlots = weaponSlots,
-            Source = CharmSource.CsvImport,
-            SourceTimestamp = DateTime.Now,
-        };
+            return new Charm
+            {
+                Skills = skills,
+                ArmorSlots = armorSlots,
+                WeaponSlots = weaponSlots,
+                Source = CharmSource.CsvImport,
+                SourceTimestamp = DateTime.Now,
+            };
+        }
+        catch (ArgumentException ex)
+        {
+            throw new FormatException($"{ex.Message}: {line}", ex);
+        }
     }
 
     public static List<Charm> ParseText(string text)

@@ -41,10 +41,19 @@ public static class SkillReadingPipeline
     /// <summary>
     /// スクリーンショットからスキル一覧と護石名を読み取る。
     /// 護石パネルが見つからない場合はnullを返す。
+    /// 事前条件: imagePathは空でなく、knownSkillsはnullでない。画像として読み込めないファイルは
+    /// <see cref="InvalidDataException"/>を投げる。
     /// </summary>
     public static async Task<SkillReadResult?> ReadWithMetadataAsync(string imagePath, IReadOnlyList<string> knownSkills)
     {
+        ArgumentException.ThrowIfNullOrEmpty(imagePath);
+        ArgumentNullException.ThrowIfNull(knownSkills);
+
         using var img = Cv2.ImRead(imagePath);
+        // 壊れた画像や画像でないファイルではImReadが空の画像を返し、そのままだと後段でOpenCVの
+        // 分かりにくい例外("!_src.empty()")になるため、ここで原因の分かる例外にする
+        if (img.Empty())
+            throw new InvalidDataException($"画像を読み込めませんでした: {imagePath}");
         var (_, _, scale) = LetterboxNormalizer.DetectContentBounds(img);
 
         // 真の21:9(3440x1440等、基準幅2560を超える)スクリーンショットは、フルスクリーンOCRを
@@ -192,8 +201,6 @@ public static class SkillReadingPipeline
         if (detailLabels.Count == 0)
             detailLabels = FindAnchorCandidates(ocrResult, "備詳細", "備");
         var skillLabels = FindSkillLabelAnchorCandidates(ocrResult, ocrScale);
-        // 文字が無い画像(真っ黒な画像等)ではLetterboxNormalizerの倍率が0になりうるため、
-        // 候補が無ければ倍率を使う前にnullを返す
         if (detailLabels.Count == 0 && skillLabels.Count == 0)
             return null;
         return ChooseAnchor(detailLabels, skillLabels, ocrScale);

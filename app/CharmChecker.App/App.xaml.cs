@@ -14,6 +14,14 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        // 画面の操作中に捕まえていない例外が出てもアプリを終了させず、error.logに記録して知らせる。
+        // 護石データは変更のたびに保存しているため、続けても失われるものは少ない(2026-11-08)
+        DispatcherUnhandledException += OnDispatcherUnhandledException;
+        // UIスレッド以外の未処理例外は、.NETの仕様でプロセスが終了するのを止められないため、記録だけ残す
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+            ErrorLogger.Log("Unhandled", "UIスレッド以外で未処理の例外が発生しました。",
+                args.ExceptionObject as Exception ?? new Exception(args.ExceptionObject?.ToString()));
+
         var mutexName = "MHWildsCharmChecker_" + HashDataDir(AppDomain.CurrentDomain.BaseDirectory);
         _instanceLock = new Mutex(initiallyOwned: true, mutexName, out bool createdNew);
         _ownsInstanceLock = createdNew;
@@ -45,6 +53,17 @@ public partial class App : Application
             _instanceLock?.ReleaseMutex();
         _instanceLock?.Dispose();
         base.OnExit(e);
+    }
+
+    private static void OnDispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
+    {
+        ErrorLogger.Log("Unhandled", "画面の操作中に未処理の例外が発生しました。", e.Exception);
+        MessageBox.Show(
+            $"予期しないエラーが発生しました。操作は完了していない可能性があります。\n詳細は error.log に記録しました。\n\n{e.Exception.Message}",
+            "エラー",
+            MessageBoxButton.OK,
+            MessageBoxImage.Error);
+        e.Handled = true;
     }
 
     private static string HashDataDir(string dataDir)

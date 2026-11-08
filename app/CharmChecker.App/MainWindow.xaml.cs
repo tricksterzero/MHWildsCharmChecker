@@ -1,12 +1,12 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Windows;
 using System.Windows.Controls;
 using CharmChecker.Core.Model;
+using CharmChecker.Core.Screenshot;
 using CharmChecker.Core.Skill;
-using CharmChecker.Core.SlotIcon;
 using Microsoft.Win32;
 
 namespace CharmChecker.App;
@@ -52,32 +52,6 @@ public class CharmListItem
 
         return parts.Count > 0 ? string.Join(" - ", parts) : "なし";
     }
-}
-
-public class CharmJson
-{
-    [JsonPropertyName("skills")]
-    public List<SkillJson> Skills { get; set; } = [];
-    [JsonPropertyName("armorSlots")]
-    public List<int> ArmorSlots { get; set; } = [];
-    [JsonPropertyName("weaponSlots")]
-    public List<int> WeaponSlots { get; set; } = [];
-    [JsonPropertyName("rarity")]
-    public int? Rarity { get; set; }
-    [JsonPropertyName("source")]
-    public string Source { get; set; } = "";
-    [JsonPropertyName("sourceTimestamp")]
-    public DateTime SourceTimestamp { get; set; }
-    [JsonPropertyName("version")]
-    public string Version { get; set; } = "";
-}
-
-public class SkillJson
-{
-    [JsonPropertyName("name")]
-    public string Name { get; set; } = "";
-    [JsonPropertyName("lv")]
-    public int Lv { get; set; }
 }
 
 public class AppSettings
@@ -129,7 +103,9 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
         SaveSettings();
-        SaveCharms();
+        // 保存を止めている場合は、起動時に知らせているため終了時は黙って保存しない
+        if (!_charmSaveBlocked)
+            SaveCharms();
     }
 
     private void LoadSettings()
@@ -181,64 +157,103 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         }
     }
 
+    /// <summary>
+    /// 起動時のcharms.jsonの読み込みで、元のファイルを守るために護石データの保存を止めているか。
+    /// trueになるのは、ファイルを読み込めなかった場合と、不正な項目を除いて読み込んだがバックアップを
+    /// 作れなかった場合(このまま保存すると、元のファイルが読み込めた分だけ・または空の一覧で上書きされるため)。
+    /// 起動している間は戻さない(ファイルを直して起動し直してもらう)。2026-11-08追加。
+    /// v1.4.1までは、読み込めなかった場合も一覧を空のまま起動し、終了時に空の一覧で上書きしていた。
+    /// </summary>
+    private bool _charmSaveBlocked;
+    private bool _charmSaveBlockedNotified;
+
     private void LoadCharms()
     {
+        if (!File.Exists(CharmsFilePath)) return;
+
+        CharmJsonParseResult parsed;
         try
         {
-            if (!File.Exists(CharmsFilePath)) return;
-            var json = File.ReadAllText(CharmsFilePath);
-            var charms = ParseCharmsJson(json);
-            // charm-types.jsonの固有名護石以外で、修正前の実装漏れによりRarityが
-            // null保存されたままの既存データを起動時に補完する。
-            InferRarityBatch(charms);
-            foreach (var charm in charms)
-                AddCharm(charm);
+            parsed = CharmJsonSerializer.Parse(File.ReadAllText(CharmsFilePath));
         }
         catch (Exception ex)
         {
+            // 想定外の例外でも起動を止めず、元のファイルを守るために保存を止める(v1.4.1までと同じくすべて捕まえる)
+            _charmSaveBlocked = true;
             ErrorLogger.Log("LoadCharms", CharmsFilePath, ex);
             MessageBox.Show(
-                $"護石データの読み込みに失敗しました。\n\nファイル: {CharmsFilePath}\n{ex.Message}",
+                $"護石データを読み込めませんでした。\n\nファイル: {CharmsFilePath}\n{ex.Message}\n\n"
+                + "元のファイルを守るため、このまま起動している間は護石データを保存しません（追加・編集しても保存されません）。"
+                + "ファイルを直すか別の場所へ移してから、起動し直してください。",
                 "読み込みエラー",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
+            return;
         }
+
+        if (parsed.Rejected.Count > 0)
+            HandleRejectedOnLoad(parsed.Rejected);
+
+        // charm-types.jsonの固有名護石以外で、修正前の実装漏れによりRarityが
+        // null保存されたままの既存データを起動時に補完する。
+        foreach (var charm in parsed.Charms.Select(RarityInference.WithInferredRarity))
+            AddCharm(charm);
     }
 
-    private static List<Charm> ParseCharmsJson(string json)
+    /// <summary>
+    /// 起動時の読み込みで不変条件を満たさず除いた項目があるとき、元のファイルをバックアップして知らせる。
+    /// バックアップを作れなければ保存を止める(<see cref="_charmSaveBlocked"/>)。
+    /// </summary>
+    private void HandleRejectedOnLoad(IReadOnlyList<CharmJsonRejection> rejected)
     {
-        var items = JsonSerializer.Deserialize<List<CharmJson>>(json);
-        if (items is null) return [];
+        foreach (var r in rejected)
+            ErrorLogger.Log("LoadCharms", $"{r.Index + 1}件目を読み込みませんでした: {r.Reason}");
 
-        return items.Select(cj => new Charm
+        var backupPath = $"{CharmsFilePath}.bak-{DateTime.Now:yyyyMMdd-HHmmss}";
+        try
         {
-            Skills = cj.Skills.Select(s => new CharmSkill(s.Name, s.Lv)).ToList(),
-            ArmorSlots = cj.ArmorSlots,
-            WeaponSlots = cj.WeaponSlots,
-            Rarity = cj.Rarity,
-            Source = Enum.TryParse<CharmSource>(cj.Source, out var src) ? src : CharmSource.CsvImport,
-            SourceTimestamp = cj.SourceTimestamp,
-            Version = Enum.TryParse<GameVersion>(cj.Version, out var ver) ? ver : GameVersion.Wilds,
-        }).ToList();
+            File.Copy(CharmsFilePath, backupPath, overwrite: false);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _charmSaveBlocked = true;
+            ErrorLogger.Log("LoadCharms", backupPath, ex);
+            MessageBox.Show(
+                $"護石データのうち{rejected.Count}件が不正な形式のため読み込みませんでした（理由は error.log に記録しました）。\n\n"
+                + $"元のファイルのバックアップを作れなかったため、元のファイルを守るために、このまま起動している間は護石データを保存しません（追加・編集しても保存されません）。\n{ex.Message}",
+                "読み込みの警告",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        MessageBox.Show(
+            $"護石データのうち{rejected.Count}件が不正な形式のため読み込みませんでした（理由は error.log に記録しました）。\n\n"
+            + $"読み込む前の元のファイルを次の場所に残しました。\n{backupPath}",
+            "読み込みの警告",
+            MessageBoxButton.OK,
+            MessageBoxImage.Warning);
     }
 
     private void SaveCharms()
     {
-        var items = CharmItems.Select(i =>
+        if (_charmSaveBlocked)
         {
-            var c = i.Charm;
-            return new CharmJson
+            ErrorLogger.Log("SaveCharms", "起動時の読み込みに失敗したため、護石データを保存しませんでした。");
+            if (!_charmSaveBlockedNotified)
             {
-                Skills = c.Skills.Select(s => new SkillJson { Name = s.Name, Lv = s.Lv }).ToList(),
-                ArmorSlots = c.ArmorSlots,
-                WeaponSlots = c.WeaponSlots,
-                Rarity = c.Rarity,
-                Source = c.Source.ToString(),
-                SourceTimestamp = c.SourceTimestamp,
-                Version = c.Version.ToString(),
-            };
-        }).ToList();
-        var json = JsonSerializer.Serialize(items, JsonOptions);
+                _charmSaveBlockedNotified = true;
+                MessageBox.Show(
+                    "起動時に護石データ（charms.json）を正しく読み込めなかったため、元のファイルを守るために保存していません。\n"
+                    + "この変更は保存されません。ファイルを直すか別の場所へ移してから、起動し直してください。",
+                    "保存していません",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
+            return;
+        }
+
+        var json = CharmJsonSerializer.Serialize(AllCharms);
         try
         {
             File.WriteAllText(CharmsFilePath, json);
@@ -352,6 +367,17 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         if (CharmDataGrid.SelectedItem is not CharmListItem item) return;
 
         var dialog = new CharmEditWindow(item.Charm) { Owner = this };
+        if (!dialog.CanRepresentExisting)
+        {
+            MessageBox.Show(
+                $"護石 #{item.Id}（{item.SkillText}  {item.SlotText}）は、編集画面で表せない値（Lv5以上のスキルや、"
+                + "現行ゲームにないスロットの形など）を持つため編集できません。\n編集画面で開くと値が変わってしまうためです。",
+                "編集できません",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            dialog.Close();
+            return;
+        }
         if (dialog.ShowDialog() != true || dialog.ResultCharm is null) return;
 
         var edited = dialog.ResultCharm;
@@ -422,30 +448,24 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
             return;
         }
 
-        var allFiles = Directory.GetFiles(folder)
-            .Where(f => ImageExtensions.Contains(Path.GetExtension(f).ToLowerInvariant()))
-            .ToList();
-
-        List<string> targetFiles;
-        if (RescanAllCheckBox.IsChecked == true)
+        List<string> allFiles;
+        try
         {
-            // ウォーターマーク方式は、失敗ファイルより後のタイムスタンプのファイルが1つでも
-            // 成功すると当該ファイルが永久に対象外になるため、全件再スキャンの手動フォールバックを用意する。
-            targetFiles = allFiles.OrderBy(f => File.GetLastWriteTime(f)).ToList();
-        }
-        else
-        {
-            var latestScreenshot = CharmItems
-                .Where(i => i.Charm.Source == CharmSource.Screenshot)
-                .Select(i => i.Charm.SourceTimestamp)
-                .DefaultIfEmpty(DateTime.MinValue)
-                .Max();
-
-            targetFiles = allFiles
-                .Where(f => File.GetLastWriteTime(f) > latestScreenshot)
-                .OrderBy(f => File.GetLastWriteTime(f))
+            allFiles = Directory.GetFiles(folder)
+                .Where(f => ImageExtensions.Contains(Path.GetExtension(f).ToLowerInvariant()))
                 .ToList();
         }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            ErrorLogger.Log("ReadScreenshot", folder, ex);
+            ReadingSummaryText.Text = $"フォルダを読み込めませんでした: {ex.Message}";
+            return;
+        }
+
+        var targetFiles = ScreenshotFileSelector.SelectTargets(
+            allFiles.Select(f => (f, File.GetLastWriteTime(f))).ToList(),
+            AllCharms,
+            rescanAll: RescanAllCheckBox.IsChecked == true);
 
         if (targetFiles.Count == 0)
         {
@@ -493,7 +513,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
                 if (!ct.IsCancellationRequested)
                     ReadingProgressText.Text = $"{count} / {targetFiles.Count} 処理中...";
             });
-            var outcomes = await ProcessScreenshotsAsync(
+            var outcomes = await ScreenshotCharmReader.ProcessAllAsync(
                 targetFiles, knownSkills, charmTypes, ReadingParallelism, progress, ct);
 
             // ログ出力・集計はUIスレッドでファイル順に行う(ErrorLoggerはスレッドセーフではなく、
@@ -570,7 +590,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
 
             // charmType(未解/史伝/秘歴/栄世の護石)でRarityが決まらなかった護石(通常護石・希望の護石等)は
             // スキル・スロット構成からのRARE推定で補完する。
-            InferRarityBatch(results.Select(r => r.Charm).ToList());
+            results = results.Select(r => (RarityInference.WithInferredRarity(r.Charm), r.FileName)).ToList();
 
             CancelReadingButton.Visibility = Visibility.Collapsed;
 
@@ -628,239 +648,6 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         _readingCts?.Cancel();
         CancelReadingButton.IsEnabled = false;
         ReadingProgressText.Text = "中断しています...";
-    }
-
-    internal enum ScreenshotOutcomeKind
-    {
-        NotCharmPanel,
-        Detected,
-        NoValidSkill,
-        NoCharmName,
-        DecorationEquipped,
-        SlotDetectionFailed,
-        InconsistentWithCombinations,
-        SlotPanelMismatch,
-        Error,
-    }
-
-    internal sealed record ScreenshotOutcome(ScreenshotOutcomeKind Kind, Charm? Charm = null, Exception? Error = null);
-
-    /// <summary>
-    /// 複数のスクショを<paramref name="parallelism"/>本のワーカーで並列に読み取る。戻り値は
-    /// <paramref name="files"/>と同じ順の配列で、中断により処理しなかったファイルはnull。
-    /// ワーカーは共有カウンタで先頭から順にファイルを取り出すため、中断時も「処理を開始した
-    /// ファイル」は常に先頭からの連続範囲になり(開始済みのファイルは最後まで処理する)、
-    /// 中断時の「X / N枚まで処理」の意味が逐次処理時と変わらない。
-    /// <paramref name="progress"/>には完了件数を報告する(並列のため到着順は前後しうる)。
-    /// </summary>
-    internal static async Task<ScreenshotOutcome?[]> ProcessScreenshotsAsync(
-        IReadOnlyList<string> files, IReadOnlyList<string> knownSkills, IReadOnlyList<CharmTypeInfo> charmTypes,
-        int parallelism, IProgress<int>? progress, CancellationToken ct)
-    {
-        var outcomes = new ScreenshotOutcome?[files.Count];
-        int nextIndex = -1;
-        int completed = 0;
-
-        var workers = Enumerable.Range(0, Math.Min(parallelism, files.Count))
-            .Select(_ => Task.Run(async () =>
-            {
-                while (!ct.IsCancellationRequested)
-                {
-                    int i = Interlocked.Increment(ref nextIndex);
-                    if (i >= files.Count) return;
-                    outcomes[i] = await ProcessScreenshotAsync(files[i], knownSkills, charmTypes);
-                    progress?.Report(Interlocked.Increment(ref completed));
-                }
-            }))
-            .ToArray();
-        await Task.WhenAll(workers);
-        return outcomes;
-    }
-
-    /// <summary>
-    /// スクショ1枚からの護石読み取り(スキル・護石名・スロット)。スレッドプールから並列に呼ばれるため、
-    /// UI要素・ErrorLoggerには触れず、結果(除外理由・例外を含む)を<see cref="ScreenshotOutcome"/>で返す。
-    /// </summary>
-    internal static async Task<ScreenshotOutcome> ProcessScreenshotAsync(
-        string file, IReadOnlyList<string> knownSkills, IReadOnlyList<CharmTypeInfo> charmTypes)
-    {
-        try
-        {
-            var readResult = await SkillReadingPipeline.ReadWithMetadataAsync(file, knownSkills);
-            if (readResult is null)
-                return new(ScreenshotOutcomeKind.NotCharmPanel);
-
-            var validSkills = readResult.Skills
-                .Where(s => s.Name is not null && s.Lv is not null)
-                .Select(s => new CharmSkill(s.Name!, s.Lv!.Value))
-                .ToList();
-
-            if (validSkills.Count == 0)
-                return new(ScreenshotOutcomeKind.NoValidSkill);
-
-            if (readResult.CharmName is null)
-            {
-                // 護石名テキスト自体が読み取れなかった場合、charm-types.json登録4種
-                // (未解/史伝/秘歴/栄世)のどれに該当するかも、そもそも該当しない一般護石・
-                // 希望の護石等かも判別できない。hasWeaponSlot=falseのままReadSlotsへ渡すと、
-                // 実際は栄世の護石(武器スロット持ち)だった場合に武器スロットの検出値が
-                // 防具スロットとして誤保存されるリスクがある(2026-08-05発見)。
-                // スロット値自体は妥当範囲に収まるためSlotValidationでは検出できないサイレント
-                // 誤りになるため、護石名が完全に不明な場合のみ読み取り失敗として除外する。
-                // 護石名は読めたがcharm-types.jsonに未登録(希望の護石等)の場合は、従来通り
-                // hasWeaponSlot=false・Rarity=nullで処理を続け、後続のRarityInferenceによる
-                // 補完に委ねる(未登録=栄世の護石ではないと確定できるため誤混同のリスクがない)。
-                return new(ScreenshotOutcomeKind.NoCharmName);
-            }
-
-            var charmType = CharmTypeLoader.Lookup(readResult.CharmName, charmTypes);
-            var slots = ReadSlots(file, charmType?.HasWeaponSlot ?? false, readResult.AnchorX);
-
-            var charm = new Charm
-            {
-                Skills = validSkills,
-                ArmorSlots = slots.ArmorSlots,
-                WeaponSlots = slots.WeaponSlots,
-                Rarity = charmType?.Rarity,
-                Source = CharmSource.Screenshot,
-                SourceTimestamp = File.GetLastWriteTime(file),
-            };
-
-            // スキル・スロットが構成表のどの組み合わせにも当てはまらない護石は実在しないため、
-            // 読み取りの誤り(スキルの読み落とし、スロットLvの読み違い等)として保存せずに除外する
-            // (2026-11-07、2スキルのうち1つしか読めず1スキルの護石として保存されかけた事例による)。
-            if (!CharmCombinationValidator.MatchesAnyCombination(charm))
-                return new(ScreenshotOutcomeKind.InconsistentWithCombinations);
-
-            return new(ScreenshotOutcomeKind.Detected, charm);
-        }
-        catch (DecorationEquippedException)
-        {
-            return new(ScreenshotOutcomeKind.DecorationEquipped);
-        }
-        catch (SlotPanelMismatchException)
-        {
-            return new(ScreenshotOutcomeKind.SlotPanelMismatch);
-        }
-        catch (SlotDetectionFailedException)
-        {
-            // BOX/Detail両領域からスロットアイコンが1件も検出できなかったケース。
-            // 対象護石にスロット完全ゼロの構成は存在しない(charm-combinations.json参照)ため
-            // 検出失敗として扱い、[0,0,0]のまま正常保存されることを防ぐ(2026-08-05発見)。
-            return new(ScreenshotOutcomeKind.SlotDetectionFailed);
-        }
-        catch (Exception ex)
-        {
-            return new(ScreenshotOutcomeKind.Error, Error: ex);
-        }
-    }
-
-    /// <summary>
-    /// スクショからスロット構成を読み取る。<paramref name="anchorX"/>(スキル欄のアンカーX、元画像の座標)を
-    /// 渡した場合は、採用したスロット枠がスキル欄と同じパネルにあるかを確かめ、別のパネルなら
-    /// <see cref="SlotPanelMismatchException"/>をスローする(nullなら確かめない)。
-    /// </summary>
-    internal static (List<int> ArmorSlots, List<int> WeaponSlots) ReadSlots(
-        string imagePath, bool hasWeaponSlot, double? anchorX = null)
-    {
-        using var img = OpenCvSharp.Cv2.ImRead(imagePath);
-        var (sx, sy) = SlotIconAnalyzer.ScaleFactors(img);
-
-        var boxRegion = SlotIconAnalyzer.PanelRegion(img);
-        var detRegion = SlotIconAnalyzer.DetailPanelRegion(img);
-        var (boxFrames, boxColor) = DetectInRegion(img, boxRegion, sx, sy);
-        var (detFrames, detColor) = DetectInRegion(img, detRegion, sx, sy);
-
-        List<OpenCvSharp.Rect> frames;
-        OpenCvSharp.Rect region;
-        OpenCvSharp.Mat color;
-        OpenCvSharp.Mat disposeColor;
-
-        // BOX領域で1件以上検出できていれば常にBOX側を信頼する。Detail領域(x:1400-1650)は
-        // 画面パターンによっては護石画像プレビュー等の無関係な内容(背景テクスチャ等)を
-        // 誤検出しうるため、BOX側の検出数がDetail側を下回っていてもBOX優先とする
-        // (マカ錬金鑑定結果画面で背景の木目模様がDetail領域に2枠の偽陽性を生み、
-        // BOX側の正しい1枠より多く検出されてDetail側が誤採用される回帰を確認したため)。
-        if (boxFrames.Count > 0)
-        {
-            frames = boxFrames; region = boxRegion; color = boxColor;
-            disposeColor = detColor;
-        }
-        else
-        {
-            frames = detFrames; region = detRegion; color = detColor;
-            disposeColor = boxColor;
-        }
-
-        disposeColor.Dispose();
-
-        try
-        {
-            if (frames.Count == 0)
-                throw new SlotDetectionFailedException();
-
-            // 空スロットの照合(ClassifyFrames)より前に確かめる。別のパネルの枠は照合でも
-            // 「装飾品あり」と判定されることが多く、後に置くと除外理由が装飾品になってしまうため。
-            // 枠の座標は探索領域内の座標のため、領域の左端を足して元画像の座標にする(sxはUIの倍率)。
-            if (anchorX is { } ax &&
-                !SlotPanelConsistency.AreFramesInSkillPanel(
-                    frames.Select(f => (double)(region.X + f.X)).ToList(), ax, sx))
-                throw new SlotPanelMismatchException();
-
-            return ClassifyFrames(frames, color, hasWeaponSlot);
-        }
-        finally
-        {
-            color.Dispose();
-        }
-    }
-
-    private static (List<OpenCvSharp.Rect> Frames, OpenCvSharp.Mat Color) DetectInRegion(
-        OpenCvSharp.Mat img, OpenCvSharp.Rect region, double sx, double sy)
-    {
-        var color = new OpenCvSharp.Mat(img, region);
-        using var gray = new OpenCvSharp.Mat();
-        OpenCvSharp.Cv2.CvtColor(color, gray, OpenCvSharp.ColorConversionCodes.BGR2GRAY);
-        var frames = SlotIconAnalyzer.DetectFrames(gray, sx, sy);
-        return (frames, color);
-    }
-
-    private static (List<int> ArmorSlots, List<int> WeaponSlots) ClassifyFrames(
-        List<OpenCvSharp.Rect> frames, OpenCvSharp.Mat color, bool hasWeaponSlot)
-    {
-        var armorSlots = new List<int> { 0, 0, 0 };
-        var weaponSlots = new List<int> { 0, 0, 0 };
-        int armorIdx = 0;
-        bool weaponAssigned = false;
-
-        for (int i = 0; i < frames.Count; i++)
-        {
-            var frame = frames[i];
-            var match = SlotIconAnalyzer.MatchEmptyTemplate(color, frame);
-            if (match.Level is null)
-                throw new DecorationEquippedException();
-
-            int lv = match.Level.Value switch
-            {
-                SlotLevel.Lv1 => 1,
-                SlotLevel.Lv2 => 2,
-                SlotLevel.Lv3 => 3,
-                _ => 0,
-            };
-
-            // 栄世の護石: 1つ目のフレームが武器スロット
-            if (hasWeaponSlot && !weaponAssigned && i == 0)
-            {
-                weaponSlots[0] = lv;
-                weaponAssigned = true;
-            }
-            else if (armorIdx < 3)
-            {
-                armorSlots[armorIdx++] = lv;
-            }
-        }
-
-        return SlotValidation.Validate(armorSlots, weaponSlots);
     }
 
     private void AddReadingResult_Click(object sender, RoutedEventArgs e)
@@ -926,8 +713,23 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
                 }
             }
 
-            var parsed = CharmCsvConverter.ParseText(csvText);
-            InferRarityBatch(parsed);
+            var parsedRaw = CharmCsvConverter.ParseText(csvText);
+
+            // ゲームにありえない値(存在しないLv・スロットの形・スキル0個)は、形式エラーと同じく行番号付きで
+            // 全体を取り込まない。候補にないスキル名は警告として件数だけ知らせて取り込む
+            var skillGroups = RarityInference.LoadSkillGroups();
+            var issuesPerLine = parsedRaw.Select(c => CharmValidator.Validate(c, skillGroups)).ToList();
+            int errorIndex = issuesPerLine.FindIndex(issues => CharmValidator.HasError(issues));
+            if (errorIndex >= 0)
+            {
+                var errors = issuesPerLine[errorIndex]
+                    .Where(i => i.Severity == CharmIssueSeverity.Error).Select(i => i.Message);
+                ImportResultText.Text = $"読み込みエラー: 行 {errorIndex + 1}: {string.Join(" ", errors)}（どの護石も取り込んでいません）";
+                return;
+            }
+            int warningCount = issuesPerLine.Count(issues => issues.Count > 0);
+            string warningNote = warningCount > 0 ? $"（{warningCount}件にスキル候補一覧にないスキル名があります）" : "";
+            var parsed = parsedRaw.Select(RarityInference.WithInferredRarity).ToList();
 
             if (ModeOverwrite.IsChecked == true)
             {
@@ -945,7 +747,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
                     AddCharm(charm);
 
                 SaveCharms();
-                ImportResultText.Text = $"{parsed.Count}件をインポートしました。";
+                ImportResultText.Text = $"{parsed.Count}件をインポートしました。{warningNote}";
             }
             else
             {
@@ -965,57 +767,24 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
                 }
 
                 SaveCharms();
-                ImportResultText.Text = $"{added}件を追加、{skipped}件をスキップしました。（既存{CharmItems.Count}件）";
+                ImportResultText.Text = $"{added}件を追加、{skipped}件をスキップしました。（既存{CharmItems.Count}件）{warningNote}";
             }
         }
         catch (FormatException ex)
         {
             ImportResultText.Text = $"読み込みエラー: {ex.Message}";
         }
-        catch (IOException ex)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             ImportResultText.Text = $"ファイル読み込みエラー: {ex.Message}";
         }
     }
 
-    private bool IsExactDuplicate(Charm candidate)
-    {
-        foreach (var item in CharmItems)
-        {
-            var existing = item.Charm;
-            if (existing.Skills.Count != candidate.Skills.Count) continue;
-
-            var existingSkills = existing.Skills
-                .Select(s => $"{s.Name}:{s.Lv}").OrderBy(s => s).ToList();
-            var candidateSkills = candidate.Skills
-                .Select(s => $"{s.Name}:{s.Lv}").OrderBy(s => s).ToList();
-            if (!existingSkills.SequenceEqual(candidateSkills)) continue;
-
-            var existingArmor = existing.ArmorSlots.OrderByDescending(x => x).ToList();
-            var candidateArmor = candidate.ArmorSlots.OrderByDescending(x => x).ToList();
-            if (!existingArmor.SequenceEqual(candidateArmor)) continue;
-
-            var existingWeapon = existing.WeaponSlots.OrderByDescending(x => x).ToList();
-            var candidateWeapon = candidate.WeaponSlots.OrderByDescending(x => x).ToList();
-            if (!existingWeapon.SequenceEqual(candidateWeapon)) continue;
-
-            return true;
-        }
-        return false;
-    }
+    /// <summary>一覧に完全同一の護石があるか(判定は重複チェックと同じ<see cref="DuplicateChecker.AreIdentical"/>)。</summary>
+    private bool IsExactDuplicate(Charm candidate) =>
+        AllCharms.Any(existing => DuplicateChecker.AreIdentical(existing, candidate));
 
     private IEnumerable<Charm> AllCharms => CharmItems.Select(i => i.Charm);
-
-    private static void InferRarityBatch(List<Charm> charms)
-    {
-        var skillGroups = RarityInference.LoadSkillGroups();
-        var combinations = RarityInference.LoadCombinations();
-        foreach (var charm in charms)
-        {
-            if (charm.Rarity is null)
-                charm.Rarity = RarityInference.Infer(charm, skillGroups, combinations);
-        }
-    }
 
     private void ExportClipboard_Click(object sender, RoutedEventArgs e)
     {
@@ -1025,7 +794,17 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
             return;
         }
         var text = CharmCsvConverter.ToText(AllCharms);
-        Clipboard.SetText(text);
+        try
+        {
+            Clipboard.SetText(text);
+        }
+        catch (System.Runtime.InteropServices.ExternalException ex)
+        {
+            // 他のアプリがクリップボードを開いている間は、書き込みが失敗することがある
+            ErrorLogger.Log("ExportClipboard", "クリップボードへの書き込みに失敗しました。", ex);
+            ExportResultText.Text = "クリップボードを使用できませんでした。少し待ってからもう一度お試しください。";
+            return;
+        }
         ExportResultText.Text = $"クリップボードにコピーしました。（{CharmItems.Count}件）";
     }
 
@@ -1106,27 +885,52 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         };
         if (dialog.ShowDialog() != true) return;
 
-        List<Charm> parsed;
+        CharmJsonParseResult parseResult;
         try
         {
-            var json = File.ReadAllText(dialog.FileName);
-            parsed = ParseCharmsJson(json);
-            InferRarityBatch(parsed);
+            parseResult = CharmJsonSerializer.Parse(File.ReadAllText(dialog.FileName));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
         {
             MessageBox.Show($"読み込みエラー: {ex.Message}", "インポート", MessageBoxButton.OK, MessageBoxImage.Error);
             return;
         }
 
+        // 新しく取り込むデータなので、不変条件の違反に加えてゲームにありえない値の項目も取り込まない
+        // (起動時の既存データの読み込みとは扱いが違う)。候補にないスキル名は警告として件数だけ知らせる
+        var skillGroups = RarityInference.LoadSkillGroups();
+        var excludedReasons = parseResult.Rejected.Select(r => $"{r.Index + 1}件目: {r.Reason}").ToList();
+        var parsed = new List<Charm>();
+        int warningCount = 0;
+        foreach (var charm in parseResult.Charms)
+        {
+            var issues = CharmValidator.Validate(charm, skillGroups);
+            if (CharmValidator.HasError(issues))
+            {
+                excludedReasons.Add(string.Join(" ", issues.Where(i => i.Severity == CharmIssueSeverity.Error).Select(i => i.Message)));
+                continue;
+            }
+            if (issues.Count > 0) warningCount++;
+            parsed.Add(RarityInference.WithInferredRarity(charm));
+        }
+        foreach (var reason in excludedReasons)
+            ErrorLogger.Log("ImportLocalData", $"{dialog.FileName}: 取り込みませんでした: {reason}");
+
         if (parsed.Count == 0)
         {
-            MessageBox.Show("インポート対象の護石データがありません。", "インポート");
+            var detail = excludedReasons.Count > 0 ? $"\n（{excludedReasons.Count}件は不正な形式のため取り込めません。理由は error.log に記録しました）" : "";
+            MessageBox.Show($"インポート対象の護石データがありません。{detail}", "インポート");
             return;
         }
 
+        var notes = "";
+        if (excludedReasons.Count > 0)
+            notes += $"\n不正な形式のため取り込まない: {excludedReasons.Count}件（例: {excludedReasons[0]}。理由は error.log に記録しました）";
+        if (warningCount > 0)
+            notes += $"\nスキル候補一覧にないスキル名を含む: {warningCount}件（取り込みます）";
+
         var mode = MessageBox.Show(
-            $"インポートデータ: {parsed.Count}件\n既存データ: {CharmItems.Count}件\n\n"
+            $"インポートデータ: {parsed.Count}件\n既存データ: {CharmItems.Count}件{notes}\n\n"
             + "「はい」→ 差分追加（既存データに追加）\n"
             + "「いいえ」→ 全件上書き（既存データを置換）",
             "インポートモード",
@@ -1177,10 +981,19 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         };
         if (dialog.ShowDialog() != true) return;
 
-        if (!File.Exists(CharmsFilePath))
-            SaveCharms();
-
-        File.Copy(CharmsFilePath, dialog.FileName, overwrite: true);
+        // ディスク上のcharms.jsonをコピーすると、直前の保存に失敗していた場合に表示中の一覧と違う
+        // 古い内容を書き出してしまうため、表示中の一覧をそのまま書き出す
+        try
+        {
+            File.WriteAllText(dialog.FileName, CharmJsonSerializer.Serialize(AllCharms));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            ErrorLogger.Log("ExportLocalData", dialog.FileName, ex);
+            MessageBox.Show($"エクスポートに失敗しました。\n\nファイル: {dialog.FileName}\n{ex.Message}",
+                "エクスポート", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
         MessageBox.Show($"{CharmItems.Count}件の護石データをエクスポートしました。", "エクスポート");
     }
 

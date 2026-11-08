@@ -31,9 +31,17 @@ public static class LetterboxNormalizer
     /// 上下の黒帯を検出し、コンテンツの行範囲と基準解像度1440に対するスケール係数
     /// (contentHeight/1440)を返す。黒帯が無い通常の16:9画像ではTop=0・Bottom=画像高さ-1・
     /// Scale=1.0になる。
+    /// 事前条件: srcは空でない3チャネル(BGR)の画像。
+    /// 事後条件: 0 &lt;= Top &lt;= Bottom &lt; 画像の高さ、Scale &gt; 0。すべての行が暗い画像(真っ黒な画像等)は
+    /// 黒帯なしとして画像全体を返す(黒帯の行と区別できないため。2026-11-08、修正前は倍率0を返し、
+    /// 呼び出し元の倍率の検査で例外になっていた)。
     /// </summary>
     public static (int Top, int Bottom, double Scale) DetectContentBounds(Mat src)
     {
+        ArgumentNullException.ThrowIfNull(src);
+        if (src.Empty() || src.Type() != MatType.CV_8UC3)
+            throw new ArgumentException("srcは空でない3チャネル(BGR)の画像である必要があります。", nameof(src));
+
         var (top, bottom) = FindContentRowBounds(src);
         int contentHeight = bottom - top + 1;
         double scale = (double)contentHeight / ReferenceHeight;
@@ -49,6 +57,9 @@ public static class LetterboxNormalizer
         int top = 0;
         while (top < h && RowMean(gray, top) <= BlackRowMeanThreshold)
             top++;
+
+        if (top == h)
+            return (0, h - 1);
 
         int bottom = h - 1;
         while (bottom > top && RowMean(gray, bottom) <= BlackRowMeanThreshold)

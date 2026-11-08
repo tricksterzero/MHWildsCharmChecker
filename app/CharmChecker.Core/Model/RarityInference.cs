@@ -67,6 +67,16 @@ public static class RarityInference
         return null;
     }
 
+    /// <summary>
+    /// RAREが空の護石だけ、推定したRAREを入れた新しいインスタンスを返す(RAREがあればそのまま返す。副作用なし)。
+    /// 事前条件: charmはnullでない。
+    /// </summary>
+    public static Charm WithInferredRarity(Charm charm)
+    {
+        ArgumentNullException.ThrowIfNull(charm);
+        return charm.Rarity is null ? charm.WithRarity(Infer(charm)) : charm;
+    }
+
     internal static List<int[]>? ResolvePossibleGroups(Charm charm, IReadOnlyList<SkillGroupEntry> skillGroups)
     {
         var possibleGroupsPerSkill = new List<int[]>();
@@ -158,10 +168,17 @@ public static class RarityInference
         return entries;
     }
 
-    private static CharmCombination[] ParseCombinations(string json)
+    /// <summary>
+    /// charm-combinations.jsonを読み込み、手で保守するデータの誤りを読み込み時に検出する
+    /// (skill-groups.json・charm-types.jsonと同じく、誤りがあれば例外にする。2026-11-08追加)。
+    /// 検査: RAREは5〜8、スキルグループは1〜3個、スロットのパターンは1個以上で各Lvは0〜3・各3個まで、
+    /// 重み(weight)は1つの組み合わせの中で全部あるか全部ないかのどちらかで、ある場合は各値が正で
+    /// 合計が1(誤差0.01まで)。一部にだけ重みがあると、構成確率の計算で重みと「1/パターン数」が混ざるため。
+    /// </summary>
+    internal static CharmCombination[] ParseCombinations(string json)
     {
         using var doc = JsonDocument.Parse(json);
-        return doc.RootElement.EnumerateArray().Select(e => new CharmCombination(
+        var combinations = doc.RootElement.EnumerateArray().Select(e => new CharmCombination(
             e.GetProperty("rarity").GetInt32(),
             e.GetProperty("skillGroups").EnumerateArray().Select(g => g.GetInt32()).ToArray(),
             e.GetProperty("slots").EnumerateArray().Select(s => new CharmCombinationSlot(
@@ -170,5 +187,27 @@ public static class RarityInference
                 s.TryGetProperty("weight", out var w) ? w.GetDouble() : null
             )).ToArray()
         )).ToArray();
+
+        foreach (var c in combinations)
+        {
+            var label = $"RARE{c.Rarity} [{string.Join(",", c.SkillGroups)}]";
+            if (c.Rarity is < 5 or > 8)
+                throw new InvalidOperationException($"charm-combinations.json のRAREが5〜8の範囲外です: {label}");
+            if (c.SkillGroups.Length is < 1 or > 3)
+                throw new InvalidOperationException($"charm-combinations.json のスキルグループの数が1〜3ではありません: {label}");
+            if (c.Slots.Length == 0)
+                throw new InvalidOperationException($"charm-combinations.json にスロットのパターンがありません: {label}");
+            if (c.Slots.Any(s => s.Armor.Length > 3 || s.Weapon.Length > 3
+                    || s.Armor.Concat(s.Weapon).Any(v => v is < 0 or > 3)))
+                throw new InvalidOperationException($"charm-combinations.json のスロットの値が不正です(各3個まで、Lvは0〜3): {label}");
+
+            int weighted = c.Slots.Count(s => s.Weight is not null);
+            if (weighted != 0 && weighted != c.Slots.Length)
+                throw new InvalidOperationException($"charm-combinations.json で、重み(weight)が一部のスロットにだけあります: {label}");
+            if (weighted > 0 && (c.Slots.Any(s => s.Weight <= 0) || Math.Abs(c.Slots.Sum(s => s.Weight!.Value) - 1.0) > 0.01))
+                throw new InvalidOperationException($"charm-combinations.json の重み(weight)が正でないか、合計が1ではありません: {label}");
+        }
+
+        return combinations;
     }
 }

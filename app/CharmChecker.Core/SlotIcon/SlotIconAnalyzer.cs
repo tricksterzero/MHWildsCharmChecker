@@ -88,6 +88,9 @@ public static class SlotIconAnalyzer
         var merged = MergeOverlapping(raw, SlotIconConstants.MergeXThreshold * sx);
         var filtered = FilterYCluster(merged, SlotIconConstants.ClusterYThreshold * sy);
 
+        // 確定した枠が1つもない場合は回復を試みない。正しいパネルがDetail側にある画面(狩猟後の鑑定BOX等)で
+        // BOX側のノイズの塊から枠を「回復」すると、ReadSlotsの「BOX側で1件以上検出できればBOX優先」の
+        // 規則で誤った領域が選ばれるため(2026-11-08にコメントとCLAUDE.mdを実際の動作に合わせて明記)
         if (oversized.Count > 0 && filtered.Count > 0)
         {
             filtered = TryRecoverFusedFrame(gray, filtered, oversized, wLo, wHi, hLo, hHi);
@@ -184,8 +187,9 @@ public static class SlotIconAnalyzer
             if (recoveredViaAdjacency)
                 continue;
 
-            // 同じ行に確定フレームが1つも無い(=護石の唯一のスロットが丸ごと融合した、
-            // または他候補が全て別行のノイズだった)場合のフォールバック。手掛かりが無いため
+            // 同じ行に確定フレームが1つも無い(=確定フレームは別の行のノイズ(「RARE」の文字の誤検出等)
+            // だけで、護石のスロットは丸ごと融合した)場合のフォールバック。確定フレームが領域内に
+            // 1つも無い場合はここに来ない(DetectFramesの呼び出し条件を参照)。手掛かりが無いため
             // 塊自体の左端・右端それぞれから固定幅の窓で再探索し、有効な候補が出た方を採用する
             // (実データで、真のソケット枠は融合塊の左端から始まるケースを確認済みだが、
             // 将来別の画面パターンで右端から始まるケースもありうるため両側を試す)。

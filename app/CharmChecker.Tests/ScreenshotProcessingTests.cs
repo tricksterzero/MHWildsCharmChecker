@@ -1,6 +1,6 @@
 using CharmChecker.Core.Model;
 using CharmChecker.Core.Skill;
-using static CharmChecker.App.MainWindow;
+using CharmChecker.Core.Screenshot;
 
 namespace CharmChecker.Tests;
 
@@ -18,7 +18,7 @@ public class ScreenshotProcessingTests
         if (!File.Exists(path))
             return;
 
-        var outcome = await ProcessScreenshotAsync(
+        var outcome = await ScreenshotCharmReader.ProcessAsync(
             path, SkillNameLoader.LoadFromEmbeddedResource(), CharmTypeLoader.LoadFromEmbeddedResource());
 
         Assert.Equal(ScreenshotOutcomeKind.Detected, outcome.Kind);
@@ -37,7 +37,7 @@ public class ScreenshotProcessingTests
         if (!File.Exists(path))
             return;
 
-        var outcome = await ProcessScreenshotAsync(
+        var outcome = await ScreenshotCharmReader.ProcessAsync(
             path, SkillNameLoader.LoadFromEmbeddedResource(), CharmTypeLoader.LoadFromEmbeddedResource());
 
         Assert.Equal(ScreenshotOutcomeKind.SlotPanelMismatch, outcome.Kind);

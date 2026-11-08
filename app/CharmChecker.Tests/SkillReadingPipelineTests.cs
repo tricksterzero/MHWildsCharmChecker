@@ -247,8 +247,9 @@ public class SkillReadingPipelineTests
     [Fact]
     public async Task ReadWithMetadataAsync_AllBlackImage_ReturnsNull()
     {
-        // 真っ黒な画像ではLetterboxNormalizerの倍率が0になる。アンカー候補が無いので、倍率の検査
-        // (ChooseAnchorの事前条件)で例外にせずnullを返すべき回帰テスト(2026-11-07、Steamのスクショで発見)
+        // 真っ黒な画像は護石パネルではないためnullを返すべき回帰テスト(2026-11-07、Steamのスクショで発見。
+        // 当時はLetterboxNormalizerが倍率0を返し、ChooseAnchorの倍率の検査で例外になっていた。
+        // 2026-11-08からLetterboxNormalizerは真っ黒な画像を黒帯なしとして扱う)
         var resourcesDir = FindResourcesDir();
         var knownSkills = SkillNameLoader.Load(Path.Combine(resourcesDir, "skill-decoration-map.json"));
         var tempPath = Path.Combine(Path.GetTempPath(), $"charmchecker_black_{Guid.NewGuid():N}.png");
@@ -266,6 +267,35 @@ public class SkillReadingPipelineTests
         {
             File.Delete(tempPath);
         }
+    }
+
+    [Fact]
+    public async Task ReadWithMetadataAsync_NotAnImageFile_ThrowsInvalidDataException()
+    {
+        // 画像として読めないファイルは、OpenCVの分かりにくい例外("!_src.empty()")ではなく、
+        // 原因の分かる例外にする(2026-11-08)
+        var knownSkills = SkillNameLoader.Load(Path.Combine(FindResourcesDir(), "skill-decoration-map.json"));
+        var tempPath = Path.Combine(Path.GetTempPath(), $"charmchecker_notimage_{Guid.NewGuid():N}.jpg");
+        File.WriteAllText(tempPath, "これは画像ではありません");
+
+        try
+        {
+            await Assert.ThrowsAsync<InvalidDataException>(
+                () => SkillReadingPipeline.ReadWithMetadataAsync(tempPath, knownSkills));
+        }
+        finally
+        {
+            File.Delete(tempPath);
+        }
+    }
+
+    [Fact]
+    public async Task ReadWithMetadataAsync_InvalidArguments_Throw()
+    {
+        var knownSkills = SkillNameLoader.Load(Path.Combine(FindResourcesDir(), "skill-decoration-map.json"));
+        await Assert.ThrowsAsync<ArgumentException>(() => SkillReadingPipeline.ReadWithMetadataAsync("", knownSkills));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => SkillReadingPipeline.ReadWithMetadataAsync(null!, knownSkills));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => SkillReadingPipeline.ReadWithMetadataAsync("x.jpg", null!));
     }
 
     public static IEnumerable<object[]> RightPanelAnchorCases()

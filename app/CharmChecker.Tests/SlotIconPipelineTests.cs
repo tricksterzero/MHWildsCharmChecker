@@ -112,7 +112,7 @@ public class SlotIconPipelineTests
         // Detail領域(x:1400-1650)側はこの画面では護石画像プレビュー部分を誤検出しており、
         // BOX領域の検出結果(Lv2+Lv1、正解)が採用されるべき回帰テスト
         var path = Path.Combine(TestPaths.FindAssetsDir(), "case5 craft result", "20260615054704_1.jpg");
-        var (armor, weapon) = CharmChecker.App.MainWindow.ReadSlots(path, hasWeaponSlot: false);
+        var (armor, weapon) = CharmChecker.Core.Screenshot.ScreenshotCharmReader.ReadSlots(path, hasWeaponSlot: false);
 
         Assert.Equal(new List<int> { 2, 1, 0 }, armor);
         Assert.Equal(new List<int> { 0, 0, 0 }, weapon);
@@ -124,7 +124,7 @@ public class SlotIconPipelineTests
         // 同種の同数タイ問題の別ケース: BOX・Detailとも1枠ずつ検出するが、
         // Detail領域側がLv3と誤判定する（正解はBOX領域のLv1）
         var path = Path.Combine(TestPaths.FindAssetsDir(), "case5 craft result", "20260527222641_1.jpg");
-        var (armor, weapon) = CharmChecker.App.MainWindow.ReadSlots(path, hasWeaponSlot: false);
+        var (armor, weapon) = CharmChecker.Core.Screenshot.ScreenshotCharmReader.ReadSlots(path, hasWeaponSlot: false);
 
         Assert.Equal(new List<int> { 1, 0, 0 }, armor);
         Assert.Equal(new List<int> { 0, 0, 0 }, weapon);
@@ -140,7 +140,7 @@ public class SlotIconPipelineTests
         // TryRecoverFusedFrameが、確定済みの2つ目のアイコンを手掛かりに、融合した塊の
         // 未検出側だけを狭い窓で再度Canny検出することで1つ目のLv2を回復する。
         var path = Path.Combine(TestPaths.FindAssetsDir(), "case2 equip change", "20260506085633_1.jpg");
-        var (armor, weapon) = CharmChecker.App.MainWindow.ReadSlots(path, hasWeaponSlot: false);
+        var (armor, weapon) = CharmChecker.Core.Screenshot.ScreenshotCharmReader.ReadSlots(path, hasWeaponSlot: false);
 
         Assert.Equal(new List<int> { 2, 1, 0 }, armor);
         Assert.Equal(new List<int> { 0, 0, 0 }, weapon);
@@ -155,7 +155,7 @@ public class SlotIconPipelineTests
         // 塊の境界自体はCannyの融合具合で伸縮し不安定なため、隣接する確定フレームの端を
         // 起点にした固定幅の窓で再探索して回復する。
         var path = Path.Combine(TestPaths.FindAssetsDir(), "case6 appraisal box", "20250906064316_1.jpg");
-        var (armor, weapon) = CharmChecker.App.MainWindow.ReadSlots(path, hasWeaponSlot: true);
+        var (armor, weapon) = CharmChecker.Core.Screenshot.ScreenshotCharmReader.ReadSlots(path, hasWeaponSlot: true);
 
         Assert.Equal(new List<int> { 1, 0, 0 }, armor);
         Assert.Equal(new List<int> { 1, 0, 0 }, weapon);
@@ -171,7 +171,7 @@ public class SlotIconPipelineTests
         // (正: 防具[3,0,0]。BOX領域は1件でも検出できていれば常に信頼すべきで、
         // Detail領域の検出数が上回ることは根拠にならない)。
         var path = Path.Combine(TestPaths.FindAssetsDir(), "option 21_9 native craft result", "205B741.JPG");
-        var (armor, weapon) = CharmChecker.App.MainWindow.ReadSlots(path, hasWeaponSlot: false);
+        var (armor, weapon) = CharmChecker.Core.Screenshot.ScreenshotCharmReader.ReadSlots(path, hasWeaponSlot: false);
 
         Assert.Equal(new List<int> { 3, 0, 0 }, armor);
         Assert.Equal(new List<int> { 0, 0, 0 }, weapon);
@@ -184,7 +184,7 @@ public class SlotIconPipelineTests
         // 下部の三角の数だけが異なる。空スロットの見本がLv1として誤登録されていたため、実物の
         // Lv3スロットが防具[1,0,0]と読まれていた回帰テスト(2026-11-07、正: [3,0,0])。
         var path = Path.Combine(TestPaths.FindAssetsDir(), "option 21_9 native quest result", "20660C1.JPG");
-        var (armor, weapon) = CharmChecker.App.MainWindow.ReadSlots(path, hasWeaponSlot: false);
+        var (armor, weapon) = CharmChecker.Core.Screenshot.ScreenshotCharmReader.ReadSlots(path, hasWeaponSlot: false);
 
         Assert.Equal(new List<int> { 3, 0, 0 }, armor);
         Assert.Equal(new List<int> { 0, 0, 0 }, weapon);
@@ -200,7 +200,7 @@ public class SlotIconPipelineTests
         // 「装飾品あり」で除外されていた回帰テスト(2026-11-08)。右端に接する枠は、幅をアイコンの
         // 縦横比から求めた値にして照合し直す。
         var path = Path.Combine(TestPaths.FindAssetsDir(), folder, fileName);
-        var (armor, weapon) = CharmChecker.App.MainWindow.ReadSlots(path, hasWeaponSlot: true);
+        var (armor, weapon) = CharmChecker.Core.Screenshot.ScreenshotCharmReader.ReadSlots(path, hasWeaponSlot: true);
 
         Assert.Equal(new List<int> { 1, 1, 0 }, armor);
         Assert.Equal(new List<int> { 1, 0, 0 }, weapon);
@@ -236,7 +236,7 @@ public class SlotIconPipelineTests
         var path = Path.Combine(TestPaths.FindAssetsDir(), "option 21_9 native", fileName);
 
         Assert.Throws<DecorationEquippedException>(
-            () => CharmChecker.App.MainWindow.ReadSlots(path, hasWeaponSlot));
+            () => CharmChecker.Core.Screenshot.ScreenshotCharmReader.ReadSlots(path, hasWeaponSlot));
     }
 
     [Fact]
@@ -256,7 +256,7 @@ public class SlotIconPipelineTests
         try
         {
             Assert.Throws<SlotDetectionFailedException>(
-                () => CharmChecker.App.MainWindow.ReadSlots(tempPath, hasWeaponSlot: false));
+                () => CharmChecker.Core.Screenshot.ScreenshotCharmReader.ReadSlots(tempPath, hasWeaponSlot: false));
         }
         finally
         {
@@ -299,11 +299,11 @@ public class SlotIconPipelineTests
         if (expectException)
         {
             Assert.Throws<DecorationEquippedException>(
-                () => CharmChecker.App.MainWindow.ReadSlots(path, hasWeaponSlot: false));
+                () => CharmChecker.Core.Screenshot.ScreenshotCharmReader.ReadSlots(path, hasWeaponSlot: false));
         }
         else
         {
-            var (armor, _) = CharmChecker.App.MainWindow.ReadSlots(path, hasWeaponSlot: false);
+            var (armor, _) = CharmChecker.Core.Screenshot.ScreenshotCharmReader.ReadSlots(path, hasWeaponSlot: false);
             Assert.Equal(expectedArmor, armor);
         }
     }

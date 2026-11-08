@@ -1,0 +1,58 @@
+using CharmChecker.Core.SlotIcon;
+
+namespace CharmChecker.Core.Model;
+
+public enum CharmIssueSeverity
+{
+    /// <summary>取り込んでよいが、知らせる(候補にないスキル名)。</summary>
+    Warning,
+    /// <summary>新しく取り込まない(ゲームにありえない値)。</summary>
+    Error,
+}
+
+public sealed record CharmIssue(CharmIssueSeverity Severity, string Message);
+
+/// <summary>
+/// 護石がゲームとしてありうるかを確かめる(<see cref="Charm"/>の不変条件とは別の検査)。すべての入口(手動入力・
+/// CSV・JSON・スクショ)がこの判定を使い、入口ごとに警告・エラーの扱いだけを変える(2026-11-08)。
+/// </summary>
+public static class CharmValidator
+{
+    public static IReadOnlyList<CharmIssue> Validate(Charm charm) =>
+        Validate(charm, RarityInference.LoadSkillGroups());
+
+    /// <summary>
+    /// 事前条件: 引数はnullでない。事後条件: 問題がなければ空のリスト。副作用なし。
+    /// - Warning: スキル名がskill-groupsにない(ゲームの更新で増えたスキルかもしれないため、取り込みは止めない)
+    /// - Error: スキルが0個 / 既知のスキル名なのにそのLvがskill-groupsにない / スロットの形が現行ゲームにない
+    ///   (<see cref="SlotValidation.TryValidate"/>がnull)
+    /// </summary>
+    public static IReadOnlyList<CharmIssue> Validate(Charm charm, IReadOnlyList<SkillGroupEntry> skillGroups)
+    {
+        ArgumentNullException.ThrowIfNull(charm);
+        ArgumentNullException.ThrowIfNull(skillGroups);
+
+        var issues = new List<CharmIssue>();
+        if (charm.Skills.Count == 0)
+            issues.Add(new(CharmIssueSeverity.Error, "スキルがありません。"));
+
+        foreach (var skill in charm.Skills)
+        {
+            var levels = skillGroups.Where(g => g.Name == skill.Name).Select(g => g.Level).ToList();
+            if (levels.Count == 0)
+                issues.Add(new(CharmIssueSeverity.Warning, $"「{skill.Name}」はスキル候補一覧にありません。"));
+            else if (!levels.Contains(skill.Lv))
+                issues.Add(new(CharmIssueSeverity.Error, $"「{skill.Name}」にLv{skill.Lv}は存在しません。"));
+        }
+
+        if (SlotValidation.TryValidate(charm.ArmorSlots, charm.WeaponSlots) is null)
+            issues.Add(new(CharmIssueSeverity.Error,
+                $"スロットの形が現行ゲームにありません(防具[{string.Join(",", charm.ArmorSlots)}]・武器[{string.Join(",", charm.WeaponSlots)}])。"));
+
+        return issues;
+    }
+
+    /// <summary>Errorが1つでもあればtrue。</summary>
+    public static bool HasError(IReadOnlyList<CharmIssue> issues) =>
+        issues.Any(i => i.Severity == CharmIssueSeverity.Error);
+}

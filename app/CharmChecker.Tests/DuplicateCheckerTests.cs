@@ -18,6 +18,41 @@ public class DuplicateCheckerTests
     }
 
     [Fact]
+    public void AreIdentical_SameSkillsInDifferentOrderAndSortedSlots_ReturnsTrue()
+    {
+        Assert.True(DuplicateChecker.AreIdentical(
+            MakeCharm([("攻撃", 4), ("見切り", 2)], [3, 1, 0], [1, 0, 0]),
+            MakeCharm([("見切り", 2), ("攻撃", 4)], [1, 3, 0], [1, 0, 0])));
+    }
+
+    [Theory]
+    [InlineData(3)]  // Lv違い
+    public void AreIdentical_DifferentSkillLevel_ReturnsFalse(int lv)
+    {
+        Assert.False(DuplicateChecker.AreIdentical(
+            MakeCharm([("攻撃", 4)], [3, 0, 0]),
+            MakeCharm([("攻撃", lv)], [3, 0, 0])));
+    }
+
+    [Fact]
+    public void AreIdentical_DifferentSlots_ReturnsFalse()
+    {
+        Assert.False(DuplicateChecker.AreIdentical(
+            MakeCharm([("攻撃", 4)], [3, 0, 0]),
+            MakeCharm([("攻撃", 4)], [3, 1, 0])));
+        Assert.False(DuplicateChecker.AreIdentical(
+            MakeCharm([("攻撃", 4)], [1, 0, 0], [0, 0, 0]),
+            MakeCharm([("攻撃", 4)], [0, 0, 0], [1, 0, 0])));
+    }
+
+    [Fact]
+    public void AreIdentical_Null_Throws()
+    {
+        Assert.Throws<ArgumentNullException>(() => DuplicateChecker.AreIdentical(null!, MakeCharm()));
+        Assert.Throws<ArgumentNullException>(() => DuplicateChecker.AreIdentical(MakeCharm(), null!));
+    }
+
+    [Fact]
     public void NoDuplicates_NorInferiors_ReturnsEmpty()
     {
         var charms = new[]
@@ -202,21 +237,6 @@ public class DuplicateCheckerTests
         {
             MakeCharm([("攻撃", 4), ("見切り", 3)], [1, 0, 0]),
             MakeCharm([("攻撃", 4)], [3, 0, 0]),
-        };
-
-        var result = DuplicateChecker.Check(charms);
-
-        Assert.Empty(result.DuplicateGroups);
-        Assert.Empty(result.Inferiors);
-    }
-
-    [Fact]
-    public void DuplicateSkillNames_Incomparable_NoCrash()
-    {
-        var charms = new[]
-        {
-            MakeCharm([("攻撃", 4), ("攻撃", 2)], [1, 0, 0]),
-            MakeCharm([("攻撃", 4)], [1, 0, 0]),
         };
 
         var result = DuplicateChecker.Check(charms);

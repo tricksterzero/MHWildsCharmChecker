@@ -73,6 +73,18 @@ public static class DuplicateChecker
         return inferiors;
     }
 
+    /// <summary>
+    /// 2つの護石が完全同一(スキルの名前とLvの組がすべて同じで、防具・武器スロットを降順に並べたものが同じ)かを返す
+    /// (副作用なし)。重複チェックと、取り込み時の重複の読み飛ばしの両方がこの判定を使う。
+    /// 事前条件: 引数はnullでない。
+    /// </summary>
+    public static bool AreIdentical(Charm a, Charm b)
+    {
+        ArgumentNullException.ThrowIfNull(a);
+        ArgumentNullException.ThrowIfNull(b);
+        return IdentityKey(a) == IdentityKey(b);
+    }
+
     private static string IdentityKey(Charm charm)
     {
         var skillPart = string.Join("|",
@@ -138,7 +150,7 @@ public static class DuplicateChecker
         return Ordering.Incomparable;
     }
 
-    private static bool SlotsGte(List<int> a, List<int> b)
+    private static bool SlotsGte(IReadOnlyList<int> a, IReadOnlyList<int> b)
     {
         var sa = SortDesc(a);
         var sb = SortDesc(b);
@@ -152,7 +164,7 @@ public static class DuplicateChecker
         return true;
     }
 
-    private static List<int> SortDesc(List<int> slots)
+    private static List<int> SortDesc(IReadOnlyList<int> slots)
     {
         var sorted = new List<int>(slots);
         sorted.Sort((a, b) => b.CompareTo(a));
