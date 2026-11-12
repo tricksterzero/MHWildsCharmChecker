@@ -244,4 +244,46 @@ public class DuplicateCheckerTests
         Assert.Empty(result.DuplicateGroups);
         Assert.Empty(result.Inferiors);
     }
+
+    [Fact]
+    public void ExcludeIdentical_SkipsIdenticalToExistingAndEarlierIncoming_KeepsOrder()
+    {
+        // 取り込みの差分追加: 既存と同一のもの、取り込むデータの中で先に出てきたものと同一のものを読み飛ばす
+        var existing = MakeCharm([("攻撃", 4)], [3, 1, 0]);
+        var sameAsExisting = MakeCharm([("攻撃", 4)], [1, 3, 0]);
+        var first = MakeCharm([("見切り", 2)], [1, 0, 0]);
+        var sameAsFirst = MakeCharm([("見切り", 2)], [0, 1, 0]);
+        var second = MakeCharm([("見切り", 3)], [1, 0, 0]);
+
+        var (toAdd, skipped) = DuplicateChecker.ExcludeIdentical([existing], [sameAsExisting, first, sameAsFirst, second]);
+
+        Assert.Equal(new[] { first, second }, toAdd);
+        Assert.Equal(2, skipped);
+    }
+
+    [Fact]
+    public void ExcludeIdentical_NoExisting_AddsAllDistinct()
+    {
+        var a = MakeCharm([("攻撃", 4)]);
+        var b = MakeCharm([("見切り", 2)]);
+        var (toAdd, skipped) = DuplicateChecker.ExcludeIdentical([], [a, b]);
+        Assert.Equal(new[] { a, b }, toAdd);
+        Assert.Equal(0, skipped);
+    }
+
+    [Fact]
+    public void ExcludeIdentical_NoIncoming_ReturnsEmpty()
+    {
+        // 境界値: 取り込むものが0件
+        var (toAdd, skipped) = DuplicateChecker.ExcludeIdentical([MakeCharm([("攻撃", 4)])], []);
+        Assert.Empty(toAdd);
+        Assert.Equal(0, skipped);
+    }
+
+    [Fact]
+    public void ExcludeIdentical_NullArguments_Throw()
+    {
+        Assert.Throws<ArgumentNullException>(() => DuplicateChecker.ExcludeIdentical(null!, []));
+        Assert.Throws<ArgumentNullException>(() => DuplicateChecker.ExcludeIdentical([], null!));
+    }
 }

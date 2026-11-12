@@ -85,6 +85,29 @@ public static class DuplicateChecker
         return IdentityKey(a) == IdentityKey(b);
     }
 
+    /// <summary>
+    /// 取り込む護石のうち、既存の護石とも、取り込むデータの中で先に出てきた護石とも同一(<see cref="AreIdentical"/>と同じ基準)で
+    /// ないものを元の順のまま返し、読み飛ばした件数も返す(副作用なし)。取り込みの差分追加に使う。
+    /// 事前条件: 引数はnullでない。事後条件: 返す護石の数と読み飛ばした件数の和は、incomingの件数と同じ。
+    /// </summary>
+    public static (IReadOnlyList<Charm> ToAdd, int Skipped) ExcludeIdentical(IEnumerable<Charm> existing, IEnumerable<Charm> incoming)
+    {
+        ArgumentNullException.ThrowIfNull(existing);
+        ArgumentNullException.ThrowIfNull(incoming);
+
+        var seenKeys = existing.Select(IdentityKey).ToHashSet();
+        var toAdd = new List<Charm>();
+        int skipped = 0;
+        foreach (var charm in incoming)
+        {
+            if (seenKeys.Add(IdentityKey(charm)))
+                toAdd.Add(charm);
+            else
+                skipped++;
+        }
+        return (toAdd, skipped);
+    }
+
     private static string IdentityKey(Charm charm)
     {
         var skillPart = string.Join("|",

@@ -625,31 +625,13 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
 
                 if (result != MessageBoxResult.Yes) return;
 
-                CharmItems.Clear();
-                _nextId = 1;
-                foreach (var charm in parsed)
-                    AddCharm(charm);
-
+                ReplaceAllCharms(parsed);
                 SaveCharms();
                 ImportResultText.Text = $"{parsed.Count}件をインポートしました。{warningNote}";
             }
             else
             {
-                int added = 0;
-                int skipped = 0;
-                foreach (var charm in parsed)
-                {
-                    if (IsExactDuplicate(charm))
-                    {
-                        skipped++;
-                    }
-                    else
-                    {
-                        AddCharm(charm);
-                        added++;
-                    }
-                }
-
+                var (added, skipped) = AddCharmsSkippingIdentical(parsed);
                 SaveCharms();
                 ImportResultText.Text = $"{added}件を追加、{skipped}件をスキップしました。（既存{CharmItems.Count}件）{warningNote}";
             }
@@ -664,9 +646,26 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         }
     }
 
-    /// <summary>一覧に完全同一の護石があるか(判定は重複チェックと同じ<see cref="DuplicateChecker.AreIdentical"/>)。</summary>
-    private bool IsExactDuplicate(Charm candidate) =>
-        AllCharms.Any(existing => DuplicateChecker.AreIdentical(existing, candidate));
+    /// <summary>取り込みの全件上書き: 一覧をcharmsで置き換え、番号を1から振り直す(保存はしない)。</summary>
+    private void ReplaceAllCharms(IEnumerable<Charm> charms)
+    {
+        CharmItems.Clear();
+        _nextId = 1;
+        foreach (var charm in charms)
+            AddCharm(charm);
+    }
+
+    /// <summary>
+    /// 取り込みの差分追加: 一覧とも、取り込むデータの中で先に出てきたものとも完全同一でない護石だけを追加し、
+    /// 追加した件数と読み飛ばした件数を返す(判定は重複チェックと同じ<see cref="DuplicateChecker.AreIdentical"/>の基準。保存はしない)。
+    /// </summary>
+    private (int Added, int Skipped) AddCharmsSkippingIdentical(IEnumerable<Charm> charms)
+    {
+        var (toAdd, skipped) = DuplicateChecker.ExcludeIdentical(AllCharms, charms);
+        foreach (var charm in toAdd)
+            AddCharm(charm);
+        return (toAdd.Count, skipped);
+    }
 
     private IEnumerable<Charm> AllCharms => CharmItems.Select(i => i.Charm);
 
@@ -825,26 +824,13 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
 
         if (mode == MessageBoxResult.No)
         {
-            CharmItems.Clear();
-            _nextId = 1;
-            foreach (var charm in parsed)
-                AddCharm(charm);
+            ReplaceAllCharms(parsed);
             SaveCharms();
             MessageBox.Show($"{parsed.Count}件をインポートしました。（全件上書き）", "インポート");
         }
         else
         {
-            int added = 0, skipped = 0;
-            foreach (var charm in parsed)
-            {
-                if (IsExactDuplicate(charm))
-                    skipped++;
-                else
-                {
-                    AddCharm(charm);
-                    added++;
-                }
-            }
+            var (added, skipped) = AddCharmsSkippingIdentical(parsed);
             SaveCharms();
             MessageBox.Show($"{added}件を追加、{skipped}件をスキップしました。（差分追加）", "インポート");
         }
