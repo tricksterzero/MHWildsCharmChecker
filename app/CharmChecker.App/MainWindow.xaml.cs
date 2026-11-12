@@ -631,10 +631,16 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     /// <summary>取り込みの全件上書き: 一覧をcharmsで置き換え、番号を1から振り直す(保存はしない)。</summary>
     private void ReplaceAllCharms(IEnumerable<Charm> charms)
     {
-        CharmItems.Clear();
-        _nextId = 1;
+        ClearCharms();
         foreach (var charm in charms)
             AddCharm(charm);
+    }
+
+    /// <summary>一覧を空にし、次に追加する護石の番号を1に戻す(保存はしない)。</summary>
+    private void ClearCharms()
+    {
+        CharmItems.Clear();
+        _nextId = 1;
     }
 
     /// <summary>
@@ -854,7 +860,8 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
 
         if (result != MessageBoxResult.Yes) return;
 
-        CharmItems.Clear();
+        // 番号も1に戻す(起動し直したときと同じ番号の振り方にする。番号はcharms.jsonには保存しない)
+        ClearCharms();
         SaveCharms();
         MessageBox.Show("護石データを初期化しました。", "データの初期化");
     }
