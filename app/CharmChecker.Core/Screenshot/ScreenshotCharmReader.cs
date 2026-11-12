@@ -180,52 +180,29 @@ public static class ScreenshotCharmReader
 
         var boxRegion = SlotIconAnalyzer.PanelRegion(img);
         var detRegion = SlotIconAnalyzer.DetailPanelRegion(img);
-        var (boxFrames, boxColor) = DetectInRegion(img, boxRegion, sx, sy);
-        var (detFrames, detColor) = DetectInRegion(img, detRegion, sx, sy);
-
-        List<Rect> frames;
-        Rect region;
-        Mat color;
-        Mat disposeColor;
+        using var box = DetectInRegion(img, boxRegion, sx, sy);
+        using var detail = DetectInRegion(img, detRegion, sx, sy);
 
         // BOX領域で1件以上検出できていれば常にBOX側を信頼する。Detail領域(x:1400-1650)は
         // 画面パターンによっては護石画像プレビュー等の無関係な内容(背景テクスチャ等)を
         // 誤検出しうるため、BOX側の検出数がDetail側を下回っていてもBOX優先とする
         // (マカ錬金鑑定結果画面で背景の木目模様がDetail領域に2枠の偽陽性を生み、
         // BOX側の正しい1枠より多く検出されてDetail側が誤採用される回帰を確認したため)。
-        if (boxFrames.Count > 0)
-        {
-            frames = boxFrames; region = boxRegion; color = boxColor;
-            disposeColor = detColor;
-        }
-        else
-        {
-            frames = detFrames; region = detRegion; color = detColor;
-            disposeColor = boxColor;
-        }
+        var chosen = box.Frames.Count > 0 ? box : detail;
 
-        disposeColor.Dispose();
+        if (chosen.Frames.Count == 0)
+            throw new SlotDetectionFailedException();
 
-        try
-        {
-            if (frames.Count == 0)
-                throw new SlotDetectionFailedException();
+        // 空スロットの照合より前に確かめる。別のパネルの枠は照合でも「装飾品あり」と判定される
+        // ことが多く、後に置くと除外理由が装飾品になってしまうため。
+        // 枠の座標は探索領域内の座標のため、領域の左端を足して元画像の座標にする(sxはUIの倍率)。
+        if (anchorX is { } ax &&
+            !SlotPanelConsistency.AreFramesInSkillPanel(
+                chosen.Frames.Select(f => (double)(chosen.Region.X + f.X)).ToList(), ax, sx))
+            throw new SlotPanelMismatchException();
 
-            // 空スロットの照合より前に確かめる。別のパネルの枠は照合でも「装飾品あり」と判定される
-            // ことが多く、後に置くと除外理由が装飾品になってしまうため。
-            // 枠の座標は探索領域内の座標のため、領域の左端を足して元画像の座標にする(sxはUIの倍率)。
-            if (anchorX is { } ax &&
-                !SlotPanelConsistency.AreFramesInSkillPanel(
-                    frames.Select(f => (double)(region.X + f.X)).ToList(), ax, sx))
-                throw new SlotPanelMismatchException();
-
-            var levels = frames.Select(frame => ToLevelNumber(SlotIconAnalyzer.MatchEmptyTemplate(color, frame))).ToList();
-            return AssignSlots(levels, hasWeaponSlot) ?? throw new InvalidSlotConfigurationException();
-        }
-        finally
-        {
-            color.Dispose();
-        }
+        var levels = chosen.Frames.Select(frame => ToLevelNumber(SlotIconAnalyzer.MatchEmptyTemplate(chosen.Color, frame))).ToList();
+        return AssignSlots(levels, hasWeaponSlot) ?? throw new InvalidSlotConfigurationException();
     }
 
     /// <summary>
@@ -253,12 +230,29 @@ public static class ScreenshotCharmReader
         _ => 0,
     };
 
-    private static (List<Rect> Frames, Mat Color) DetectInRegion(Mat img, Rect region, double sx, double sy)
+    /// <summary>探索領域1つ分の枠の検出結果。Colorは元画像の領域部分(BGR)で、Disposeで解放する。</summary>
+    private sealed class RegionDetection(Rect region, List<Rect> frames, Mat color) : IDisposable
+    {
+        public Rect Region { get; } = region;
+        public List<Rect> Frames { get; } = frames;
+        public Mat Color { get; } = color;
+        public void Dispose() => Color.Dispose();
+    }
+
+    private static RegionDetection DetectInRegion(Mat img, Rect region, double sx, double sy)
     {
         var color = new Mat(img, region);
-        using var gray = new Mat();
-        Cv2.CvtColor(color, gray, ColorConversionCodes.BGR2GRAY);
-        var frames = SlotIconAnalyzer.DetectFrames(gray, sx, sy);
-        return (frames, color);
+        try
+        {
+            using var gray = new Mat();
+            Cv2.CvtColor(color, gray, ColorConversionCodes.BGR2GRAY);
+            var frames = SlotIconAnalyzer.DetectFrames(gray, sx, sy);
+            return new RegionDetection(region, frames, color);
+        }
+        catch
+        {
+            color.Dispose();
+            throw;
+        }
     }
 }
