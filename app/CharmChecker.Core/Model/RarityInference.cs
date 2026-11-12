@@ -205,15 +205,15 @@ public static class RarityInference
         foreach (var c in combinations)
         {
             var label = $"RARE{c.Rarity} [{string.Join(",", c.SkillGroups)}]";
-            if (c.Rarity is < 5 or > 8)
-                throw new InvalidOperationException($"charm-combinations.json のRAREが5〜8の範囲外です: {label}");
-            if (c.SkillGroups.Length is < 1 or > 3)
-                throw new InvalidOperationException($"charm-combinations.json のスキルグループの数が1〜3ではありません: {label}");
+            if (c.Rarity is < Charm.MinRarity or > Charm.MaxRarity)
+                throw new InvalidOperationException($"charm-combinations.json のRAREが{Charm.MinRarity}〜{Charm.MaxRarity}の範囲外です: {label}");
+            if (c.SkillGroups.Length is < 1 or > Charm.MaxSkills)
+                throw new InvalidOperationException($"charm-combinations.json のスキルグループの数が1〜{Charm.MaxSkills}ではありません: {label}");
             if (c.Slots.Length == 0)
                 throw new InvalidOperationException($"charm-combinations.json にスロットのパターンがありません: {label}");
-            if (c.Slots.Any(s => s.Armor.Length > 3 || s.Weapon.Length > 3
-                    || s.Armor.Concat(s.Weapon).Any(v => v is < 0 or > 3)))
-                throw new InvalidOperationException($"charm-combinations.json のスロットの値が不正です(各3個まで、Lvは0〜3): {label}");
+            if (c.Slots.Any(s => s.Armor.Length > Charm.SlotCount || s.Weapon.Length > Charm.SlotCount
+                    || s.Armor.Concat(s.Weapon).Any(v => v is < 0 or > Charm.MaxSlotLevel)))
+                throw new InvalidOperationException($"charm-combinations.json のスロットの値が不正です(各{Charm.SlotCount}個まで、Lvは0〜{Charm.MaxSlotLevel}): {label}");
 
             int weighted = c.Slots.Count(s => s.Weight is not null);
             if (weighted != 0 && weighted != c.Slots.Length)

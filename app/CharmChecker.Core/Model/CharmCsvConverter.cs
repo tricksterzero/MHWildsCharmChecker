@@ -2,15 +2,18 @@ namespace CharmChecker.Core.Model;
 
 public static class CharmCsvConverter
 {
-    private const int ColumnCount = 12;
-    private const int MaxSkills = 3;
-    private const int MaxSlots = 3;
+    // CSVの形式は12列で固定(mhwilds.wiki-db.comのスキルシミュレータとの互換のため)。列の並びは、
+    // スキル名とLvの組がCharm.MaxSkills個、続いて防具スロット・武器スロットがCharm.SlotCount個ずつ。
+    // 列数12はテスト(ToLine_FullCharm_Produces12Columns)で固定している
+    private const int ArmorSlotColumn = Charm.MaxSkills * 2;
+    private const int WeaponSlotColumn = ArmorSlotColumn + Charm.SlotCount;
+    private const int ColumnCount = WeaponSlotColumn + Charm.SlotCount;
 
     public static string ToLine(Charm charm)
     {
         var cols = new string[ColumnCount];
 
-        for (int i = 0; i < MaxSkills; i++)
+        for (int i = 0; i < Charm.MaxSkills; i++)
         {
             if (i < charm.Skills.Count && charm.Skills[i].Name != "")
             {
@@ -24,10 +27,10 @@ public static class CharmCsvConverter
             }
         }
 
-        for (int i = 0; i < MaxSlots; i++)
+        for (int i = 0; i < Charm.SlotCount; i++)
         {
-            cols[6 + i] = i < charm.ArmorSlots.Count ? charm.ArmorSlots[i].ToString() : "0";
-            cols[9 + i] = i < charm.WeaponSlots.Count ? charm.WeaponSlots[i].ToString() : "0";
+            cols[ArmorSlotColumn + i] = i < charm.ArmorSlots.Count ? charm.ArmorSlots[i].ToString() : "0";
+            cols[WeaponSlotColumn + i] = i < charm.WeaponSlots.Count ? charm.WeaponSlots[i].ToString() : "0";
         }
 
         return string.Join(",", cols);
@@ -57,7 +60,7 @@ public static class CharmCsvConverter
             throw new FormatException($"列数が{ColumnCount}ではありません（{cols.Length}列）: {line}");
 
         var skills = new List<CharmSkill>();
-        for (int i = 0; i < MaxSkills; i++)
+        for (int i = 0; i < Charm.MaxSkills; i++)
         {
             var name = cols[i * 2].Trim();
             var lv = ParseInt(cols[i * 2 + 1].Trim(), line);
@@ -74,12 +77,12 @@ public static class CharmCsvConverter
         }
 
         var armorSlots = new List<int>();
-        for (int i = 0; i < MaxSlots; i++)
-            armorSlots.Add(ParseSlotValue(cols[6 + i].Trim(), line));
+        for (int i = 0; i < Charm.SlotCount; i++)
+            armorSlots.Add(ParseSlotValue(cols[ArmorSlotColumn + i].Trim(), line));
 
         var weaponSlots = new List<int>();
-        for (int i = 0; i < MaxSlots; i++)
-            weaponSlots.Add(ParseSlotValue(cols[9 + i].Trim(), line));
+        for (int i = 0; i < Charm.SlotCount; i++)
+            weaponSlots.Add(ParseSlotValue(cols[WeaponSlotColumn + i].Trim(), line));
 
         // 名前の重複など護石の不変条件の違反は、他の形式エラーと同じくFormatExceptionにして、
         // ParseTextが行番号を付けられるようにする
@@ -128,8 +131,8 @@ public static class CharmCsvConverter
     private static int ParseSlotValue(string value, string line)
     {
         var result = ParseInt(value, line);
-        if (result < 0 || result > 3)
-            throw new FormatException($"スロット値は0〜3である必要があります「{result}」: {line}");
+        if (result < 0 || result > Charm.MaxSlotLevel)
+            throw new FormatException($"スロット値は0〜{Charm.MaxSlotLevel}である必要があります「{result}」: {line}");
         return result;
     }
 

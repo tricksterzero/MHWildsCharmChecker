@@ -76,7 +76,7 @@ public partial class CharmEditWindow : Wpf.Ui.Controls.FluentWindow
         var skillNames = new[] { Skill1Name, Skill2Name, Skill3Name };
         var skillLvs = new[] { Skill1Lv, Skill2Lv, Skill3Lv };
 
-        for (int i = 0; i < charm.Skills.Count && i < 3; i++)
+        for (int i = 0; i < charm.Skills.Count && i < skillNames.Length; i++)
         {
             skillNames[i].Text = charm.Skills[i].Name;
             SetComboBoxIndex(skillLvs[i], charm.Skills[i].Lv);

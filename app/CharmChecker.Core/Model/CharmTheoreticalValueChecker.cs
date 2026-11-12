@@ -69,8 +69,8 @@ public static class CharmTheoreticalValueChecker
     private static int[] Canonicalize(IReadOnlyList<int> slots)
     {
         var sorted = slots.OrderByDescending(v => v).ToArray();
-        var result = new int[3];
-        for (int i = 0; i < sorted.Length && i < 3; i++)
+        var result = new int[Charm.SlotCount];
+        for (int i = 0; i < sorted.Length && i < Charm.SlotCount; i++)
             result[i] = sorted[i];
         return result;
     }

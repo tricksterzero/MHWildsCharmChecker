@@ -1,3 +1,5 @@
+using CharmChecker.Core.Model;
+
 namespace CharmChecker.Core.SlotIcon;
 
 public static class SlotValidation
@@ -10,8 +12,6 @@ public static class SlotValidation
 
     // 武器スロット: 現行ゲームでは実質1個までしか存在しない
     private const int WeaponSlotCountMax = 1;
-
-    private const int SlotCount = 3;
 
     /// <summary>
     /// スクショから読み取ったスロットLvが、現行ゲームにありうる形かを確かめ、ありうれば防具は降順に
@@ -48,7 +48,7 @@ public static class SlotValidation
     private static List<int> PadToSlotCount(List<int> values)
     {
         var result = new List<int>(values);
-        while (result.Count < SlotCount)
+        while (result.Count < Charm.SlotCount)
             result.Add(0);
         return result;
     }
