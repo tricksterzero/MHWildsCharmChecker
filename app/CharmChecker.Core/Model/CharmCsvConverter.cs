@@ -15,7 +15,7 @@ public static class CharmCsvConverter
 
         for (int i = 0; i < Charm.MaxSkills; i++)
         {
-            if (i < charm.Skills.Count && charm.Skills[i].Name != "")
+            if (i < charm.Skills.Count)
             {
                 cols[i * 2] = NeutralizeCsvFormula(charm.Skills[i].Name);
                 cols[i * 2 + 1] = charm.Skills[i].Lv.ToString();
@@ -27,10 +27,11 @@ public static class CharmCsvConverter
             }
         }
 
+        // スロットが防具・武器ともCharm.SlotCount個あることはCharmの不変条件で保証される
         for (int i = 0; i < Charm.SlotCount; i++)
         {
-            cols[ArmorSlotColumn + i] = i < charm.ArmorSlots.Count ? charm.ArmorSlots[i].ToString() : "0";
-            cols[WeaponSlotColumn + i] = i < charm.WeaponSlots.Count ? charm.WeaponSlots[i].ToString() : "0";
+            cols[ArmorSlotColumn + i] = charm.ArmorSlots[i].ToString();
+            cols[WeaponSlotColumn + i] = charm.WeaponSlots[i].ToString();
         }
 
         return string.Join(",", cols);

@@ -113,9 +113,7 @@ public static class DuplicateChecker
 
     private static Ordering CompareSkillLevels(Charm a, Charm b)
     {
-        if (a.Skills.Select(s => s.Name).Distinct().Count() != a.Skills.Count) return Ordering.Incomparable;
-        if (b.Skills.Select(s => s.Name).Distinct().Count() != b.Skills.Count) return Ordering.Incomparable;
-
+        // スキル名の重複はCharmの不変条件で起きないため、ToDictionaryは例外を投げない
         var mapA = a.Skills.ToDictionary(s => s.Name, s => s.Lv);
         var mapB = b.Skills.ToDictionary(s => s.Name, s => s.Lv);
 
