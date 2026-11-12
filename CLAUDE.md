@@ -76,7 +76,7 @@ node legacy/charm-duplicate-checker.js <CSVパス>
 - **起動時の読み込みで元のファイルを守る**(`MainWindow._charmSaveBlocked`): charms.jsonをJSONとして読めない場合と、除外した項目があるのにバックアップを作れなかった場合は、起動している間は護石データを保存しない(追加・編集・終了時とも。v1.4.1までは読み込めないと一覧を空のまま起動し、終了時に空の一覧`[]`で上書きしていた。Codexのレビューで指摘)。ビルドしたアプリを一時フォルダで起動し、不正な項目を含む場合(バックアップが元と同じ内容で作られ、終了時は正しい項目だけ保存)と読めない場合(終了してもファイルが変わらない)を確認済み
 - **編集画面で表せない護石は編集させない**(`CharmEditWindow.CanRepresentExisting`): 編集画面の選択肢(スキルLv0〜4、防具1つ目0〜3・2つ目0〜1、武器0〜1)で表せない値(過去のCSV取り込みで入りうるLv5以上のスキルや防具[2,2,0]等)を持つ護石は、読み込んだ値から組み立て直した護石が元と同じ(`DuplicateChecker.AreIdentical`)でなければ開かずに知らせる
 - JSONの読み書きは`CharmJsonSerializer`(Core、副作用なし)。形式(プロパティ名)は従来と同じ。RAREが範囲外ならnullにして推定し直す
-- 未確認: 手動入力・CSV/JSON取り込み・編集の画面上の流れ(MainWindow/CharmEditWindowの処理)は、部品(`CharmValidator`・`CharmJsonSerializer`・`CharmCsvConverter`)の単体テストと起動時の読み込みの実行確認だけで、画面を操作しての確認はしていない
+- 未確認: 手動入力・CSV/JSON取り込み・編集の画面上の流れ(MainWindow/CharmEditWindowの処理)は、部品(`CharmValidator`・`CharmJsonSerializer`・`CharmCsvConverter`・`CharmImportScreening`)の単体テストと起動時の読み込みの実行確認だけで、画面を操作しての確認はしていない
 
 ## スキル名の正規名と照合時の注意
 

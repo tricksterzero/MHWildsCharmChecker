@@ -1,7 +1,6 @@
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Windows;
 using System.Windows.Controls;
 using CharmChecker.Core.Model;
@@ -10,49 +9,6 @@ using CharmChecker.Core.Skill;
 using Microsoft.Win32;
 
 namespace CharmChecker.App;
-
-public class CharmListItem
-{
-    public int Id { get; }
-    public Charm Charm { get; }
-    public string RarityText { get; }
-    public string SkillText { get; }
-    public string SlotText { get; }
-    public string DateText { get; }
-    public string DateTimeText { get; }
-
-    public CharmListItem(int id, Charm charm)
-    {
-        Id = id;
-        Charm = charm;
-
-        RarityText = CharmDisplayText.Rarity(charm);
-        SkillText = CharmDisplayText.Skills(charm, " / ");
-        SlotText = CharmDisplayText.Slots(charm);
-
-        DateText = charm.SourceTimestamp.ToString("yyyy-MM-dd");
-        DateTimeText = charm.SourceTimestamp.ToString("yyyy-MM-dd HH:mm:ss");
-    }
-}
-
-public class AppSettings
-{
-    [JsonPropertyName("windowWidth")]
-    public double WindowWidth { get; set; } = 800;
-    [JsonPropertyName("windowHeight")]
-    public double WindowHeight { get; set; } = 450;
-    [JsonPropertyName("windowLeft")]
-    public double WindowLeft { get; set; } = double.NaN;
-    [JsonPropertyName("windowTop")]
-    public double WindowTop { get; set; } = double.NaN;
-    [JsonPropertyName("screenshotFolder")]
-    public string ScreenshotFolder { get; set; } = "";
-    [JsonPropertyName("detailPanelHeight")]
-    public double DetailPanelHeight { get; set; } = double.NaN;
-    /// <summary>"system"(Windowsの設定に合わせる、既定)/"light"/"dark"。<see cref="ThemeService.Parse"/>参照。</summary>
-    [JsonPropertyName("theme")]
-    public string Theme { get; set; } = "system";
-}
 
 public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
 {
@@ -419,19 +375,8 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
             return;
         }
 
-        List<string> allFiles;
-        try
-        {
-            allFiles = Directory.GetFiles(folder)
-                .Where(f => ImageExtensions.Contains(Path.GetExtension(f).ToLowerInvariant()))
-                .ToList();
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            ErrorLogger.Log("ReadScreenshot", folder, ex);
-            ReadingSummaryText.Text = $"フォルダを読み込めませんでした: {ex.Message}";
-            return;
-        }
+        var allFiles = ListImageFiles(folder);
+        if (allFiles is null) return;
 
         var targetFiles = ScreenshotFileSelector.SelectTargets(
             allFiles.Select(f => (f, File.GetLastWriteTime(f))).ToList(),
@@ -459,16 +404,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         _readingCts = new CancellationTokenSource();
         var ct = _readingCts.Token;
 
-        StartReadingButton.IsEnabled = false;
-        CancelReadingButton.IsEnabled = true;
-        CancelReadingButton.Visibility = Visibility.Visible;
-        ReadingProgressPanel.Visibility = Visibility.Visible;
-        ReadingProgressBar.Maximum = targetFiles.Count;
-        ReadingProgressBar.Value = 0;
-        ReadingSummaryText.Text = "";
-        ReadingResultGrid.Visibility = Visibility.Collapsed;
-        AddReadingResultButton.Visibility = Visibility.Collapsed;
-        _readingResults = null;
+        ShowReadingStarted(targetFiles.Count);
 
         try
         {
@@ -490,13 +426,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
             // 集計(副作用なし)はScreenshotReadingTallyで行い、ログ出力はUIスレッドでファイル順に行う
             // (ErrorLoggerはスレッドセーフではなく、error.logの記録順・results(=一覧への追加順)もファイル順に保つため)。
             var tally = ScreenshotReadingTally.Create(targetFiles, outcomes);
-            foreach (var entry in tally.LogEntries)
-            {
-                if (entry.Exception is not null)
-                    ErrorLogger.Log("ReadScreenshot", entry.Message, entry.Exception);
-                else
-                    ErrorLogger.Log("ReadScreenshot", entry.Message);
-            }
+            WriteReadingLog(tally);
 
             // charmType(未解/史伝/秘歴/栄世の護石)でRarityが決まらなかった護石(通常護石・希望の護石等)は
             // スキル・スロット構成からのRARE推定で補完する。
@@ -504,27 +434,81 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
                 .Select(r => (Charm: RarityInference.WithInferredRarity(r.Charm), r.FileName))
                 .ToList();
 
-            CancelReadingButton.Visibility = Visibility.Collapsed;
-            ReadingProgressText.Text = tally.Cancelled ? "中断" : "完了";
-            ReadingSummaryText.Text = tally.SummaryText(allFiles.Count);
-
-            if (results.Count > 0)
-            {
-                _readingResults = results;
-                ReadingResultGrid.ItemsSource = results.Select(r => new
-                {
-                    RarityText = CharmDisplayText.Rarity(r.Charm),
-                    SkillText = CharmDisplayText.Skills(r.Charm, " / "),
-                    SlotText = CharmDisplayText.Slots(r.Charm),
-                    r.FileName,
-                }).ToList();
-                ReadingResultGrid.Visibility = Visibility.Visible;
-                AddReadingResultButton.Visibility = Visibility.Visible;
-            }
+            ShowReadingFinished(tally, allFiles.Count, results);
         }
         finally
         {
             StartReadingButton.IsEnabled = true;
+        }
+    }
+
+    /// <summary>
+    /// フォルダ内の画像ファイル(<see cref="ImageExtensions"/>の拡張子)の一覧を返す。フォルダを読めなければ、
+    /// error.logに記録して読み取り画面に表示し、nullを返す。
+    /// </summary>
+    private List<string>? ListImageFiles(string folder)
+    {
+        try
+        {
+            return Directory.GetFiles(folder)
+                .Where(f => ImageExtensions.Contains(Path.GetExtension(f).ToLowerInvariant()))
+                .ToList();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            ErrorLogger.Log("ReadScreenshot", folder, ex);
+            ReadingSummaryText.Text = $"フォルダを読み込めませんでした: {ex.Message}";
+            return null;
+        }
+    }
+
+    /// <summary>読み取りを始めるときの画面の切り替え(進捗の表示、前回の結果を隠すなど)。</summary>
+    private void ShowReadingStarted(int targetCount)
+    {
+        StartReadingButton.IsEnabled = false;
+        CancelReadingButton.IsEnabled = true;
+        CancelReadingButton.Visibility = Visibility.Visible;
+        ReadingProgressPanel.Visibility = Visibility.Visible;
+        ReadingProgressBar.Maximum = targetCount;
+        ReadingProgressBar.Value = 0;
+        ReadingSummaryText.Text = "";
+        ReadingResultGrid.Visibility = Visibility.Collapsed;
+        AddReadingResultButton.Visibility = Visibility.Collapsed;
+        _readingResults = null;
+    }
+
+    /// <summary>集計のerror.logに書く内容を、ファイル順に書く(ErrorLoggerはスレッドセーフではないためUIスレッドで呼ぶ)。</summary>
+    private static void WriteReadingLog(ScreenshotReadingTally tally)
+    {
+        foreach (var entry in tally.LogEntries)
+        {
+            if (entry.Exception is not null)
+                ErrorLogger.Log("ReadScreenshot", entry.Message, entry.Exception);
+            else
+                ErrorLogger.Log("ReadScreenshot", entry.Message);
+        }
+    }
+
+    /// <summary>読み取りが終わったときの表示(集計文と、護石を検出していれば結果の一覧と追加ボタン)。</summary>
+    private void ShowReadingFinished(
+        ScreenshotReadingTally tally, int allFilesCount, List<(Charm Charm, string FileName)> results)
+    {
+        CancelReadingButton.Visibility = Visibility.Collapsed;
+        ReadingProgressText.Text = tally.Cancelled ? "中断" : "完了";
+        ReadingSummaryText.Text = tally.SummaryText(allFilesCount);
+
+        if (results.Count > 0)
+        {
+            _readingResults = results;
+            ReadingResultGrid.ItemsSource = results.Select(r => new
+            {
+                RarityText = CharmDisplayText.Rarity(r.Charm),
+                SkillText = CharmDisplayText.Skills(r.Charm, " / "),
+                SlotText = CharmDisplayText.Slots(r.Charm),
+                r.FileName,
+            }).ToList();
+            ReadingResultGrid.Visibility = Visibility.Visible;
+            AddReadingResultButton.Visibility = Visibility.Visible;
         }
     }
 
@@ -598,22 +582,16 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
                 }
             }
 
-            var parsedRaw = CharmCsvConverter.ParseText(csvText);
-
-            // ゲームにありえない値(存在しないLv・スロットの形・スキル0個)は、形式エラーと同じく行番号付きで
-            // 全体を取り込まない。候補にないスキル名は警告として件数だけ知らせて取り込む
-            var skillGroups = CharmCombinationTable.LoadSkillGroups();
-            var issuesPerLine = parsedRaw.Select(c => CharmValidator.Validate(c, skillGroups)).ToList();
-            int errorIndex = issuesPerLine.FindIndex(issues => CharmValidator.HasError(issues));
-            if (errorIndex >= 0)
+            // ゲームにありえない値の行が1つでもあれば全体を取り込まない(CharmImportScreening.ScreenCsv)
+            var screening = CharmImportScreening.ScreenCsv(
+                CharmCsvConverter.ParseText(csvText), CharmCombinationTable.LoadSkillGroups());
+            if (screening.HasError)
             {
-                var errors = CharmValidator.ErrorMessages(issuesPerLine[errorIndex]);
-                ImportResultText.Text = $"読み込みエラー: 行 {errorIndex + 1}: {string.Join(" ", errors)}（どの護石も取り込んでいません）";
+                ImportResultText.Text = $"読み込みエラー: 行 {screening.ErrorLineNumber}: {string.Join(" ", screening.ErrorMessages)}（どの護石も取り込んでいません）";
                 return;
             }
-            int warningCount = issuesPerLine.Count(issues => issues.Count > 0);
-            string warningNote = warningCount > 0 ? $"（{warningCount}件にスキル候補一覧にないスキル名があります）" : "";
-            var parsed = parsedRaw.Select(RarityInference.WithInferredRarity).ToList();
+            string warningNote = screening.WarningCount > 0 ? $"（{screening.WarningCount}件にスキル候補一覧にないスキル名があります）" : "";
+            var parsed = screening.Accepted;
 
             if (ModeOverwrite.IsChecked == true)
             {
@@ -779,23 +757,12 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
             return;
         }
 
-        // 新しく取り込むデータなので、不変条件の違反に加えてゲームにありえない値の項目も取り込まない
-        // (起動時の既存データの読み込みとは扱いが違う)。候補にないスキル名は警告として件数だけ知らせる
-        var skillGroups = CharmCombinationTable.LoadSkillGroups();
-        var excludedReasons = parseResult.Rejected.Select(r => $"{r.Index + 1}件目: {r.Reason}").ToList();
-        var parsed = new List<Charm>();
-        int warningCount = 0;
-        foreach (var charm in parseResult.Charms)
-        {
-            var issues = CharmValidator.Validate(charm, skillGroups);
-            if (CharmValidator.HasError(issues))
-            {
-                excludedReasons.Add(string.Join(" ", CharmValidator.ErrorMessages(issues)));
-                continue;
-            }
-            if (issues.Count > 0) warningCount++;
-            parsed.Add(RarityInference.WithInferredRarity(charm));
-        }
+        // 不変条件の違反とゲームにありえない値の項目は取り込まない(CharmImportScreening.ScreenJson。
+        // 起動時の既存データの読み込みとは扱いが違う)。候補にないスキル名は警告として件数だけ知らせる
+        var screening = CharmImportScreening.ScreenJson(parseResult, CharmCombinationTable.LoadSkillGroups());
+        var parsed = screening.Accepted;
+        var excludedReasons = screening.ExcludedReasons;
+        int warningCount = screening.WarningCount;
         foreach (var reason in excludedReasons)
             ErrorLogger.Log("ImportLocalData", $"{dialog.FileName}: 取り込みませんでした: {reason}");
 
