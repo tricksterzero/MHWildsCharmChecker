@@ -81,6 +81,8 @@ SkillNameNormalizer(正解候補121種の供給元)・MainWindow(`LoadFromEmbedd
 
 **追記(2026-07-20、宿題解消)**: 上記8スキル問題はユーザーが実機の「条件ソート→装備スキル」一覧との突き合わせで解決。7種は装飾品専用スキルと確認(対応不要)、残る1種(オトモへの采配)は防具自体にのみ付くスキルと判明し`extra_skills`から削除(正規名121種→120種)。詳細は本ログ末尾の「解消済み事項」節、またはCLAUDE.mdの「RARE推定ロジック」節を参照。
 
+**2026-11-12の再精査(グループC、Codex相談)**: 0件(埋め込みリソースの読み込みをEmbeddedResources.ReadTextに置き換えただけ)。詳細は本ファイル末尾の「2026-11-12 グループC(2026-11-12の整理)の再精査」節。**それまでの台帳の状態の列(原文)**: 済(2026-07-19、Codex相談、設計強化1件)+変更(2026-11-12、埋め込みリソースの読み込みをEmbeddedResources.ReadTextに置き換え、未精査)
+
 ### SkillOcrTypes.cs
 
 状態: 済(2026-07-19、Codex相談、0件)
@@ -117,17 +119,29 @@ skill-groups.json/charm-combinations.json・CharmEditWindow・MainWindow(CSV一�
 
 **2026-11-12の再精査(グループA、Codex相談)**: 0件。WithInferredRarityはRAREが空のときだけ推定し、起動時の読み込み・取り込み・スクショ読み取り・編集画面から使われていることを確認。構成表の照合はCharmCombinationTable.csに移っており、グループCで精査する。詳細は本ファイル末尾の「2026-11-12 グループA(護石データの入口の検査)の再精査」節。**それまでの台帳の状態の列(原文)**: 済(2026-07-19)+変更(2026-07-21、Codex相談で再精査済み)+変更(2026-11-08、65fee44「護石データの検査を入口でそろえ、読み込み失敗時のデータ消失を防ぐ」、未精査)+変更(2026-11-12、組み合わせ表との照合をMatchingCombinationsに共通化・「研鑽」を定数化・構成表の検査の数値をCharmの定数に置き換え・降順のスロットをCharmのプロパティに置き換え・構成表の読み込み・検査・照合をCharmCombinationTable.csへ移した、未精査)
 
+**2026-11-12の再精査(グループC、Codex相談)**: 構成表の照合を移したCharmCombinationTable.csをグループCで精査した。2026-07-19の観察点のうち(1)RARE7/8の特別な扱いは本ファイルに残り、(2)読み込んだ構成表を書き換えられる件はCharmCombinationTable.csの観察点になった。詳細は本ファイル末尾の「2026-11-12 グループC(2026-11-12の整理)の再精査」節。**それまでの台帳の状態の列(原文)**: 済(2026-11-12、Codex相談(グループA)、0件。構成表の照合はCharmCombinationTable.csに移っており、そちらはグループCで精査予定)
+
+### CharmCombinationTable.cs
+
+状態: 済(2026-11-12、新規、Codex相談(グループC)、0件)
+
+**2026-11-12の再精査(グループC、Codex相談)**: 2026-11-12新規(RarityInference.csから移した)。0件・観察点2件(台帳のとおり)。今の構成表で、同じRAREの中で同じ護石が2つ以上の組み合わせに当てはまることも、RAREをまたいでスキル構成が違う組み合わせに当てはまることも無いことを、全組み合わせの総当たりで確かめた。構成表のスロットのパターンはすべて降順(FindMatchingSlotの前提)。詳細は本ファイル末尾の「2026-11-12 グループC(2026-11-12の整理)の再精査」節。**それまでの台帳の状態の列(原文)**: 未(2026-11-12新規。RarityInference.csから構成表の読み込み・検査・照合を移した。処理の内容は変えていない。同日、埋め込みリソースの読み込みをEmbeddedResources.ReadTextに置き換え)
+
 ### CharmProbabilityEstimator.cs
 
 状態: 済(2026-07-21、Codex相談、実バグなし・共有ロジック集約1件・未修正の観察点1件)
 
 RarityInference(`ResolvePossibleGroups`/`MatchesGroupPattern`/`FindMatchingSlot`を共有)・MainWindow(詳細パネル表示)。2026-07-21新規実装機能の初回精査。Codexとの相談で「同一レアリティ内の複数パターン同時マッチ」の曖昧性リスクを検証したが、実データ(`charm-combinations.json`全エントリ)では同一レアリティ・同一スキル数で複数パターンが同時マッチする実例は0件と確認(`FirstOrDefault`が最初の1件を無条件採用する設計だが、現状は事実上一意に決まるため実害なし)。**共有ロジック集約**: 本ファイル固有だった`FindMatchingSlot`(スロット完全一致判定)を`RarityInference.FindMatchingSlot`(internal)へ抽出・移設し、`CharmTheoreticalValueChecker`からも再利用できるようにした(追加的な変更のみで本ファイルの計算結果自体は不変、既存2テストで再確認)。**追記(2026-07-21、同日中に修正)**: `MatchesGroupPattern`のスキル入力順序依存バグ(詳細は上記RarityInference.cs行を参照)は本ファイルの`Estimate`にも伝播していたが、共有ロジック側の修正(順序非依存化)により解消。回帰テスト`SkillOrderReversed_ProducesSameProbability`追加、全168テスト成功
 
+**2026-11-12の再精査(グループC、Codex相談)**: 0件。利用者のcharms.json(研鑽を除く329件)で、構成表との照合は通るのに構成確率がnullになる護石は0件。詳細は本ファイル末尾の「2026-11-12 グループC(2026-11-12の整理)の再精査」節。**それまでの台帳の状態の列(原文)**: 済(2026-07-21、Codex相談、実バグなし・共有ロジック集約1件)+変更(2026-11-12、照合をRarityInference.MatchingCombinationsに置き換え(同日の323e2a9で関数が移り、今の呼び出し先はCharmCombinationTable.MatchingCombinations)、未精査)
+
 ### CharmTheoreticalValueChecker.cs
 
 状態: 済(2026-07-21、Codex相談、実バグ1件修正+テスト強化2件)
 
 RarityInference(`ResolvePossibleGroups`/`MatchesGroupPattern`/`FindMatchingSlot`を共有)・CharmProbabilityEstimator(スロット一致判定ロジックを共有)・MainWindow(詳細パネル表示)。2026-07-21新規実装機能の初回精査。**実バグ発見・修正**: `IsSlotPatternDominated`による「支配されなければtrue(理論値)」という判定のみで、護石自身のスロット構成が`charm-combinations.json`に実在するパターンかどうかを一切検証していなかった。実在しない極端な値(例: このスキルグループ構成のテーブル上限を超える防具Lv3)は、テーブル上のどのパターンにも数値的に上回られないため誤って理論値=trueと判定されてしまう(Codexが指摘、具体例で再現確認: ＫＯ術Lv3+ひるみ軽減Lv3・防具[3,0,0]・RARE7で修正前はtrueを返していた)。この構成はUI(ComboBoxで防具Lv3を選択可能)・CSVインポート(スロット値3を受理)の両経路から到達可能なため(a)級と判断し、`comparableSlots`との完全一致を`RarityInference.FindMatchingSlot`で先に要求し、一致が無ければ支配判定に進まずnullを返すよう修正(回帰テスト`ImpossibleSlotConfiguration_ReturnsNull`追加)。既存7テスト全てが新ロジックでも成立することを一つずつ手計算で確認済み(特に`Rare7Slot20`の防具[2,0,0]がRARE7側`[2,0]`(武器なし)との完全一致を経てRARE8側のどの構成にも支配されず理論値=trueになる経路、`SlotDominatedByAnotherPattern`の防具[0,0,0]+武器1がRARE8`[0]+武器1`と完全一致した上で支配されてfalseになる経路)。**テスト強化**: `SkillWithNoHigherLevelAnywhere_StillCountsAsMax`が実際には`IsTheoretical`を一切呼ばず`skill-groups.json`のデータ内容を確認するだけの弱いテストだったため、`SkillWithNoHigherLevelAnywhere_DoesNotIncorrectlyFailMaxCheck`に置き換え、超会心Lv1単独護石で「所属グループの最大Lv基準(誤)ならfalseになるがスキル自身の最大Lv基準(正)ならnullになる」ことを直接検証するよう強化。曖昧マッチ(同一レアリティ内複数パターン同時一致)はCodexとの相談で実データ0件と確認済み(CharmProbabilityEstimator.cs行のCodex確認と同一調査)。**追記(2026-07-21、同日中に修正)**: `MatchesGroupPattern`のスキル入力順序依存バグ(詳細は上記RarityInference.cs行を参照)は本ファイルの`IsTheoretical`にも伝播していたが、共有ロジック側の修正(順序非依存化)により解消。回帰テスト`SkillOrderReversed_StillReturnsTrue`追加、全168テスト成功
+
+**2026-11-12の再精査(グループC、Codex相談)**: 0件。利用者のcharms.json(研鑽を除く329件)で、構成表との照合は通るのに理論値判定がnullになる護石は0件。詳細パネルのツールチップ(MainWindow.xaml)の説明が、比べる範囲(同じスキル構成の組み合わせの中。RARE7とRARE8のようにRAREが違うものも含む)と合っていることを確認。詳細は本ファイル末尾の「2026-11-12 グループC(2026-11-12の整理)の再精査」節。**それまでの台帳の状態の列(原文)**: 済(2026-07-21、Codex相談、実バグ1件修正+テスト強化2件)+変更(2026-11-12、照合をRarityInference.MatchingCombinationsに置き換え(同日の323e2a9で関数が移り、今の呼び出し先はCharmCombinationTable.MatchingCombinations)・スロット数をCharm.SlotCountに置き換え・降順のスロットをCharmのプロパティに置き換え、未精査)
 
 ### CharmTypeLoader.cs
 
@@ -219,6 +233,8 @@ CharmModel・MainWindow(インポート/エクスポート)。正規スキル名
 
 **2026-11-12の再精査(グループB、Codex相談)**: スクショ読み取りの部分(StartReading_Click〜AddReadingResult_Click)を精査。不具合1件修正: 一覧への追加が読み取り結果の全件を足すため、READMEが案内する「フォルダ内の全画像を再スキャン」で読み直して追加すると、取り込み済みの護石が二重に入っていた(過去の精査記録に重複の扱いの記述は無かった)。Codexは重複チェックの判定(ExcludeIdentical)を使うことには反対(同じ構成の別の護石を別々に撮った場合も消える)で、全件追加のまま注意書きを出す案を挙げた。ユーザーの了承を得て、同じスクショ(SourceTimestampが同じ)から取り込み済みの同一の護石だけを読み飛ばす形にした(DuplicateChecker.ExcludeAlreadyImportedScreenshots・ReadingResultAddedNote)。詳細は本ファイル末尾の「2026-11-12 グループB(スクショの読み取り)の再精査」節。**それまでの台帳の状態の列(原文)**: 済(2026-11-12、Codex相談(グループA)、起動時の読み込み・保存・CSV/JSONの取り込み・編集・データの初期化の部分、0件・観察点1件)+未精査(スクショ読み取りの部分(StartReading_Click以降)はグループB、2026-11-12の整理(表示文字列・集計など)はグループCで精査予定。それまでの変更の記録はreview-log.md)
 
+**2026-11-12の再精査(グループC、Codex相談)**: 2026-11-12の整理(設定・テーマ・詳細パネル・確率の表示・データ管理のメニュー、MainWindow.xamlのツールチップ)を精査し0件。Codexは、整理の中で意図して変えたもの(理論値判定のツールチップの文言、データの初期化後の番号を1から振り直す)を挙げたが、どちらもfixのコミットの目的どおりで不具合ではないとした。詳細は本ファイル末尾の「2026-11-12 グループC(2026-11-12の整理)の再精査」節。**それまでの台帳の状態の列(原文)**: 済(2026-11-12、Codex相談(グループA)、起動時の読み込み・保存・CSV/JSONの取り込み・編集・データの初期化の部分、0件・観察点1件)+済(2026-11-12、Codex相談(グループB)、スクショ読み取りの部分、不具合1件修正(全画像の再スキャンで読み直した結果を追加すると、取り込み済みの護石が二重に入る))+未精査(2026-11-12の整理(表示文字列・集計など)はグループCで精査予定。それまでの変更の記録はreview-log.md)
+
 ### CharmEditWindow.xaml.cs
 
 状態: 済(2026-07-19、Codex相談、実バグ2件修正、実機動作確認済み)
@@ -229,17 +245,37 @@ SkillNameLoader・GameSkillOrder・RarityInference(レアリティ動的更新)�
 
 **2026-11-12の再精査(グループA、Codex相談)**: 不具合2件修正(Codex指摘の(2)(3))。2026-07-19の観察点(2)(BuildCharmのサイレントスキップ)は、OK時に名前とLvの片方だけの欄を拒否する形で解消。詳細は本ファイル末尾の「2026-11-12 グループA(護石データの入口の検査)の再精査」節。**それまでの台帳の状態の列(原文)**: 済(2026-07-19、Codex相談、実バグ2件修正、実機動作確認済み)+変更(2026-11-08、65fee44 入力の検査をCharmValidatorにそろえ、編集画面で表せない護石を開かない(CanRepresentExisting)、未精査・画面操作での確認なし)+変更(2026-11-12、スキル欄の数をskillNames.Lengthに置き換え・降順のスロットをCharmのプロパティに置き換え・構成表の読み込みの呼び出し先をCharmCombinationTableに変更・検査結果のエラー文の取り出しをCharmValidator.ErrorMessagesに置き換え・入力欄の組をプロパティにまとめる、未精査・画面操作での確認なし)
 
+### CharmDisplayText.cs
+
+状態: 済(2026-11-12、新規、Codex相談(グループC)、0件)
+
+**2026-11-12の再精査(グループC、Codex相談)**: 2026-11-12新規(MainWindowから移した)。0件。詳細は本ファイル末尾の「2026-11-12 グループC(2026-11-12の整理)の再精査」節。**それまでの台帳の状態の列(原文)**: 未(2026-11-12新規。MainWindowで重複していた護石一覧・読み取り結果の一覧・詳細パネルの表示文字列をまとめた)
+
 ### ScreenshotReadingTally.cs
 
 状態: 済(2026-11-12、新規、Codex相談(グループB)、NoCharmNameのerror.logの文を変更)
 
 **2026-11-12の再精査(グループB、Codex相談)**: 2026-11-12新規。NoCharmNameのerror.logの文を「護石名を読み取れないか既知の護石名に当てはまらず、武器スロット有無が不明なため…」に変えた(ScreenshotCharmReaderの修正に合わせて)。詳細は本ファイル末尾の「2026-11-12 グループB(スクショの読み取り)の再精査」節。**それまでの台帳の状態の列(原文)**: 未(2026-11-12新規。MainWindowにあったスクショ一括読み取りの結果の集計・error.logに書く文・集計文を移した。文言と数え方は変えていない)
 
+### CharmListItem.cs
+
+状態: 済(2026-11-12、新規、Codex相談(グループC)、0件)
+
+**2026-11-12の再精査(グループC、Codex相談)**: 2026-11-12新規(MainWindowから中身を変えずに移した)。0件。詳細は本ファイル末尾の「2026-11-12 グループC(2026-11-12の整理)の再精査」節。**それまでの台帳の状態の列(原文)**: 未(2026-11-12新規。MainWindow.xaml.csから中身を変えずに移した)
+
+### AppSettings.cs
+
+状態: 済(2026-11-12、新規、Codex相談(グループC)、0件)
+
+**2026-11-12の再精査(グループC、Codex相談)**: 2026-11-12新規(MainWindowから中身を変えずに移した)。0件。詳細は本ファイル末尾の「2026-11-12 グループC(2026-11-12の整理)の再精査」節。**それまでの台帳の状態の列(原文)**: 未(2026-11-12新規。MainWindow.xaml.csから中身を変えずに移した)
+
 ### DuplicateCheckWindow.xaml.cs
 
 状態: 済(2026-07-19、Codex相談、実バグ1件修正+観察点1件)
 
 DuplicateChecker(消費者、`Check()`が返す`Indices`/`TargetIndex`/`SuperiorIndices`は`charms`リストの0始まり位置)・MainWindow(`CharmItems`をそのまま渡す、DataGridの列ソートは表示のみでコレクション自体の順序を変えないため`charmItems[i]`との対応がずれないことを確認)。`ShowDialog()`によるモーダル表示のため計算後の並行変更リスクも無し。#11で記録した`DuplicateChecker`側の観察点3件(IdentityKeyの末尾0省略・区切り文字衝突・重複スキル名構成)は現在の正規名・3要素スロット契約下では本ウィンドウの表示にも影響しないことをCodexとの相談で確認。**実バグ発見・修正**: `Save_Click`(102-115行目)の`File.WriteAllText`にI/O例外処理が無く、他のエクスポート処理(`MainWindow.ExportFile_Click`等)と一貫性が無かったため、try-catch+`ErrorLogger.Log`+エラーダイアログを追加(`Wpf.Ui.Controls`の`MessageBox`と`System.Windows.MessageBox`の名前衝突があったため完全修飾名で解決)。**観察点(据え置き)**: 完全同一グループの見出し(58行目)はグループ先頭要素のRarityのみを表示するが、`DuplicateChecker`はRarityを同一判定条件に含めないため、理論上は同じ構成でRarity=7とRarity=nullが混在するグループがあり得る(CharmTypeLoaderベースの直接マッピングとRarityInferenceの推定が食い違うケース等)。今回のセッションで修正した「RARE未推定の連鎖」(#13/#16)により実害は大幅に軽減されているため見送り
+
+**2026-11-12の再精査(グループC、Codex相談)**: 0件。保存用の文字列を作る処理と一覧の表示の型(DuplicateCheckWindow.xamlのResultItemTemplate)をまとめた整理で、表示と保存の文字列が変わっていないことを確認。詳細は本ファイル末尾の「2026-11-12 グループC(2026-11-12の整理)の再精査」節。**それまでの台帳の状態の列(原文)**: 済(2026-07-19、Codex相談、実バグ1件修正+観察点1件)+変更(2026-11-12、保存用の文字列を作る処理をまとめる・一覧の表示の型を1つにまとめる(DuplicateCheckWindow.xaml。画面を作れることは一時テストで確認)、未精査・画面操作での確認なし)
 
 ### SettingsWindow.xaml.cs
 
@@ -275,6 +311,8 @@ MainWindow各所（例外通知・error.log出力）・CharmEditWindow・Duplica
 
 skill-order.json・CharmEditWindow(ComboBox表示順)・SkillNameLoader(正規名との整合)。Pythonで実データ検証: 現行`resources/skill-order.json`(121件)は重複ゼロ、`skill-decoration-map.json`由来の正規名121種と完全一致(欠落・余剰なし)で実害はなかった。Codexとの相談で、他のハンドメンテJSONローダー(#8 SkillNameLoader・#12 RarityInference.ParseSkillGroups・#13 CharmTypeLoader)と同様の一貫性の観点でfail-fast化を推奨されたため対応。**変更**: (1)`JsonSerializer.Deserialize<List<string>>`の結果を`?? []`で握りつぶさず`InvalidOperationException`化、(2)null/空白/重複スキル名を検出時に例外化する`ParseJson`(internal)を新設。回帰テストとして`GameSkillOrderTests.cs`を新規作成し、`GameSkillOrder.Order`が`SkillNameLoader`由来の正規名集合と完全一致することを検証するテストも追加(手編集による将来の乖離をCIで検出可能に)。テスト追加に伴い`CharmChecker.Tests`から`CharmChecker.App`への`ProjectReference`と、`CharmChecker.App/AssemblyInfo.cs`への`InternalsVisibleTo("CharmChecker.Tests")`追加が必要だった(既存の`ThemeInfo`属性は保持)。**観察点(据え置き、実害なし)**: `Order`プロパティの実体は可変`List<string>`を`IReadOnlyList<string>`として公開しているため理論上は呼び出し元がキャストで変更可能だが、唯一の呼び出し元(`CharmEditWindow`)が即座に`ToList()`でコピーしているため実害なし
 
+**2026-11-12の再精査(グループC、Codex相談)**: 0件。観察点(Orderの中身をキャストで書き換えられる)は、中身がParseJsonの返すList<string>のため当てはまることをコードで確認した(呼び出し元はコピーして使うため実害なし)。詳細は本ファイル末尾の「2026-11-12 グループC(2026-11-12の整理)の再精査」節。**それまでの台帳の状態の列(原文)**: 済(2026-07-19、Codex相談、fail-fast化1件+回帰テスト追加)+変更(2026-11-12、埋め込みリソースの読み込みをEmbeddedResources.ReadTextに置き換え、未精査)
+
 ## 低優先（ボイラープレート）
 
 ### App.xaml.cs
@@ -292,6 +330,12 @@ MainWindow(`SystemThemeWatcher.Watch(this)`)。**2026-07-21の再精査(Codex相
 状態: 済(2026-07-19、Codex相談、0件)
 
 `app/CharmChecker.App/AssemblyInfo.cs`(WPFテンプレート標準ThemeInfo属性+#21の副産物として本日追加した`InternalsVisibleTo("CharmChecker.Tests")`)と`app/CharmChecker.Core/AssemblyInfo.cs`(#12で新規作成、`InternalsVisibleTo("CharmChecker.Tests")`のみ)の2ファイルが対象。両assemblyとも署名なし(strong-name未使用)のためPublicKey指定不要、`CharmChecker.Tests.csproj`はAssemblyName既定のまま(`InternalsVisibleTo`の対象名と一致)、`InternalsVisibleTo`と`ThemeInfo`の併記も型・用途が異なり無競合、とCodexとの相談で確認。**観察点**: `InternalsVisibleTo`はアセンブリ内の全`internal`メンバーをテストプロジェクトに公開する(個別メンバー限定は不可)が、通常のテスト設計として許容範囲と判断
+
+### EmbeddedResources.cs
+
+状態: 済(2026-11-12、新規、Codex相談(グループC)、0件)
+
+**2026-11-12の再精査(グループC、Codex相談)**: 2026-11-12新規。0件。詳細は本ファイル末尾の「2026-11-12 グループC(2026-11-12の整理)の再精査」節。**それまでの台帳の状態の列(原文)**: 未(2026-11-12新規。CharmCombinationTable・CharmTypeLoader・SkillNameLoader・GameSkillOrderで重複していた埋め込みリソースの読み込みをまとめた)
 
 ### ScreenshotImage.cs
 
@@ -370,6 +414,18 @@ MainWindow(`SystemThemeWatcher.Watch(this)`)。**2026-07-21の再精査(Codex相
 **採否と修正(ユーザーの了承済み)**: (1)護石名: 当てはまらない場合もNoCharmNameとして除外し、charm-types.jsonに希望の護石(RARE5・武器スロットなし)を加えた。error.logの文も変えた。修正後に978枚で集計し直し、結果の件数(読み取り成功135・装飾品あり52・位置が合わない3・スキルなし1・護石の画面でない787)が修正前と同じで、希望の護石の1枚も結果が変わらないことを確認。(2)再スキャンの重複: Codexの懸念を避けるため、同じスクショ(スクショ由来でSourceTimestampが同じ)から取り込み済みの、スキル・スロットが同じ護石だけを読み飛ばす形にした(DuplicateChecker.ExcludeAlreadyImportedScreenshots)。追加の結果に読み飛ばした件数を表示する。利用者のcharms.json(読み取りのみ)での試算で、Steamのスクショの読み取り成功76件すべてが取り込み済みと判定された(修正前は再スキャンで76件が二重に入っていた)。(3)Codexの「低」(スロットの無い希望の護石): 誤った値で保存されることはなく除外されるだけのため、今回は直さず既知課題として記録した。(4)コメント: SlotPanelMismatchExceptionのスローする側を直した。CLAUDE.md(種別判定・一覧への追加)とREADME.md(再スキャン)を更新した。
 
 **確認**: 全テスト(合格450・スキップ1(EmptySlotTemplateGeneratorの手動実行専用)・失敗0)。追加したテスト: CharmTypeLoaderTests(5種・読み違いの2件)、DuplicateCheckerTests(ExcludeAlreadyImportedScreenshotsの6件)、MainWindowTests(ReadingResultAddedNoteの6件)。画面を操作しての確認はしていない(追加の処理は判定の関数のテストと試算で確認)。
+
+## 2026-11-12 グループC(2026-11-12の整理)の再精査
+
+対象: 2026-11-12の「動作を変えない整理」(612e9d8〜9cea734)のうち、グループA・Bで扱わなかったファイル(CharmCombinationTable・CharmProbabilityEstimator・CharmTheoreticalValueChecker・EmbeddedResources・SkillNameLoader・GameSkillOrder・CharmDisplayText・CharmListItem・AppSettings・DuplicateCheckWindow(.xaml含む)・MainWindow.xaml.csの残り(設定・テーマ・詳細パネル・確率の表示・データ管理)とMainWindow.xamlのツールチップ)。
+
+**自分の確認**: (1)構成確率・理論値判定は、当てはまる組み合わせの最初の1つ(FirstOrDefault)だけを使う。今の構成表で、同じRAREの中で同じ護石が2つ以上の組み合わせに当てはまることも、RAREをまたいでスキル構成(skillGroups)が違う組み合わせに当てはまることも無いことを、全組み合わせの総当たりで確かめた(複数のグループに属する(スキル,Lv)は20件)。利用者のcharms.json(読み取りのみ、研鑽を除く329件)で、構成表との照合は通るのに構成確率・理論値判定がnullになる護石は0件。(2)構成表のスロットのパターンはすべて降順(FindMatchingSlotの前提)。(3)MainWindow.xaml・DuplicateCheckWindow.xamlの差分(9cea734)は、ツールチップを見出しと値を囲む枠に付け替えたことと一覧の項目の見た目を1か所にまとめたことで、理論値判定の説明文は比べる範囲と合っている。(4)RarityInference.csの観察点2件のうち、読み込んだ構成表を書き換えられる件は、構成表の読み込みごとCharmCombinationTable.csへ移っていた。
+
+**Codex相談(codex-companion task、読み取り専用、1往復)**: 整理の前後で動作が変わった箇所と不具合を求めた(整理の前のコードはgitの履歴で確認してもらった)。結論は「整理によって生じた意図しない動作変更や、現在の呼び出し経路で到達する不具合は見つからない」。意図した変更として、理論値判定のツールチップの文言(9cea734)とデータの初期化後の番号を1から振り直すこと(a14d7f2)を挙げたが、どちらもfixのコミットの目的どおりで不具合ではないとした。FormatProbabilityは変更前と同じ処理で、JSON・CSVの形式の変更も無い、据え置き事項の前提も崩れていない、との回答。
+
+**採否**: 直すものは無し。コードの変更なし。
+
+**確認**: 全テスト(合格450・スキップ1・失敗0、グループBの修正の後のまま)。画面を操作しての確認はしていない(グループAで手動入力・編集の流れを確認したのみ)。
 
 ## 解消済み事項
 
