@@ -62,7 +62,7 @@ node legacy/charm-duplicate-checker.js <CSVパス>
 それまでは護石の型に検査がなく、値も後から書き換えられたため、入口(スクショ・手動入力・CSV・JSON)ごとに前提がばらばらだった(CSVで防具[3,3,3]や重複スキルが通る、編集画面で開くと値が黙って変わる等)。
 
 - **`Charm`の不変条件**(`CharmChecker.Core/Model/CharmModel.cs`): 作った後は変更できず、各プロパティのinitで検査する(違反はArgumentException。利用者に見せる理由の文に英語の"(Parameter ...)"が混ざらないよう引数名は渡さない)。スキルは3個まで・名前は空白でない・Lvは1以上・名前の重複なし、スロットは防具・武器それぞれ3個で値は0〜3(3個未満は0で埋め、3個を超える分は0なら切り詰める)、RAREはnullか5〜8。リストは読み取り専用のラッパー(`ReadOnlyCollection`)で公開する(`List`へのキャストで書き換えられないように)。RAREを変えるときは`WithRarity`、推定して埋めるときは`RarityInference.WithInferredRarity`で新しいインスタンスを作る
-- **ゲームとしてありうるかの検査**(`CharmValidator`、全入口共通): Warningは候補(skill-groups)にないスキル名(ゲームの更新で増えたスキルかもしれないため取り込みは止めない)、Errorはスキル0個・既知の名前で存在しないLv・`SlotValidation.TryValidate`がnullになるスロットの形
+- **ゲームとしてありうるかの検査**(`CharmValidator`、手動入力・CSV・JSONの入口で使う。スクショの読み取りはこれを呼ばず、構成表との照合とスロットの検査で除外する): Warningは候補(skill-groups)にないスキル名(ゲームの更新で増えたスキルかもしれないため取り込みは止めない)、Errorはスキル0個・既知の名前で存在しないLv・`SlotValidation.TryValidate`がnullになるスロットの形
 - **入口ごとの扱い**:
 
   | 入口 | 不変条件の違反 | Error | Warning |
@@ -70,11 +70,12 @@ node legacy/charm-duplicate-checker.js <CSVパス>
   | 起動時のcharms.json読み込み | 除外し、元のファイルを`charms.json.bak-yyyyMMdd-HHmmss`に残して件数を通知 | 残す(既存データのため) | 残す |
   | データ管理のJSON取り込み | 除外(件数と理由を確認ダイアログで示す) | 除外 | 件数を示して取り込む |
   | CSV取り込み | 行番号付きで全体を取り込まない(`CharmCsvConverter.ParseLine`がFormatExceptionに変換) | 同左 | 件数を示して取り込む |
-  | 手動入力 | 入力エラー(入力途中は護石を作らずRAREを「-」表示) | 入力エラー | 確認して、はいなら保存 |
+  | 手動入力 | 入力エラー(入力途中は護石を作らずRAREを「-」表示。名前とLvの片方だけの欄もOK時に入力エラー) | 入力エラー | 確認して、はいなら保存 |
   | スクショ | スキル名の重複は「構成表に当てはまらない」除外 | 除外(従来どおり) | — |
 
 - **起動時の読み込みで元のファイルを守る**(`MainWindow._charmSaveBlocked`): charms.jsonをJSONとして読めない場合と、除外した項目があるのにバックアップを作れなかった場合は、起動している間は護石データを保存しない(追加・編集・終了時とも。v1.4.1までは読み込めないと一覧を空のまま起動し、終了時に空の一覧`[]`で上書きしていた。Codexのレビューで指摘)。ビルドしたアプリを一時フォルダで起動し、不正な項目を含む場合(バックアップが元と同じ内容で作られ、終了時は正しい項目だけ保存)と読めない場合(終了してもファイルが変わらない)を確認済み
-- **編集画面で表せない護石は編集させない**(`CharmEditWindow.CanRepresentExisting`): 編集画面の選択肢(スキルLv0〜4、防具1つ目0〜3・2つ目0〜1、武器0〜1)で表せない値(過去のCSV取り込みで入りうるLv5以上のスキルや防具[2,2,0]等)を持つ護石は、読み込んだ値から組み立て直した護石が元と同じ(`DuplicateChecker.AreIdentical`)でなければ開かずに知らせる
+- **編集画面で表せない護石は編集させない**(`CharmEditWindow.CanRepresentExisting`): 編集画面の選択肢(スキルLv0〜4、防具1つ目0〜3・2つ目0〜1、武器0〜1)で表せない値(過去のCSV取り込みで入りうるLv5以上のスキルや防具[2,2,0]等)を持つ護石は、読み込んだ値から組み立て直した護石が元と同じ(`DuplicateChecker.AreIdentical`)でなければ開かずに知らせる。開いた後、スキル・スロットを変えずにOKを押した場合は元のRAREを残す(`CharmEditWindow.KeepRarityIfUnchanged`。推定し直すと、候補にないスキル名を含む護石などでRAREが消えていた。2026-11-12)
+- **起動中の例外ではアプリを終了させる**(`App.xaml.cs`): 画面の操作中の未処理例外を記録して続行する`DispatcherUnhandledException`は、メインウィンドウを表示した後に登録する。起動中の例外まで続行させると、ウィンドウの無いプロセスが多重起動防止のMutexを持ったまま残り、次の起動が拒否される(2026-11-12、最小のWPFアプリで確認)
 - JSONの読み書きは`CharmJsonSerializer`(Core、副作用なし)。形式(プロパティ名)は従来と同じ。RAREが範囲外ならnullにして推定し直す
 - 未確認: 手動入力・CSV/JSON取り込み・編集の画面上の流れ(MainWindow/CharmEditWindowの処理)は、部品(`CharmValidator`・`CharmJsonSerializer`・`CharmCsvConverter`・`CharmImportScreening`)の単体テストと起動時の読み込みの実行確認だけで、画面を操作しての確認はしていない
 

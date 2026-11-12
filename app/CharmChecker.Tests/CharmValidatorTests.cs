@@ -2,7 +2,7 @@ using CharmChecker.Core.Model;
 
 namespace CharmChecker.Tests;
 
-/// <summary>護石がゲームとしてありうるかの検査(全入口共通)のテスト。</summary>
+/// <summary>護石がゲームとしてありうるかの検査(手動入力・CSV・JSONで共通)のテスト。</summary>
 public class CharmValidatorTests
 {
     private static Charm Make((string Name, int Lv)[] skills, int[]? armor = null, int[]? weapon = null) => new()

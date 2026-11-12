@@ -14,12 +14,11 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
-        // 画面の操作中に捕まえていない例外が出てもアプリを終了させず、error.logに記録して知らせる。
-        // 護石データは変更のたびに保存しているため、続けても失われるものは少ない(2026-11-08)
-        DispatcherUnhandledException += OnDispatcherUnhandledException;
-        // UIスレッド以外の未処理例外は、.NETの仕様でプロセスが終了するのを止められないため、記録だけ残す
+        // 下のDispatcherUnhandledExceptionで捕まえない未処理例外(UIスレッド以外の例外と、メインウィンドウを表示するまでの
+        // 起動中の例外)は、プロセスが終了するのを止められないため、記録だけ残す(起動中のUIスレッドの例外でもここが
+        // 呼ばれることを2026-11-12に最小のWPFアプリで確認)
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
-            ErrorLogger.Log("Unhandled", "UIスレッド以外で未処理の例外が発生しました。",
+            ErrorLogger.Log("Unhandled", "未処理の例外でアプリを終了します(UIスレッド以外、または起動中の例外)。",
                 args.ExceptionObject as Exception ?? new Exception(args.ExceptionObject?.ToString()));
 
         var mutexName = "MHWildsCharmChecker_" + HashDataDir(AppDomain.CurrentDomain.BaseDirectory);
@@ -42,6 +41,13 @@ public partial class App : Application
         var mainWindow = new MainWindow();
         MainWindow = mainWindow;
         mainWindow.Show();
+
+        // 画面の操作中に捕まえていない例外が出てもアプリを終了させず、error.logに記録して知らせる。
+        // 護石データは変更のたびに保存しているため、続けても失われるものは少ない(2026-11-08)。
+        // 登録はメインウィンドウを表示した後にする。起動中(MainWindowの生成・表示)の例外まで続行させると、
+        // ウィンドウの無いプロセスが多重起動防止のMutexを持ったまま残り、次の起動が拒否されるため
+        // (2026-11-12、最小のWPFアプリで、登録後にウィンドウの生成で例外を投げるとプロセスが残ることを確認)
+        DispatcherUnhandledException += OnDispatcherUnhandledException;
     }
 
     protected override void OnExit(ExitEventArgs e)

@@ -9,6 +9,10 @@ namespace CharmChecker.App;
 public partial class CharmEditWindow : Wpf.Ui.Controls.FluentWindow
 {
     private readonly IReadOnlyList<string> _skillNames;
+
+    /// <summary>編集対象の護石(新規入力ではnull)。スキル・スロットを変えなかったときに元のRAREを残すために使う。</summary>
+    private readonly Charm? _existing;
+
     public Charm? ResultCharm { get; private set; }
 
     /// <summary>
@@ -44,6 +48,7 @@ public partial class CharmEditWindow : Wpf.Ui.Controls.FluentWindow
         if (existing is not null)
         {
             Title = "護石の編集";
+            _existing = existing;
             LoadFromCharm(existing);
             // 編集画面の選択肢(スキルLv0〜4、防具1つ目0〜3・2つ目0〜1、武器0〜1)で表せない値を持つ護石は、
             // 開いてOKすると値が黙って変わってしまうため、読み込んだ値から組み立て直して元と同じかを確かめる
@@ -111,20 +116,23 @@ public partial class CharmEditWindow : Wpf.Ui.Controls.FluentWindow
         InferredRarityText.Text = charm?.Rarity is int rarity ? $"RARE {rarity}" : "-";
     }
 
+    /// <summary>スキル欄の入力(1〜3つ目の順。名前は前後の空白を除いたもの)。</summary>
+    private List<(string Name, int Lv)> ReadSkillRows() =>
+        SkillNameBoxes.Zip(SkillLvBoxes)
+            .Select(pair => (pair.First.Text?.Trim() ?? "", GetComboBoxValue(pair.Second)))
+            .ToList();
+
     /// <summary>
-    /// 画面の入力から護石を作る(RAREは推定して入れる)。名前の重複など護石の不変条件を満たさない入力なら、
-    /// 護石の代わりに理由を返す。名前が空・Lv0の欄は空き欄として読み飛ばす。
+    /// 画面の入力から護石を作る(RAREは推定して入れる。編集でスキル・スロットを変えていなければ元のRAREを残す)。
+    /// 名前の重複など護石の不変条件を満たさない入力なら、護石の代わりに理由を返す。
+    /// 名前とLvの両方が入った欄だけを使い、それ以外の欄は読み飛ばす(片方だけの欄はOK時に<see cref="HalfFilledSkillRowMessage"/>で拒否する)。
     /// </summary>
     private (Charm? Charm, string? Error) TryBuildCharm()
     {
-        var skills = new List<CharmSkill>();
-        foreach (var (nameBox, lvBox) in SkillNameBoxes.Zip(SkillLvBoxes))
-        {
-            var name = nameBox.Text?.Trim() ?? "";
-            var lv = GetComboBoxValue(lvBox);
-            if (name != "" && lv > 0)
-                skills.Add(new CharmSkill(name, lv));
-        }
+        var skills = ReadSkillRows()
+            .Where(row => row.Name != "" && row.Lv > 0)
+            .Select(row => new CharmSkill(row.Name, row.Lv))
+            .ToList();
 
         var armorSlots = new List<int>
         {
@@ -155,7 +163,7 @@ public partial class CharmEditWindow : Wpf.Ui.Controls.FluentWindow
                 Source = CharmSource.Manual,
                 SourceTimestamp = DateTime.Now,
             };
-            return (RarityInference.WithInferredRarity(charm), null);
+            return (KeepRarityIfUnchanged(RarityInference.WithInferredRarity(charm), _existing), null);
         }
         catch (ArgumentException ex)
         {
@@ -163,8 +171,49 @@ public partial class CharmEditWindow : Wpf.Ui.Controls.FluentWindow
         }
     }
 
+    /// <summary>
+    /// 編集でスキル・スロットを変えていなければ(<see cref="DuplicateChecker.AreIdentical"/>)、元の護石のRAREにした護石を返す。
+    /// それ以外(新規入力・構成を変えた編集)は<paramref name="built"/>をそのまま返す(副作用なし)。
+    /// 推定し直すと、候補にないスキル名を含む護石などでは元のRAREが消えてしまうため(2026-11-12)。
+    /// 事前条件: builtはnullでない。
+    /// </summary>
+    internal static Charm KeepRarityIfUnchanged(Charm built, Charm? existing)
+    {
+        ArgumentNullException.ThrowIfNull(built);
+        return existing is not null && DuplicateChecker.AreIdentical(built, existing)
+            ? built.WithRarity(existing.Rarity)
+            : built;
+    }
+
+    /// <summary>
+    /// スキル欄のうち、名前とLvの片方だけが入った最初の欄を知らせる文を返す。なければnull(副作用なし)。
+    /// 名前は空文字列なら未入力、Lvは0なら未入力とみなす(名前は呼び出し側で前後の空白を除いておく)。
+    /// Lvを選び忘れた欄を黙って捨てて保存しないため(CSVの取り込みでも同じ入力は拒否している。2026-11-12)。
+    /// 事前条件: rowsとその名前はnullでなく、Lvは0以上。
+    /// </summary>
+    internal static string? HalfFilledSkillRowMessage(IReadOnlyList<(string Name, int Lv)> rows)
+    {
+        ArgumentNullException.ThrowIfNull(rows);
+        for (int i = 0; i < rows.Count; i++)
+        {
+            var (name, lv) = rows[i];
+            ArgumentNullException.ThrowIfNull(name, nameof(rows));
+            ArgumentOutOfRangeException.ThrowIfNegative(lv, nameof(rows));
+            if ((name != "") != (lv > 0))
+                return $"スキル{i + 1}の名前とLvの片方だけが入力されています。名前とLvの両方を入力するか、両方を空（Lv0）にしてください。";
+        }
+        return null;
+    }
+
     private void OkButton_Click(object sender, RoutedEventArgs e)
     {
+        var halfFilled = HalfFilledSkillRowMessage(ReadSkillRows());
+        if (halfFilled is not null)
+        {
+            MessageBox.Show(halfFilled, "入力エラー", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
         var (charm, error) = TryBuildCharm();
         if (charm is null)
         {
@@ -172,7 +221,7 @@ public partial class CharmEditWindow : Wpf.Ui.Controls.FluentWindow
             return;
         }
 
-        // ゲームとしてありうるかの検査(全入口共通のCharmValidator)。Errorは保存しない。
+        // ゲームとしてありうるかの検査(手動入力・CSV・JSONで共通のCharmValidator)。Errorは保存しない。
         // Warning(スキル候補一覧にない名前)は確認して、はいなら保存する
         var issues = CharmValidator.Validate(charm);
         var errorMessages = CharmValidator.ErrorMessages(issues);

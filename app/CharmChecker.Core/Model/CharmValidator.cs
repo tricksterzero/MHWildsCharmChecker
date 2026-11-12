@@ -13,8 +13,10 @@ public enum CharmIssueSeverity
 public sealed record CharmIssue(CharmIssueSeverity Severity, string Message);
 
 /// <summary>
-/// 護石がゲームとしてありうるかを確かめる(<see cref="Charm"/>の不変条件とは別の検査)。すべての入口(手動入力・
-/// CSV・JSON・スクショ)がこの判定を使い、入口ごとに警告・エラーの扱いだけを変える(2026-11-08)。
+/// 護石がゲームとしてありうるかを確かめる(<see cref="Charm"/>の不変条件とは別の検査)。手動入力(CharmEditWindow)と
+/// CSV・JSONの取り込み(<see cref="CharmImportScreening"/>)がこの判定を使い、入口ごとに警告・エラーの扱いだけを変える(2026-11-08)。
+/// スクショの読み取りはこれを呼ばず、構成表との照合(<see cref="CharmCombinationValidator"/>)とスロットの検査
+/// (<see cref="SlotValidation.TryValidate"/>)で、ありえない読み取り結果を除外する。
 /// </summary>
 public static class CharmValidator
 {
