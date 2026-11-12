@@ -54,8 +54,8 @@ public static class CharmTheoreticalValueChecker
 
     private static bool IsSlotPatternDominated(Charm charm, IEnumerable<CharmCombinationSlot> slots)
     {
-        var armor = Canonicalize(charm.ArmorSlots);
-        var weapon = Canonicalize(charm.WeaponSlots);
+        var armor = charm.ArmorSlotsDescending;
+        var weapon = charm.WeaponSlotsDescending;
 
         foreach (var slot in slots)
         {
@@ -66,6 +66,7 @@ public static class CharmTheoreticalValueChecker
         return false;
     }
 
+    /// <summary>構成表のスロットのパターン(個数は3以下で可変)を、護石のスロットと同じ形(降順でCharm.SlotCount個)にする。</summary>
     private static int[] Canonicalize(IReadOnlyList<int> slots)
     {
         var sorted = slots.OrderByDescending(v => v).ToArray();
@@ -75,7 +76,8 @@ public static class CharmTheoreticalValueChecker
         return result;
     }
 
-    private static bool Dominates(int[] aArmor, int[] aWeapon, int[] bArmor, int[] bWeapon)
+    private static bool Dominates(
+        IReadOnlyList<int> aArmor, IReadOnlyList<int> aWeapon, IReadOnlyList<int> bArmor, IReadOnlyList<int> bWeapon)
     {
         bool greaterOrEqualInAll = true;
         bool strictlyGreaterInSome = false;

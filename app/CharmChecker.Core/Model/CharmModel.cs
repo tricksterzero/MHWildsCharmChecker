@@ -39,6 +39,8 @@ public sealed class Charm
     private readonly ReadOnlyCollection<CharmSkill> _skills = Array.AsReadOnly(Array.Empty<CharmSkill>());
     private readonly ReadOnlyCollection<int> _armorSlots = EmptySlots;
     private readonly ReadOnlyCollection<int> _weaponSlots = EmptySlots;
+    private readonly ReadOnlyCollection<int> _armorSlotsDescending = EmptySlots;
+    private readonly ReadOnlyCollection<int> _weaponSlotsDescending = EmptySlots;
     private readonly int? _rarity;
 
     public IReadOnlyList<CharmSkill> Skills
@@ -50,14 +52,31 @@ public sealed class Charm
     public IReadOnlyList<int> ArmorSlots
     {
         get => _armorSlots;
-        init => _armorSlots = NormalizeSlots(value, nameof(ArmorSlots));
+        init
+        {
+            _armorSlots = NormalizeSlots(value, nameof(ArmorSlots));
+            _armorSlotsDescending = SortDescending(_armorSlots);
+        }
     }
 
     public IReadOnlyList<int> WeaponSlots
     {
         get => _weaponSlots;
-        init => _weaponSlots = NormalizeSlots(value, nameof(WeaponSlots));
+        init
+        {
+            _weaponSlots = NormalizeSlots(value, nameof(WeaponSlots));
+            _weaponSlotsDescending = SortDescending(_weaponSlots);
+        }
     }
+
+    /// <summary>
+    /// 防具スロットを値の大きい順に並べたもの(常に<see cref="SlotCount"/>個で、0は末尾)。スロットの並び順には
+    /// 意味がないため、護石どうしの比較や表示ではこちらを使う。<see cref="ArmorSlots"/>の並び順は変えない。
+    /// </summary>
+    public IReadOnlyList<int> ArmorSlotsDescending => _armorSlotsDescending;
+
+    /// <summary>武器スロットを値の大きい順に並べたもの。<see cref="ArmorSlotsDescending"/>と同じ。</summary>
+    public IReadOnlyList<int> WeaponSlotsDescending => _weaponSlotsDescending;
 
     public int? Rarity
     {
@@ -116,6 +135,10 @@ public sealed class Charm
             normalized[i] = value[i];
         return Array.AsReadOnly(normalized);
     }
+
+    /// <summary>正規化済みのスロットを値の大きい順に並べた読み取り専用のリストを返す(副作用なし)。</summary>
+    private static ReadOnlyCollection<int> SortDescending(ReadOnlyCollection<int> slots) =>
+        Array.AsReadOnly(slots.OrderByDescending(v => v).ToArray());
 
     private static int? ValidateRarity(int? value)
     {

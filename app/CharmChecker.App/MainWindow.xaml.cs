@@ -43,7 +43,7 @@ public class CharmListItem
         var parts = new List<string>();
 
         var weaponLv = charm.WeaponSlots.Where(v => v > 0).ToList();
-        var armorLvs = charm.ArmorSlots.Where(v => v > 0).OrderByDescending(v => v).ToList();
+        var armorLvs = charm.ArmorSlotsDescending.Where(v => v > 0).ToList();
 
         foreach (var lv in weaponLv)
             parts.Add($"武{lv}");
@@ -329,7 +329,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
 
             var slotLines = new List<string>();
             var weaponLv = charm.WeaponSlots.Where(v => v > 0).ToList();
-            var armorLvs = charm.ArmorSlots.Where(v => v > 0).OrderByDescending(v => v).ToList();
+            var armorLvs = charm.ArmorSlotsDescending.Where(v => v > 0).ToList();
             if (weaponLv.Count > 0)
                 slotLines.Add($"武器: Lv{weaponLv[0]}");
             if (armorLvs.Count > 0)

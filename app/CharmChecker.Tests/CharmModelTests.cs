@@ -148,4 +148,47 @@ public class CharmModelTests
         Assert.Equal(timestamp, updated.SourceTimestamp);
         Assert.Throws<ArgumentException>(() => charm.WithRarity(9));
     }
+
+    [Fact]
+    public void SlotsDescending_Default_AllZero()
+    {
+        var charm = new Charm();
+        Assert.Equal([0, 0, 0], charm.ArmorSlotsDescending);
+        Assert.Equal([0, 0, 0], charm.WeaponSlotsDescending);
+    }
+
+    [Fact]
+    public void SlotsDescending_SortedLargestFirst_OriginalOrderKept()
+    {
+        var charm = new Charm { ArmorSlots = [0, 1, 2], WeaponSlots = [0, 1, 0] };
+        Assert.Equal([2, 1, 0], charm.ArmorSlotsDescending);
+        Assert.Equal([1, 0, 0], charm.WeaponSlotsDescending);
+        Assert.Equal([0, 1, 2], charm.ArmorSlots);
+        Assert.Equal([0, 1, 0], charm.WeaponSlots);
+    }
+
+    [Fact]
+    public void SlotsDescending_ShorterInput_PaddedToSlotCount()
+    {
+        // 境界値: 渡したスロットが3個未満でも、降順のものは常に3個
+        var charm = new Charm { ArmorSlots = [1], WeaponSlots = [] };
+        Assert.Equal([1, 0, 0], charm.ArmorSlotsDescending);
+        Assert.Equal([0, 0, 0], charm.WeaponSlotsDescending);
+    }
+
+    [Fact]
+    public void SlotsDescending_CannotBeModifiedThroughCast()
+    {
+        var charm = new Charm { ArmorSlots = [0, 2, 1] };
+        Assert.Throws<NotSupportedException>(() => ((IList<int>)charm.ArmorSlotsDescending)[0] = 3);
+        Assert.Throws<NotSupportedException>(() => ((IList<int>)charm.WeaponSlotsDescending)[0] = 1);
+    }
+
+    [Fact]
+    public void SlotsDescending_KeptByWithRarity()
+    {
+        var updated = new Charm { ArmorSlots = [0, 1, 2], WeaponSlots = [0, 1, 0] }.WithRarity(8);
+        Assert.Equal([2, 1, 0], updated.ArmorSlotsDescending);
+        Assert.Equal([1, 0, 0], updated.WeaponSlotsDescending);
+    }
 }

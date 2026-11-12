@@ -92,8 +92,8 @@ public static class DuplicateChecker
                 .Select(s => $"{s.Name}:{s.Lv}")
                 .OrderBy(s => s));
 
-        var armorPart = string.Join(",", SortDesc(charm.ArmorSlots));
-        var weaponPart = string.Join(",", SortDesc(charm.WeaponSlots));
+        var armorPart = string.Join(",", charm.ArmorSlotsDescending);
+        var weaponPart = string.Join(",", charm.WeaponSlotsDescending);
 
         return $"{skillPart}#{armorPart}#{weaponPart}";
     }
@@ -137,10 +137,10 @@ public static class DuplicateChecker
 
     private static Ordering CompareSlots(Charm a, Charm b)
     {
-        bool aGteB = SlotsGte(a.ArmorSlots, b.ArmorSlots)
-                     && SlotsGte(a.WeaponSlots, b.WeaponSlots);
-        bool bGteA = SlotsGte(b.ArmorSlots, a.ArmorSlots)
-                     && SlotsGte(b.WeaponSlots, a.WeaponSlots);
+        bool aGteB = SlotsGte(a.ArmorSlotsDescending, b.ArmorSlotsDescending)
+                     && SlotsGte(a.WeaponSlotsDescending, b.WeaponSlotsDescending);
+        bool bGteA = SlotsGte(b.ArmorSlotsDescending, a.ArmorSlotsDescending)
+                     && SlotsGte(b.WeaponSlotsDescending, a.WeaponSlotsDescending);
 
         if (aGteB && bGteA) return Ordering.Eq;
         if (aGteB) return Ordering.Gt;
@@ -148,26 +148,9 @@ public static class DuplicateChecker
         return Ordering.Incomparable;
     }
 
-    private static bool SlotsGte(IReadOnlyList<int> a, IReadOnlyList<int> b)
-    {
-        var sa = SortDesc(a);
-        var sb = SortDesc(b);
-        int len = Math.Max(sa.Count, sb.Count);
-        for (int i = 0; i < len; i++)
-        {
-            int va = i < sa.Count ? sa[i] : 0;
-            int vb = i < sb.Count ? sb[i] : 0;
-            if (va < vb) return false;
-        }
-        return true;
-    }
-
-    private static List<int> SortDesc(IReadOnlyList<int> slots)
-    {
-        var sorted = new List<int>(slots);
-        sorted.Sort((a, b) => b.CompareTo(a));
-        return sorted;
-    }
+    /// <summary>降順に並べたスロット(どちらもCharm.SlotCount個)を位置ごとに比べ、すべての位置でa以上ならtrue。</summary>
+    private static bool SlotsGte(IReadOnlyList<int> aDescending, IReadOnlyList<int> bDescending) =>
+        aDescending.Zip(bDescending).All(pair => pair.First >= pair.Second);
 
     private enum Ordering { Eq, Gt, Lt, Incomparable }
 }

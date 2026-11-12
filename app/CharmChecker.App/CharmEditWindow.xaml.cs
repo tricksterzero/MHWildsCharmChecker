@@ -82,7 +82,7 @@ public partial class CharmEditWindow : Wpf.Ui.Controls.FluentWindow
             SetComboBoxIndex(skillLvs[i], charm.Skills[i].Lv);
         }
 
-        var armorSorted = charm.ArmorSlots.Where(v => v > 0).OrderByDescending(v => v).ToList();
+        var armorSorted = charm.ArmorSlotsDescending.Where(v => v > 0).ToList();
         if (armorSorted.Count > 0) SetComboBoxIndex(ArmorSlot1, armorSorted[0]);
         if (armorSorted.Count > 1) SetComboBoxIndex(ArmorSlot2, armorSorted[1]);
 

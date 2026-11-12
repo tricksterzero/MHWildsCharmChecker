@@ -142,8 +142,8 @@ public static class RarityInference
     /// </summary>
     internal static CharmCombinationSlot? FindMatchingSlot(IEnumerable<CharmCombinationSlot> slots, Charm charm)
     {
-        var armorSorted = charm.ArmorSlots.OrderByDescending(v => v).ToArray();
-        var weaponSorted = charm.WeaponSlots.OrderByDescending(v => v).ToArray();
+        var armorSorted = charm.ArmorSlotsDescending;
+        var weaponSorted = charm.WeaponSlotsDescending;
 
         return slots.FirstOrDefault(s =>
             armorSorted.Take(s.Armor.Length).SequenceEqual(s.Armor) &&
