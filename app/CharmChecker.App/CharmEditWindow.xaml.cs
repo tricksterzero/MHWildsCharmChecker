@@ -181,10 +181,10 @@ public partial class CharmEditWindow : Wpf.Ui.Controls.FluentWindow
         // ゲームとしてありうるかの検査(全入口共通のCharmValidator)。Errorは保存しない。
         // Warning(スキル候補一覧にない名前)は確認して、はいなら保存する
         var issues = CharmValidator.Validate(charm);
-        var firstError = issues.FirstOrDefault(i => i.Severity == CharmIssueSeverity.Error);
-        if (firstError is not null)
+        var errorMessages = CharmValidator.ErrorMessages(issues);
+        if (errorMessages.Count > 0)
         {
-            var message = charm.Skills.Count == 0 ? "スキルを1つ以上入力してください。" : firstError.Message;
+            var message = charm.Skills.Count == 0 ? "スキルを1つ以上入力してください。" : errorMessages[0];
             MessageBox.Show(message, "入力エラー", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }

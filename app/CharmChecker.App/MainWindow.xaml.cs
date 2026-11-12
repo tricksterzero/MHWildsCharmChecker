@@ -722,8 +722,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
             int errorIndex = issuesPerLine.FindIndex(issues => CharmValidator.HasError(issues));
             if (errorIndex >= 0)
             {
-                var errors = issuesPerLine[errorIndex]
-                    .Where(i => i.Severity == CharmIssueSeverity.Error).Select(i => i.Message);
+                var errors = CharmValidator.ErrorMessages(issuesPerLine[errorIndex]);
                 ImportResultText.Text = $"読み込みエラー: 行 {errorIndex + 1}: {string.Join(" ", errors)}（どの護石も取り込んでいません）";
                 return;
             }
@@ -907,7 +906,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
             var issues = CharmValidator.Validate(charm, skillGroups);
             if (CharmValidator.HasError(issues))
             {
-                excludedReasons.Add(string.Join(" ", issues.Where(i => i.Severity == CharmIssueSeverity.Error).Select(i => i.Message)));
+                excludedReasons.Add(string.Join(" ", CharmValidator.ErrorMessages(issues)));
                 continue;
             }
             if (issues.Count > 0) warningCount++;

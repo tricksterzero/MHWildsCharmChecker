@@ -57,4 +57,45 @@ public class CharmValidatorTests
         Assert.Throws<ArgumentNullException>(() => CharmValidator.Validate(null!, []));
         Assert.Throws<ArgumentNullException>(() => CharmValidator.Validate(Make([("ＫＯ術", 3)]), null!));
     }
+
+    [Fact]
+    public void ErrorMessages_ReturnsOnlyErrorsInOriginalOrder()
+    {
+        CharmIssue[] issues =
+        [
+            new(CharmIssueSeverity.Error, "エラー1"),
+            new(CharmIssueSeverity.Warning, "警告"),
+            new(CharmIssueSeverity.Error, "エラー2"),
+        ];
+        Assert.Equal(new[] { "エラー1", "エラー2" }, CharmValidator.ErrorMessages(issues));
+    }
+
+    [Fact]
+    public void ErrorMessages_OnlyWarnings_ReturnsEmpty()
+    {
+        Assert.Empty(CharmValidator.ErrorMessages([new CharmIssue(CharmIssueSeverity.Warning, "警告")]));
+    }
+
+    [Fact]
+    public void ErrorMessages_NoIssues_ReturnsEmpty()
+    {
+        // 境界値: 問題が0件
+        Assert.Empty(CharmValidator.ErrorMessages([]));
+    }
+
+    [Fact]
+    public void ErrorMessages_FromValidate_MatchesHasError()
+    {
+        // 候補にないスキル名(Warning)と、存在しないLv(Error)が混ざった検査結果から、Errorの文だけを取り出す
+        var issues = CharmValidator.Validate(Make([("存在しないスキル", 1), ("ＫＯ術", 9)], [1, 0, 0]));
+        var messages = CharmValidator.ErrorMessages(issues);
+        Assert.Equal(new[] { "「ＫＯ術」にLv9は存在しません。" }, messages);
+        Assert.Equal(CharmValidator.HasError(issues), messages.Count > 0);
+    }
+
+    [Fact]
+    public void ErrorMessages_Null_Throws()
+    {
+        Assert.Throws<ArgumentNullException>(() => CharmValidator.ErrorMessages(null!));
+    }
 }

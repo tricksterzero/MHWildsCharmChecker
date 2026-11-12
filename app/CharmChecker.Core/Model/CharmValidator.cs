@@ -55,4 +55,14 @@ public static class CharmValidator
     /// <summary>Errorが1つでもあればtrue。</summary>
     public static bool HasError(IReadOnlyList<CharmIssue> issues) =>
         issues.Any(i => i.Severity == CharmIssueSeverity.Error);
+
+    /// <summary>
+    /// Errorのメッセージを元の順のまま返す(Warningは含めない。Errorがなければ空。副作用なし)。
+    /// 事前条件: issuesはnullでない。
+    /// </summary>
+    public static IReadOnlyList<string> ErrorMessages(IReadOnlyList<CharmIssue> issues)
+    {
+        ArgumentNullException.ThrowIfNull(issues);
+        return issues.Where(i => i.Severity == CharmIssueSeverity.Error).Select(i => i.Message).ToList();
+    }
 }
