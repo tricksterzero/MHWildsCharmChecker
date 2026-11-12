@@ -10,6 +10,9 @@ public record CharmCombination(int Rarity, int[] SkillGroups, CharmCombinationSl
 
 public static class RarityInference
 {
+    /// <summary>研鑽は希望の護石(予約特典)固有のスキルで、構成表(charm-combinations.json)の対象外。</summary>
+    internal const string KensanSkillName = "研鑽";
+
     private static readonly Lazy<IReadOnlyList<SkillGroupEntry>> _skillGroups =
         new(() => LoadEmbeddedResource<SkillGroupEntry[]>("skill-groups.json", ParseSkillGroups));
 
@@ -35,24 +38,15 @@ public static class RarityInference
         if (charm.WeaponSlots.Any(v => v > 0))
             return 8;
 
-        if (charm.Skills.Any(s => s.Name == "研鑽"))
+        if (charm.Skills.Any(s => s.Name == KensanSkillName))
             return 5;
 
         if (charm.Skills.Count == 0)
             return null;
 
-        var possibleGroupsPerSkill = ResolvePossibleGroups(charm, skillGroups);
-        if (possibleGroupsPerSkill is null)
-            return null;
-
-        var matchedRarities = new HashSet<int>();
-        foreach (var combo in combinations)
-        {
-            if (combo.SkillGroups.Length != charm.Skills.Count)
-                continue;
-            if (MatchesGroupPattern(possibleGroupsPerSkill, combo.SkillGroups))
-                matchedRarities.Add(combo.Rarity);
-        }
+        var matchedRarities = MatchingCombinations(charm, skillGroups, combinations)
+            .Select(c => c.Rarity)
+            .ToHashSet();
 
         if (matchedRarities.Count == 1)
             return matchedRarities.First();
@@ -75,6 +69,26 @@ public static class RarityInference
     {
         ArgumentNullException.ThrowIfNull(charm);
         return charm.Rarity is null ? charm.WithRarity(Infer(charm)) : charm;
+    }
+
+    /// <summary>
+    /// 護石のスキル(名前とLvから引けるグループ)が当てはまる組み合わせを、<paramref name="combinations"/>の順のまま返す
+    /// (スロットは見ない。副作用なし)。スキルの順序は問わない(<see cref="MatchesGroupPattern"/>)。
+    /// skill-groupsに無いスキル・Lvを含む場合は空。
+    /// 事前条件: 引数はnullでない(満たさなければ、戻り値を列挙する前の呼び出し時点で例外を投げる)。
+    /// グループの解決は呼び出し時に1度だけ行い、組み合わせとの照合は戻り値を列挙するときに行う。
+    /// </summary>
+    internal static IEnumerable<CharmCombination> MatchingCombinations(
+        Charm charm, IReadOnlyList<SkillGroupEntry> skillGroups, IEnumerable<CharmCombination> combinations)
+    {
+        ArgumentNullException.ThrowIfNull(charm);
+        ArgumentNullException.ThrowIfNull(skillGroups);
+        ArgumentNullException.ThrowIfNull(combinations);
+
+        var possibleGroupsPerSkill = ResolvePossibleGroups(charm, skillGroups);
+        if (possibleGroupsPerSkill is null)
+            return [];
+        return combinations.Where(c => MatchesGroupPattern(possibleGroupsPerSkill, c.SkillGroups));
     }
 
     internal static List<int[]>? ResolvePossibleGroups(Charm charm, IReadOnlyList<SkillGroupEntry> skillGroups)

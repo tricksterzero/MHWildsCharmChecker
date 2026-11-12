@@ -15,17 +15,11 @@ public static class CharmProbabilityEstimator
         if (charm.Skills.Count == 0)
             return null;
 
-        var possibleGroupsPerSkill = RarityInference.ResolvePossibleGroups(charm, skillGroups);
-        if (possibleGroupsPerSkill is null)
-            return null;
-
         var rarityEntries = combinations.Where(c => c.Rarity == rarity).ToList();
         if (rarityEntries.Count == 0)
             return null;
 
-        var matched = rarityEntries.FirstOrDefault(c =>
-            c.SkillGroups.Length == charm.Skills.Count &&
-            RarityInference.MatchesGroupPattern(possibleGroupsPerSkill, c.SkillGroups));
+        var matched = RarityInference.MatchingCombinations(charm, skillGroups, rarityEntries).FirstOrDefault();
         if (matched is null)
             return null;
 

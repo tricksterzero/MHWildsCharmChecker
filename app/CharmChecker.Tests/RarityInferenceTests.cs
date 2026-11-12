@@ -206,4 +206,74 @@ public class RarityInferenceTests
 
         Assert.Throws<InvalidOperationException>(() => RarityInference.ParseSkillGroups(json));
     }
+
+    // MatchingCombinationsのテストは、実データの変更に左右されないよう小さな表で行う
+    private static readonly SkillGroupEntry[] TestSkillGroups =
+    [
+        new("スキルA", 1, [1]),
+        new("スキルB", 1, [2]),
+    ];
+
+    private static Charm MakeSkillCharm(params (string Name, int Lv)[] skills) => new()
+    {
+        Skills = skills.Select(s => new CharmSkill(s.Name, s.Lv)).ToList(),
+    };
+
+    private static CharmCombination MakeCombination(int rarity, params int[] skillGroups) =>
+        new(rarity, skillGroups, [new CharmCombinationSlot([1], [])]);
+
+    [Fact]
+    public void MatchingCombinations_ReturnsMatchesInTableOrder_RegardlessOfSkillOrder()
+    {
+        var rare5 = MakeCombination(5, 1, 2);
+        var rare6 = MakeCombination(6, 3);
+        var rare7Reversed = MakeCombination(7, 2, 1);
+        var rare8 = MakeCombination(8, 1, 2);
+
+        var matched = RarityInference.MatchingCombinations(
+            MakeSkillCharm(("スキルA", 1), ("スキルB", 1)), TestSkillGroups, [rare5, rare6, rare7Reversed, rare8]);
+
+        Assert.Equal(new[] { rare5, rare7Reversed, rare8 }, matched);
+    }
+
+    [Fact]
+    public void MatchingCombinations_GroupCountDiffers_DoesNotMatch()
+    {
+        // スキル2つの護石は、スキルグループが1つ・3つの組み合わせには当てはまらない
+        var matched = RarityInference.MatchingCombinations(
+            MakeSkillCharm(("スキルA", 1), ("スキルB", 1)), TestSkillGroups,
+            [MakeCombination(5, 1), MakeCombination(6, 1, 2, 2)]);
+
+        Assert.Empty(matched);
+    }
+
+    [Fact]
+    public void MatchingCombinations_SkillLevelNotInSkillGroups_ReturnsEmpty()
+    {
+        var matched = RarityInference.MatchingCombinations(
+            MakeSkillCharm(("スキルA", 1), ("スキルB", 2)), TestSkillGroups, [MakeCombination(5, 1, 2)]);
+
+        Assert.Empty(matched);
+    }
+
+    [Fact]
+    public void MatchingCombinations_NoSkills_DoesNotMatchCombinationsWithSkillGroups()
+    {
+        // 構成表の組み合わせはスキルグループ1〜3個のため、スキルが0個の護石はどれにも当てはまらない
+        var matched = RarityInference.MatchingCombinations(
+            MakeSkillCharm(), TestSkillGroups, [MakeCombination(5, 1), MakeCombination(6, 1, 2)]);
+
+        Assert.Empty(matched);
+    }
+
+    [Fact]
+    public void MatchingCombinations_NullArguments_ThrowBeforeEnumeration()
+    {
+        // 戻り値を列挙しなくても、呼び出した時点で例外になる
+        var charm = MakeSkillCharm(("スキルA", 1));
+        CharmCombination[] combinations = [MakeCombination(5, 1)];
+        Assert.Throws<ArgumentNullException>(() => RarityInference.MatchingCombinations(null!, TestSkillGroups, combinations));
+        Assert.Throws<ArgumentNullException>(() => RarityInference.MatchingCombinations(charm, null!, combinations));
+        Assert.Throws<ArgumentNullException>(() => RarityInference.MatchingCombinations(charm, TestSkillGroups, null!));
+    }
 }

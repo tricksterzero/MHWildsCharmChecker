@@ -30,13 +30,7 @@ public static class CharmTheoreticalValueChecker
                 return false;
         }
 
-        var possibleGroupsPerSkill = RarityInference.ResolvePossibleGroups(charm, skillGroups);
-        if (possibleGroupsPerSkill is null)
-            return null;
-
-        var matched = combinations.FirstOrDefault(c =>
-            c.SkillGroups.Length == charm.Skills.Count &&
-            RarityInference.MatchesGroupPattern(possibleGroupsPerSkill, c.SkillGroups));
+        var matched = RarityInference.MatchingCombinations(charm, skillGroups, combinations).FirstOrDefault();
         if (matched is null)
             return null;
 

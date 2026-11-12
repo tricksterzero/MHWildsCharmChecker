@@ -9,9 +9,6 @@ namespace CharmChecker.Core.Model;
 /// </summary>
 public static class CharmCombinationValidator
 {
-    /// <summary>研鑽は希望の護石(予約特典)固有のスキルで、構成表の対象外。</summary>
-    private const string KensanSkillName = "研鑽";
-
     public static bool MatchesAnyCombination(Charm charm) =>
         MatchesAnyCombination(charm, RarityInference.LoadSkillGroups(), RarityInference.LoadCombinations());
 
@@ -31,18 +28,13 @@ public static class CharmCombinationValidator
         ArgumentNullException.ThrowIfNull(skillGroups);
         ArgumentNullException.ThrowIfNull(combinations);
 
-        if (charm.Skills.Any(s => s.Name == KensanSkillName))
+        if (charm.Skills.Any(s => s.Name == RarityInference.KensanSkillName))
             return true;
         if (charm.Skills.Count == 0)
             return false;
 
-        var possibleGroupsPerSkill = RarityInference.ResolvePossibleGroups(charm, skillGroups);
-        if (possibleGroupsPerSkill is null)
-            return false;
-
-        return combinations
-            .Where(c => charm.Rarity is null || c.Rarity == charm.Rarity)
-            .Where(c => RarityInference.MatchesGroupPattern(possibleGroupsPerSkill, c.SkillGroups))
+        var sameRarity = combinations.Where(c => charm.Rarity is null || c.Rarity == charm.Rarity);
+        return RarityInference.MatchingCombinations(charm, skillGroups, sameRarity)
             .Any(c => RarityInference.FindMatchingSlot(c.Slots, charm) is not null);
     }
 }
