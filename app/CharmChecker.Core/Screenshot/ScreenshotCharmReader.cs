@@ -1,3 +1,4 @@
+using CharmChecker.Core.Image;
 using CharmChecker.Core.Model;
 using CharmChecker.Core.Skill;
 using CharmChecker.Core.SlotIcon;
@@ -81,7 +82,9 @@ public static class ScreenshotCharmReader
 
         try
         {
-            var readResult = await SkillReadingPipeline.ReadWithMetadataAsync(file, knownSkills);
+            // スキル欄とスロット欄で同じ画像を使い、ファイルは1回だけ読む(2026-11-12。それまでは2回読んでいた)
+            using var img = ScreenshotImage.Read(file);
+            var readResult = await SkillReadingPipeline.ReadWithMetadataFromImageAsync(img, knownSkills);
             if (readResult is null)
                 return new(ScreenshotOutcomeKind.NotCharmPanel);
 
@@ -114,7 +117,7 @@ public static class ScreenshotCharmReader
             }
 
             var charmType = CharmTypeLoader.Lookup(readResult.CharmName, charmTypes);
-            var slots = ReadSlots(file, charmType?.HasWeaponSlot ?? false, readResult.AnchorX);
+            var slots = ReadSlotsFromImage(img, charmType?.HasWeaponSlot ?? false, readResult.AnchorX);
 
             var charm = new Charm
             {
@@ -173,9 +176,20 @@ public static class ScreenshotCharmReader
     {
         ArgumentException.ThrowIfNullOrEmpty(imagePath);
 
-        using var img = Cv2.ImRead(imagePath);
-        if (img.Empty())
-            throw new InvalidDataException($"画像を読み込めませんでした: {imagePath}");
+        using var img = ScreenshotImage.Read(imagePath);
+        return ReadSlotsFromImage(img, hasWeaponSlot, anchorX);
+    }
+
+    /// <summary>
+    /// 読み込み済みの画像から<see cref="ReadSlots"/>と同じ読み取りをする(画像は変更しない。例外も同じ)。
+    /// スキル欄の読み取りと同じ画像を使い、ファイルを2回読まないため(2026-11-12)。
+    /// 事前条件: imgは空でない3チャネル(BGR)の画像。
+    /// </summary>
+    internal static (List<int> ArmorSlots, List<int> WeaponSlots) ReadSlotsFromImage(
+        Mat img, bool hasWeaponSlot, double? anchorX = null)
+    {
+        ScreenshotImage.ThrowIfNotBgr(img, nameof(img));
+
         var (sx, sy) = SlotIconAnalyzer.ScaleFactors(img);
 
         var boxRegion = SlotIconAnalyzer.PanelRegion(img);

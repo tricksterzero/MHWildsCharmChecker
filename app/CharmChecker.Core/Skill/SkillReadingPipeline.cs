@@ -49,11 +49,20 @@ public static class SkillReadingPipeline
         ArgumentException.ThrowIfNullOrEmpty(imagePath);
         ArgumentNullException.ThrowIfNull(knownSkills);
 
-        using var img = Cv2.ImRead(imagePath);
-        // 壊れた画像や画像でないファイルではImReadが空の画像を返し、そのままだと後段でOpenCVの
-        // 分かりにくい例外("!_src.empty()")になるため、ここで原因の分かる例外にする
-        if (img.Empty())
-            throw new InvalidDataException($"画像を読み込めませんでした: {imagePath}");
+        using var img = ScreenshotImage.Read(imagePath);
+        return await ReadWithMetadataFromImageAsync(img, knownSkills);
+    }
+
+    /// <summary>
+    /// 読み込み済みの画像から<see cref="ReadWithMetadataAsync"/>と同じ読み取りをする(画像は変更しない)。
+    /// スロット欄の読み取りと同じ画像を使い、ファイルを2回読まないため(2026-11-12)。
+    /// 事前条件: imgは空でない3チャネル(BGR)の画像、knownSkillsはnullでない。
+    /// </summary>
+    internal static async Task<SkillReadResult?> ReadWithMetadataFromImageAsync(Mat img, IReadOnlyList<string> knownSkills)
+    {
+        ScreenshotImage.ThrowIfNotBgr(img, nameof(img));
+        ArgumentNullException.ThrowIfNull(knownSkills);
+
         var (_, _, scale) = LetterboxNormalizer.DetectContentBounds(img);
 
         // 真の21:9(3440x1440等、基準幅2560を超える)スクリーンショットは、フルスクリーンOCRを
