@@ -26,31 +26,12 @@ public class CharmListItem
         Id = id;
         Charm = charm;
 
-        RarityText = charm.Rarity.HasValue ? charm.Rarity.Value.ToString() : "-";
-
-        SkillText = charm.Skills.Count > 0
-            ? string.Join(" / ", charm.Skills.Select(s => $"{s.Name} Lv{s.Lv}"))
-            : "（なし）";
-
-        SlotText = FormatSlotsStatic(charm);
+        RarityText = CharmDisplayText.Rarity(charm);
+        SkillText = CharmDisplayText.Skills(charm, " / ");
+        SlotText = CharmDisplayText.Slots(charm);
 
         DateText = charm.SourceTimestamp.ToString("yyyy-MM-dd");
         DateTimeText = charm.SourceTimestamp.ToString("yyyy-MM-dd HH:mm:ss");
-    }
-
-    public static string FormatSlotsStatic(Charm charm)
-    {
-        var parts = new List<string>();
-
-        var weaponLv = charm.WeaponSlots.Where(v => v > 0).ToList();
-        var armorLvs = charm.ArmorSlotsDescending.Where(v => v > 0).ToList();
-
-        foreach (var lv in weaponLv)
-            parts.Add($"武{lv}");
-        foreach (var lv in armorLvs)
-            parts.Add($"防{lv}");
-
-        return parts.Count > 0 ? string.Join(" - ", parts) : "なし";
     }
 }
 
@@ -323,18 +304,8 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
                 null => "判定不可",
             };
 
-            DetailSkills.Text = charm.Skills.Count > 0
-                ? string.Join("\n", charm.Skills.Select(s => $"{s.Name} Lv{s.Lv}"))
-                : "（なし）";
-
-            var slotLines = new List<string>();
-            var weaponLv = charm.WeaponSlots.Where(v => v > 0).ToList();
-            var armorLvs = charm.ArmorSlotsDescending.Where(v => v > 0).ToList();
-            if (weaponLv.Count > 0)
-                slotLines.Add($"武器: Lv{weaponLv[0]}");
-            if (armorLvs.Count > 0)
-                slotLines.Add($"防具: {string.Join(", ", armorLvs.Select(v => $"Lv{v}"))}");
-            DetailSlots.Text = slotLines.Count > 0 ? string.Join("\n", slotLines) : "なし";
+            DetailSkills.Text = CharmDisplayText.Skills(charm, "\n");
+            DetailSlots.Text = CharmDisplayText.SlotsDetail(charm);
 
             DetailSource.Text = charm.Source switch
             {
@@ -628,9 +599,9 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
                 _readingResults = results;
                 ReadingResultGrid.ItemsSource = results.Select(r => new
                 {
-                    RarityText = r.Charm.Rarity.HasValue ? r.Charm.Rarity.Value.ToString() : "-",
-                    SkillText = string.Join(" / ", r.Charm.Skills.Select(s => $"{s.Name} Lv{s.Lv}")),
-                    SlotText = CharmListItem.FormatSlotsStatic(r.Charm),
+                    RarityText = CharmDisplayText.Rarity(r.Charm),
+                    SkillText = CharmDisplayText.Skills(r.Charm, " / "),
+                    SlotText = CharmDisplayText.Slots(r.Charm),
                     r.FileName,
                 }).ToList();
                 ReadingResultGrid.Visibility = Visibility.Visible;
