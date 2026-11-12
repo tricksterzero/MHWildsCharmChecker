@@ -717,7 +717,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
 
             // ゲームにありえない値(存在しないLv・スロットの形・スキル0個)は、形式エラーと同じく行番号付きで
             // 全体を取り込まない。候補にないスキル名は警告として件数だけ知らせて取り込む
-            var skillGroups = RarityInference.LoadSkillGroups();
+            var skillGroups = CharmCombinationTable.LoadSkillGroups();
             var issuesPerLine = parsedRaw.Select(c => CharmValidator.Validate(c, skillGroups)).ToList();
             int errorIndex = issuesPerLine.FindIndex(issues => CharmValidator.HasError(issues));
             if (errorIndex >= 0)
@@ -898,7 +898,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
 
         // 新しく取り込むデータなので、不変条件の違反に加えてゲームにありえない値の項目も取り込まない
         // (起動時の既存データの読み込みとは扱いが違う)。候補にないスキル名は警告として件数だけ知らせる
-        var skillGroups = RarityInference.LoadSkillGroups();
+        var skillGroups = CharmCombinationTable.LoadSkillGroups();
         var excludedReasons = parseResult.Rejected.Select(r => $"{r.Index + 1}件目: {r.Reason}").ToList();
         var parsed = new List<Charm>();
         int warningCount = 0;

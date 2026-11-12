@@ -107,7 +107,7 @@ node legacy/charm-duplicate-checker.js <CSVパス>
   - 組み合わせ確率 = 1 / (そのレアリティで`charm-combinations.json`に存在する組み合わせパターン数)
   - スロット確率 = 1 / (その組み合わせで有効なスロットパターン数)。ただしRARE8のみ`charm-combinations.json`の`weight`フィールド（0.5/0.33/0.17）を使用
   - 各スキルの選択確率 = 1 / (そのスキルが属するグループに`skill-groups.json`で登録されている(スキル名,Lv)エントリ数)
-- `RarityInference`が持つグループ照合ロジック（`MatchingCombinations`。中で`ResolvePossibleGroups`/`MatchesGroupPattern`を使う。RARE推定・理論値判定・構成表との照合と共有）を再利用してcharmの組み合わせを`charm-combinations.json`から特定する
+- `CharmCombinationTable`が持つグループ照合ロジック（`MatchingCombinations`。中で`ResolvePossibleGroups`/`MatchesGroupPattern`を使う。RARE推定・理論値判定・構成表との照合と共有）を再利用してcharmの組み合わせを`charm-combinations.json`から特定する
 - 出典・確度: `charm-combinations.json`のデータ自体は既存のDtlnorデータマイン（コミュニティ有志による解析、RARE推定にも使用）が土台。RARE8のスロット重み（0.5/0.33/0.17）も同データマイン由来で、game8.jpの実測記事（レアリティ自体の抽選確率は確認できたが、スロットパターン内訳は未掲載と確認済み、2026-07-21調査）による裏付けはない
 - **組み合わせ確率・RARE5〜7のスロット確率・各スキルの選択確率は、いずれも「等確率で選ばれる」という未検証の仮定に基づく推定値**であり、実際のゲーム内抽選確率を保証するものではない（ユーザー了承の上で実装、2026-07-21）
 - UI表示（`MainWindow.xaml.cs`の`FormatProbability`）: パーセント表示・有効数字3桁（値の範囲が0.00004%〜0.02%程度と広いため、固定小数点桁数では小さい値が0%に飽和してしまうことを避ける設計）

@@ -10,7 +10,7 @@ namespace CharmChecker.Core.Model;
 public static class CharmCombinationValidator
 {
     public static bool MatchesAnyCombination(Charm charm) =>
-        MatchesAnyCombination(charm, RarityInference.LoadSkillGroups(), RarityInference.LoadCombinations());
+        MatchesAnyCombination(charm, CharmCombinationTable.LoadSkillGroups(), CharmCombinationTable.LoadCombinations());
 
     /// <summary>
     /// 事前条件: 引数はいずれもnullでない。
@@ -28,13 +28,13 @@ public static class CharmCombinationValidator
         ArgumentNullException.ThrowIfNull(skillGroups);
         ArgumentNullException.ThrowIfNull(combinations);
 
-        if (charm.Skills.Any(s => s.Name == RarityInference.KensanSkillName))
+        if (charm.Skills.Any(s => s.Name == CharmCombinationTable.KensanSkillName))
             return true;
         if (charm.Skills.Count == 0)
             return false;
 
         var sameRarity = combinations.Where(c => charm.Rarity is null || c.Rarity == charm.Rarity);
-        return RarityInference.MatchingCombinations(charm, skillGroups, sameRarity)
-            .Any(c => RarityInference.FindMatchingSlot(c.Slots, charm) is not null);
+        return CharmCombinationTable.MatchingCombinations(charm, skillGroups, sameRarity)
+            .Any(c => CharmCombinationTable.FindMatchingSlot(c.Slots, charm) is not null);
     }
 }

@@ -93,8 +93,8 @@ public class CharmCombinationValidatorTests
         var charm = MakeCharm(8, [("高速変形", 3), ("属性変換", 1)], [1, 0, 0], [1, 0, 0]);
         Assert.Throws<ArgumentNullException>(() => CharmCombinationValidator.MatchesAnyCombination(null!));
         Assert.Throws<ArgumentNullException>(() => CharmCombinationValidator.MatchesAnyCombination(
-            charm, null!, RarityInference.LoadCombinations()));
+            charm, null!, CharmCombinationTable.LoadCombinations()));
         Assert.Throws<ArgumentNullException>(() => CharmCombinationValidator.MatchesAnyCombination(
-            charm, RarityInference.LoadSkillGroups(), null!));
+            charm, CharmCombinationTable.LoadSkillGroups(), null!));
     }
 }

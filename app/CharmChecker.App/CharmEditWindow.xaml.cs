@@ -23,7 +23,7 @@ public partial class CharmEditWindow : Wpf.Ui.Controls.FluentWindow
 
         var gameOrder = GameSkillOrder.Order.ToList();
         var charmSkillNames = new HashSet<string>(
-            RarityInference.LoadSkillGroups().Select(e => e.Name));
+            CharmCombinationTable.LoadSkillGroups().Select(e => e.Name));
         _skillNames = gameOrder
             .Where(n => charmSkillNames.Contains(n))
             .ToList();

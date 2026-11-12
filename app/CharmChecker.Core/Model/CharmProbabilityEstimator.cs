@@ -3,7 +3,7 @@ namespace CharmChecker.Core.Model;
 public static class CharmProbabilityEstimator
 {
     public static double? Estimate(Charm charm) =>
-        Estimate(charm, RarityInference.LoadSkillGroups(), RarityInference.LoadCombinations());
+        Estimate(charm, CharmCombinationTable.LoadSkillGroups(), CharmCombinationTable.LoadCombinations());
 
     public static double? Estimate(
         Charm charm,
@@ -19,11 +19,11 @@ public static class CharmProbabilityEstimator
         if (rarityEntries.Count == 0)
             return null;
 
-        var matched = RarityInference.MatchingCombinations(charm, skillGroups, rarityEntries).FirstOrDefault();
+        var matched = CharmCombinationTable.MatchingCombinations(charm, skillGroups, rarityEntries).FirstOrDefault();
         if (matched is null)
             return null;
 
-        var matchedSlot = RarityInference.FindMatchingSlot(matched.Slots, charm);
+        var matchedSlot = CharmCombinationTable.FindMatchingSlot(matched.Slots, charm);
         if (matchedSlot is null)
             return null;
 

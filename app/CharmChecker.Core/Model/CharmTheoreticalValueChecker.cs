@@ -3,7 +3,7 @@ namespace CharmChecker.Core.Model;
 public static class CharmTheoreticalValueChecker
 {
     public static bool? IsTheoretical(Charm charm) =>
-        IsTheoretical(charm, RarityInference.LoadSkillGroups(), RarityInference.LoadCombinations());
+        IsTheoretical(charm, CharmCombinationTable.LoadSkillGroups(), CharmCombinationTable.LoadCombinations());
 
     public static bool? IsTheoretical(
         Charm charm,
@@ -30,7 +30,7 @@ public static class CharmTheoreticalValueChecker
                 return false;
         }
 
-        var matched = RarityInference.MatchingCombinations(charm, skillGroups, combinations).FirstOrDefault();
+        var matched = CharmCombinationTable.MatchingCombinations(charm, skillGroups, combinations).FirstOrDefault();
         if (matched is null)
             return null;
 
@@ -46,7 +46,7 @@ public static class CharmTheoreticalValueChecker
         // 護石自身のスロット構成がテーブル上に実在するパターンかを先に確認する。
         // 実在しない構成（OCR誤読や手動入力の誤操作等）を、たまたま既存パターンに
         // 支配されないというだけで理論値と誤判定しないため
-        if (RarityInference.FindMatchingSlot(comparableSlots, charm) is null)
+        if (CharmCombinationTable.FindMatchingSlot(comparableSlots, charm) is null)
             return null;
 
         return !IsSlotPatternDominated(charm, comparableSlots);

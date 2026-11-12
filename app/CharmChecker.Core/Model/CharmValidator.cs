@@ -19,7 +19,7 @@ public sealed record CharmIssue(CharmIssueSeverity Severity, string Message);
 public static class CharmValidator
 {
     public static IReadOnlyList<CharmIssue> Validate(Charm charm) =>
-        Validate(charm, RarityInference.LoadSkillGroups());
+        Validate(charm, CharmCombinationTable.LoadSkillGroups());
 
     /// <summary>
     /// 事前条件: 引数はnullでない。事後条件: 問題がなければ空のリスト。副作用なし。
