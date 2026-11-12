@@ -12,6 +12,7 @@ public enum ScreenshotOutcomeKind
     NotCharmPanel,
     Detected,
     NoValidSkill,
+    /// <summary>護石名が読めないか、charm-types.jsonのどの護石名にも当てはまらない(武器スロットの有無が分からない)。</summary>
     NoCharmName,
     DecorationEquipped,
     SlotDetectionFailed,
@@ -101,30 +102,25 @@ public static class ScreenshotCharmReader
             if (validSkills.Select(s => s.Name).Distinct(StringComparer.Ordinal).Count() != validSkills.Count)
                 return new(ScreenshotOutcomeKind.InconsistentWithCombinations);
 
-            if (readResult.CharmName is null)
-            {
-                // 護石名テキスト自体が読み取れなかった場合、charm-types.json登録4種
-                // (未解/史伝/秘歴/栄世)のどれに該当するかも、そもそも該当しない一般護石・
-                // 希望の護石等かも判別できない。hasWeaponSlot=falseのままReadSlotsへ渡すと、
-                // 実際は栄世の護石(武器スロット持ち)だった場合に武器スロットの検出値が
-                // 防具スロットとして誤保存されるリスクがある(2026-08-05発見)。
-                // スロット値自体は妥当範囲に収まるためSlotValidationでは検出できないサイレント
-                // 誤りになるため、護石名が完全に不明な場合のみ読み取り失敗として除外する。
-                // 護石名は読めたがcharm-types.jsonに未登録(希望の護石等)の場合は、従来通り
-                // hasWeaponSlot=false・Rarity=nullで処理を続け、後続のRarityInferenceによる
-                // 補完に委ねる(未登録=栄世の護石ではないと確定できるため誤混同のリスクがない)。
+            // 護石名が読めないか、charm-types.jsonのどの護石名にも当てはまらない場合は、武器スロットの有無が
+            // 分からないため除外する。武器スロット無しとして読み進めると、実際は栄世の護石(武器スロットあり)だった
+            // 場合に武器スロットが防具スロットとして保存される。スロットの値は現行ゲームにありうる範囲に収まり、
+            // 構成表にも当てはまりうるため、後の検査では見つけられない(護石名が読めない場合は2026-08-05発見)。
+            // 護石名は読めたが当てはまらない場合も、2026-11-12までは「栄世の護石ではない」とみなして読み進めていたが、
+            // 護石名の本体をOCRが読み違えた場合(「栄世」→「栄生」等)に同じ誤りになるため除外する(Codexの指摘)。
+            // 2026-11-12に手元の全画像で確かめたところ、当てはまらなかった護石名は「希望の護石」だけだったため、
+            // これをcharm-types.jsonに加えた(先頭に余計な文字が付く読み違いは、Lookupの末尾一致で当てはまる)。
+            if (CharmTypeLoader.Lookup(readResult.CharmName, charmTypes) is not { } charmType)
                 return new(ScreenshotOutcomeKind.NoCharmName);
-            }
 
-            var charmType = CharmTypeLoader.Lookup(readResult.CharmName, charmTypes);
-            var slots = ReadSlotsFromImage(img, charmType?.HasWeaponSlot ?? false, readResult.AnchorX);
+            var slots = ReadSlotsFromImage(img, charmType.HasWeaponSlot, readResult.AnchorX);
 
             var charm = new Charm
             {
                 Skills = validSkills,
                 ArmorSlots = slots.ArmorSlots,
                 WeaponSlots = slots.WeaponSlots,
-                Rarity = charmType?.Rarity,
+                Rarity = charmType.Rarity,
                 Source = CharmSource.Screenshot,
                 SourceTimestamp = File.GetLastWriteTime(file),
             };

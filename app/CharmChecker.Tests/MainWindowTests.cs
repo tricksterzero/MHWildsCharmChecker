@@ -47,6 +47,24 @@ public class MainWindowTests
         Assert.Throws<ArgumentOutOfRangeException>(() => CharmChecker.App.MainWindow.CsvImportWarningNote(-1));
     }
 
+    // 読み取り結果を一覧に追加したときの文(2026-11-12、同じスクショから取り込み済みの護石を追加しないようにしたときに追加)
+    [Theory]
+    [InlineData(3, 0, "\n3件を護石一覧に追加しました。")]
+    [InlineData(0, 0, "\n0件を護石一覧に追加しました。")]
+    [InlineData(1, 5, "\n1件を護石一覧に追加しました。（同じスクショから取り込み済みの5件は追加していません）")]
+    [InlineData(0, 2, "\n0件を護石一覧に追加しました。（同じスクショから取り込み済みの2件は追加していません）")]
+    public void ReadingResultAddedNote_ByCounts(int added, int skipped, string expected)
+    {
+        Assert.Equal(expected, CharmChecker.App.MainWindow.ReadingResultAddedNote(added, skipped));
+    }
+
+    [Fact]
+    public void ReadingResultAddedNote_NegativeCount_Throws()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => CharmChecker.App.MainWindow.ReadingResultAddedNote(-1, 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => CharmChecker.App.MainWindow.ReadingResultAddedNote(0, -1));
+    }
+
     // JSONの取り込みの確認ダイアログに書く補足(2026-11-12にImportLocalDataMenu_Clickから切り出した。文言は変えていない)
     [Fact]
     public void JsonImportNotes_NothingExcludedNoWarning_ReturnsEmpty()

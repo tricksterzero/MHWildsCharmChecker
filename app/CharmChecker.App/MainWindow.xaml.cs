@@ -432,8 +432,8 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
             var tally = ScreenshotReadingTally.Create(targetFiles, outcomes);
             WriteReadingLog(tally);
 
-            // charmType(未解/史伝/秘歴/栄世の護石)でRarityが決まらなかった護石(通常護石・希望の護石等)は
-            // スキル・スロット構成からのRARE推定で補完する。
+            // スクショの護石はcharm-types.jsonに当てはまったものだけが残り、RAREは護石名から決まっている
+            // (2026-11-12から。それまでは当てはまらない護石名もRAREなしで残していた)。推定はRAREが空のときだけ行う。
             var results = tally.Detected
                 .Select(r => (Charm: RarityInference.WithInferredRarity(r.Charm), r.FileName))
                 .ToList();
@@ -527,13 +527,29 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     {
         if (_readingResults is null || _readingResults.Count == 0) return;
 
-        foreach (var (charm, _) in _readingResults)
+        // 全画像の再スキャンで読み直した場合に、同じスクショから取り込み済みの護石を二重に加えない
+        var (toAdd, skipped) = DuplicateChecker.ExcludeAlreadyImportedScreenshots(
+            AllCharms, _readingResults.Select(r => r.Charm));
+        foreach (var charm in toAdd)
             AddCharm(charm);
 
         SaveCharms();
-        ReadingSummaryText.Text += $"\n{_readingResults.Count}件を護石一覧に追加しました。";
+        ReadingSummaryText.Text += ReadingResultAddedNote(toAdd.Count, skipped);
         _readingResults = null;
         AddReadingResultButton.Visibility = Visibility.Collapsed;
+    }
+
+    /// <summary>
+    /// 読み取り結果を一覧に追加したときに集計文の後ろに足す文(先頭に改行。副作用なし)。同じスクショから取り込み済みで
+    /// 追加しなかった護石があれば、その件数も示す。事前条件: added・skippedは0以上。
+    /// </summary>
+    internal static string ReadingResultAddedNote(int added, int skipped)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(added);
+        ArgumentOutOfRangeException.ThrowIfNegative(skipped);
+        return skipped > 0
+            ? $"\n{added}件を護石一覧に追加しました。（同じスクショから取り込み済みの{skipped}件は追加していません）"
+            : $"\n{added}件を護石一覧に追加しました。";
     }
 
     private void DuplicateCheck_Click(object sender, RoutedEventArgs e)

@@ -108,6 +108,36 @@ public static class DuplicateChecker
         return (toAdd, skipped);
     }
 
+    /// <summary>
+    /// スクショの読み取り結果のうち、同じスクショからすでに取り込んだ護石を除いて元の順のまま返し、除いた件数も返す(副作用なし)。
+    /// 「同じスクショから取り込んだ」とは、既存の護石にスクショ由来で、SourceTimestamp(読んだファイルの更新日時)が同じで、
+    /// <see cref="AreIdentical"/>の基準で同一の護石があること。全画像の再スキャンで読み直した結果を追加するときに、
+    /// 取り込み済みの護石を二重に加えないため(2026-11-12)。別のスクショに写った同じ構成の護石(SourceTimestampが違う)や、
+    /// 読み取り結果どうしで同一の護石は除かない(同じ構成の護石を実際に複数持っている場合があるため)。
+    /// 事前条件: 引数はnullでない。事後条件: 返す護石の数と除いた件数の和は、incomingの件数と同じ。
+    /// </summary>
+    public static (IReadOnlyList<Charm> ToAdd, int Skipped) ExcludeAlreadyImportedScreenshots(
+        IEnumerable<Charm> existing, IEnumerable<Charm> incoming)
+    {
+        ArgumentNullException.ThrowIfNull(existing);
+        ArgumentNullException.ThrowIfNull(incoming);
+
+        var imported = existing
+            .Where(c => c.Source == CharmSource.Screenshot)
+            .Select(c => (c.SourceTimestamp, IdentityKey(c)))
+            .ToHashSet();
+        var toAdd = new List<Charm>();
+        int skipped = 0;
+        foreach (var charm in incoming)
+        {
+            if (charm.Source == CharmSource.Screenshot && imported.Contains((charm.SourceTimestamp, IdentityKey(charm))))
+                skipped++;
+            else
+                toAdd.Add(charm);
+        }
+        return (toAdd, skipped);
+    }
+
     private static string IdentityKey(Charm charm)
     {
         var skillPart = string.Join("|",

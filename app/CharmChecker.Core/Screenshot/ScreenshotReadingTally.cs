@@ -106,7 +106,7 @@ public sealed class ScreenshotReadingTally
         ScreenshotOutcomeKind.NoValidSkill => (Category.Failed,
             new($"{fileName}: 護石パネルは検出できたがスキルを1件も読み取れませんでした。")),
         ScreenshotOutcomeKind.NoCharmName => (Category.Failed,
-            new($"{fileName}: 護石名を読み取れず武器スロット有無が不明なため読み取りをスキップしました。")),
+            new($"{fileName}: 護石名を読み取れないか既知の護石名に当てはまらず、武器スロット有無が不明なため読み取りをスキップしました。")),
         // 装飾品装着済みスロットはレベル判定が信頼できないため(CLAUDE.md参照)、
         // 護石全体を読み取り対象から除外する。エラーではなく仕様上の除外のため
         // Failedとは別に数え、ユーザーに区別して提示する。
