@@ -76,22 +76,14 @@ public static class ImageVariantFactory
         // (3) Otsu二値化
         using var gray = new Mat();
         Cv2.CvtColor(image, gray, ColorConversionCodes.BGR2GRAY);
-        using var binarized = new Mat();
-        Cv2.Threshold(gray, binarized, 0, 255, ThresholdTypes.Binary | ThresholdTypes.Otsu);
-        var binBgr = new Mat();
-        Cv2.CvtColor(binarized, binBgr, ColorConversionCodes.GRAY2BGR);
-        variants.Add(new Variant("otsu" + suffix, binBgr, fullThreshold, scale));
+        variants.Add(new Variant("otsu" + suffix, OtsuBinarizedBgr(gray), fullThreshold, scale));
 
         // (4) トリミング + 二値化
         if (trimmedClone is not null)
         {
             using var grayT = new Mat();
             Cv2.CvtColor(trimmedClone, grayT, ColorConversionCodes.BGR2GRAY);
-            using var binT = new Mat();
-            Cv2.Threshold(grayT, binT, 0, 255, ThresholdTypes.Binary | ThresholdTypes.Otsu);
-            var binTBgr = new Mat();
-            Cv2.CvtColor(binT, binTBgr, ColorConversionCodes.GRAY2BGR);
-            variants.Add(new Variant("trim60_otsu" + suffix, binTBgr, trimmedThreshold, scale));
+            variants.Add(new Variant("trim60_otsu" + suffix, OtsuBinarizedBgr(grayT), trimmedThreshold, scale));
         }
 
         // (5) グレースケールのみ
@@ -100,5 +92,15 @@ public static class ImageVariantFactory
         variants.Add(new Variant("gray" + suffix, grayBgr, fullThreshold, scale));
 
         return variants;
+    }
+
+    /// <summary>グレースケール画像をOtsuで二値化し、BGRの3チャネルにした新しい画像を返す(呼び出し元がDisposeする)。</summary>
+    private static Mat OtsuBinarizedBgr(Mat gray)
+    {
+        using var binarized = new Mat();
+        Cv2.Threshold(gray, binarized, 0, 255, ThresholdTypes.Binary | ThresholdTypes.Otsu);
+        var bgr = new Mat();
+        Cv2.CvtColor(binarized, bgr, ColorConversionCodes.GRAY2BGR);
+        return bgr;
     }
 }
