@@ -487,112 +487,26 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
             var outcomes = await ScreenshotCharmReader.ProcessAllAsync(
                 targetFiles, knownSkills, charmTypes, ReadingParallelism, progress, ct);
 
-            // ログ出力・集計はUIスレッドでファイル順に行う(ErrorLoggerはスレッドセーフではなく、
-            // error.logの記録順・results(=一覧への追加順)もファイル順に保つため)。
-            var results = new List<(Charm Charm, string FileName)>();
-            int processed = 0;
-            int detected = 0;
-            int failed = 0;
-            int decorationSkipped = 0;
-            int inconsistentSkipped = 0;
-            int panelMismatchSkipped = 0;
-
-            for (int i = 0; i < outcomes.Length; i++)
+            // 集計(副作用なし)はScreenshotReadingTallyで行い、ログ出力はUIスレッドでファイル順に行う
+            // (ErrorLoggerはスレッドセーフではなく、error.logの記録順・results(=一覧への追加順)もファイル順に保つため)。
+            var tally = ScreenshotReadingTally.Create(targetFiles, outcomes);
+            foreach (var entry in tally.LogEntries)
             {
-                if (outcomes[i] is not { } outcome) continue;
-                processed++;
-                var fileName = Path.GetFileName(targetFiles[i]);
-
-                switch (outcome.Kind)
-                {
-                    case ScreenshotOutcomeKind.NotCharmPanel:
-                        break;
-                    case ScreenshotOutcomeKind.Detected:
-                        results.Add((outcome.Charm!, fileName));
-                        detected++;
-                        break;
-                    case ScreenshotOutcomeKind.NoValidSkill:
-                        // 護石パネル自体は検出できたがスキル名/Lvが1件も読み取れなかったケース。
-                        // 「対象外スクショだった」のか「護石だが読み取り失敗」なのかをログで区別できるようにする。
-                        ErrorLogger.Log("ReadScreenshot",
-                            $"{fileName}: 護石パネルは検出できたがスキルを1件も読み取れませんでした。");
-                        failed++;
-                        break;
-                    case ScreenshotOutcomeKind.NoCharmName:
-                        ErrorLogger.Log("ReadScreenshot",
-                            $"{fileName}: 護石名を読み取れず武器スロット有無が不明なため読み取りをスキップしました。");
-                        failed++;
-                        break;
-                    case ScreenshotOutcomeKind.DecorationEquipped:
-                        // 装飾品装着済みスロットはレベル判定が信頼できないため(CLAUDE.md参照)、
-                        // 護石全体を読み取り対象から除外する。エラーではなく仕様上の除外のため
-                        // failedとは別カウントし、ユーザーに区別して提示する。
-                        ErrorLogger.Log("ReadScreenshot",
-                            $"{fileName}: スロットに装飾品が装着されているため読み取りをスキップしました。");
-                        decorationSkipped++;
-                        break;
-                    case ScreenshotOutcomeKind.SlotDetectionFailed:
-                        ErrorLogger.Log("ReadScreenshot",
-                            $"{fileName}: スロットアイコンを検出できなかったため読み取りをスキップしました。");
-                        failed++;
-                        break;
-                    case ScreenshotOutcomeKind.InconsistentWithCombinations:
-                        // 実在しない構成の読み取り結果(スキルの読み落とし等)を保存しないための除外。
-                        // 装飾品装着と同じく、処理エラーとは別に数えてユーザーに区別して提示する。
-                        ErrorLogger.Log("ReadScreenshot",
-                            $"{fileName}: 読み取ったスキル・スロットが護石の組み合わせ表のどれにも当てはまらないため、読み取りをスキップしました。");
-                        inconsistentSkipped++;
-                        break;
-                    case ScreenshotOutcomeKind.SlotPanelMismatch:
-                        // 2つの護石が混ざった結果(スキル欄とスロット欄が別のパネル)を保存しないための除外。
-                        // 組み合わせ表との照合と同じく、処理エラーとは別に数える。
-                        ErrorLogger.Log("ReadScreenshot",
-                            $"{fileName}: スキル欄とスロット欄が別の護石パネルのものと判定されたため、読み取りをスキップしました。");
-                        panelMismatchSkipped++;
-                        break;
-                    case ScreenshotOutcomeKind.Error:
-                        ErrorLogger.Log("ReadScreenshot", fileName, outcome.Error!);
-                        failed++;
-                        break;
-                }
+                if (entry.Exception is not null)
+                    ErrorLogger.Log("ReadScreenshot", entry.Message, entry.Exception);
+                else
+                    ErrorLogger.Log("ReadScreenshot", entry.Message);
             }
-
-            bool cancelled = processed < targetFiles.Count;
 
             // charmType(未解/史伝/秘歴/栄世の護石)でRarityが決まらなかった護石(通常護石・希望の護石等)は
             // スキル・スロット構成からのRARE推定で補完する。
-            results = results.Select(r => (RarityInference.WithInferredRarity(r.Charm), r.FileName)).ToList();
+            var results = tally.Detected
+                .Select(r => (Charm: RarityInference.WithInferredRarity(r.Charm), r.FileName))
+                .ToList();
 
             CancelReadingButton.Visibility = Visibility.Collapsed;
-
-            if (cancelled)
-            {
-                ReadingProgressText.Text = "中断";
-                var summary = $"{processed} / {targetFiles.Count}枚まで処理（中断）、{detected}枚から護石を検出";
-                if (failed > 0)
-                    summary += $"（{failed}枚で処理エラー）";
-                if (decorationSkipped > 0)
-                    summary += $"（{decorationSkipped}枚は装飾品装着のため除外）";
-                if (inconsistentSkipped > 0)
-                    summary += $"（{inconsistentSkipped}枚は読み取り結果が組み合わせ表に当てはまらないため除外）";
-                if (panelMismatchSkipped > 0)
-                    summary += $"（{panelMismatchSkipped}枚はスキル欄とスロット欄の位置が合わないため除外）";
-                ReadingSummaryText.Text = summary;
-            }
-            else
-            {
-                ReadingProgressText.Text = "完了";
-                var summary = $"{allFiles.Count}枚中 新規{targetFiles.Count}枚を処理、{detected}枚から護石を検出";
-                if (failed > 0)
-                    summary += $"（{failed}枚で処理エラー）";
-                if (decorationSkipped > 0)
-                    summary += $"（{decorationSkipped}枚は装飾品装着のため除外）";
-                if (inconsistentSkipped > 0)
-                    summary += $"（{inconsistentSkipped}枚は読み取り結果が組み合わせ表に当てはまらないため除外）";
-                if (panelMismatchSkipped > 0)
-                    summary += $"（{panelMismatchSkipped}枚はスキル欄とスロット欄の位置が合わないため除外）";
-                ReadingSummaryText.Text = summary;
-            }
+            ReadingProgressText.Text = tally.Cancelled ? "中断" : "完了";
+            ReadingSummaryText.Text = tally.SummaryText(allFiles.Count);
 
             if (results.Count > 0)
             {

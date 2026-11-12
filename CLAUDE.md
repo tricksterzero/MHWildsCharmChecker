@@ -169,7 +169,7 @@ node legacy/charm-duplicate-checker.js <CSVパス>
 - 基準解像度2560x1440に対する比率ベースで座標を扱う（解像度非依存対応は将来課題、現状は自環境での動作を優先）
 - 公開済み（2026-07-21）。ライセンス対応済み・README作成済み・自己完結ポータブルzipをGitHub Releasesでv1.0.0として配布中、リポジトリはPublic
 - **スクショ一括読み取りは並列処理**（2026-09-30、`ScreenshotCharmReader.ProcessAllAsync`。2026-11-08まではMainWindowにあった）: 並列数は`ReadingParallelism`（論理コア数の半分・上限4）。1枚あたりの処理時間の約6割が全画面OCR（約100ms）で、並列化でほぼ線形に短縮できる（検証用78枚: 並列1で約12.5s→並列4で約3.5s、読み取り結果は完全一致）。計測用プロセス(アプリ本体ではない)でのピークのワーキングセットは並列1・4で約1.2〜1.3GB、並列8で1.4〜1.7GBのため上限を4とした(並列1でも1GBを超えるのは変更前からの性質で、全画面OCR1回ごとに約15MBの`byte[]`を確保するためと推測、未検証)
-  - 1枚分の処理（`ScreenshotCharmReader.ProcessAsync`）はUI・`ErrorLogger`に触れず結果（`ScreenshotOutcome`）を返すだけにし、ログ出力・集計は全ワーカー終了後にUIスレッドでファイル順に行う（`ErrorLogger`はスレッドセーフではないため、また`error.log`の記録順・結果一覧の順序をファイル順に保つため）。そのため`error.log`の記録時刻は各画像の処理時刻ではなく集計時刻になる
+  - 1枚分の処理（`ScreenshotCharmReader.ProcessAsync`）はUI・`ErrorLogger`に触れず結果（`ScreenshotOutcome`）を返すだけにし、ログ出力・集計は全ワーカー終了後にUIスレッドでファイル順に行う（集計は`ScreenshotReadingTally.Create`(副作用なし)、error.logへの書き込みと表示はMainWindow）（`ErrorLogger`はスレッドセーフではないため、また`error.log`の記録順・結果一覧の順序をファイル順に保つため）。そのため`error.log`の記録時刻は各画像の処理時刻ではなく集計時刻になる
   - ワーカーは共有カウンタで先頭から順にファイルを取り出すため、中断時も処理済みファイルは常に先頭からの連続範囲になる（開始済みの画像は最後まで処理する）
   - 読み取り結果を変えうる高速化案（全画面OCRの対象範囲縮小、非護石画像の事前除外）は未実施。実施する場合は全検証用画像での結果一致確認が必要
 
