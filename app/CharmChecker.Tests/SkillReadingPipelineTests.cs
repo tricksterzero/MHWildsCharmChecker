@@ -89,7 +89,7 @@ public class SkillReadingPipelineTests
     ];
 
     [Fact]
-    public void PairByNearestY_LeadingNameMissing_DoesNotShiftRemainingLevels()
+    public void PairInYOrder_LeadingNameMissing_DoesNotShiftRemainingLevels()
     {
         // Codexとの相談で発見された実バグの回帰テスト。名前-Lv間の行内オフセット(実データで
         // 31~48px、平均約37px)が行間隔(約80px)の半分を超える画像で、先頭の名前が検出漏れした
@@ -101,7 +101,7 @@ public class SkillReadingPipelineTests
         var names = new List<(double Y, string SkillName)> { (120, "回避性能"), (200, "満足感") };
         var lvs = new List<(double Y, int Lv)> { (88, 3), (168, 2), (248, 1) };
 
-        var result = SkillReadingPipeline.PairByNearestY(names, lvs);
+        var result = SkillReadingPipeline.PairInYOrder(names, lvs);
         result.Sort((a, b) => a.Y.CompareTo(b.Y));
 
         Assert.Equal(3, result.Count);

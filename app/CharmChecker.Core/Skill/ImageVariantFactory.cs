@@ -23,6 +23,12 @@ public static class ImageVariantFactory
     /// </summary>
     public const double ScaledFactor = 1.5;
 
+    /// <summary>原画のバリエーション名。孤立したスキル名の回復(SkillReadingPipeline)は、この画像を使う。</summary>
+    internal const string RawVariantName = "raw";
+
+    /// <summary>拡大したバリエーションの名前の末尾("_x1.5")。</summary>
+    private static readonly string ScaledSuffix = "_x" + ScaledFactor.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
     private const int TrimWidth = 60;
     private const int FullLvXThreshold = 300;
     private const int TrimmedLvXThreshold = 240;
@@ -41,7 +47,7 @@ public static class ImageVariantFactory
         var variants = CreateSet(crop, 1.0, "");
         using var scaled = new Mat();
         Cv2.Resize(crop, scaled, new Size(), ScaledFactor, ScaledFactor, InterpolationFlags.Cubic);
-        variants.AddRange(CreateSet(scaled, ScaledFactor, "_x1.5"));
+        variants.AddRange(CreateSet(scaled, ScaledFactor, ScaledSuffix));
         return variants;
     }
 
@@ -56,7 +62,7 @@ public static class ImageVariantFactory
         var variants = new List<Variant>(5);
 
         // (1) 原画
-        variants.Add(new Variant("raw" + suffix, image.Clone(), fullThreshold, scale));
+        variants.Add(new Variant(RawVariantName + suffix, image.Clone(), fullThreshold, scale));
 
         // (2) 左60pxカット
         Mat? trimmedClone = null;

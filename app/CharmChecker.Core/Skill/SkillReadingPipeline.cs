@@ -69,7 +69,7 @@ public static class SkillReadingPipeline
         else
             img.CopyTo(ocrTarget);
 
-        // 「装備スキル」逆算アンカー(FindSkillLabelAnchorCandidates)の固定pxオフセットを補正する
+        // 「装備スキル」逆算アンカー(FindAnchor)の固定pxオフセットを補正する
         // 係数はscale(LetterboxNormalizer由来、黒帯付き21:9でUI自体がコンテンツ高さ/1440に縮小
         // 配置される比率)とocrScale(真の21:9ネイティブでOCR専用に基準幅へ縮小する比率)の積。
         // 両者は排他的に働く(黒帯付き21:9はimg.Width<=2560のためocrScale=1.0、真の21:9ネイティブは
@@ -80,13 +80,8 @@ public static class SkillReadingPipeline
         var anchorScan = await FindAnchorWithFallbackAsync(ocrTarget, anchorLabelScale);
         if (anchorScan is null)
             return null;
-        var (fullOcr, anchorOffsetX) = anchorScan.Value;
+        var (fullOcr, anchorOffsetX, (ax, ay)) = anchorScan.Value;
 
-        var anchor = FindAnchor(fullOcr, anchorLabelScale);
-        if (anchor is null)
-            return null;
-
-        var (ax, ay) = anchor.Value;
         if (!IsCharmPanel(fullOcr, ax, ay))
             return null;
 
@@ -127,11 +122,7 @@ public static class SkillReadingPipeline
             if (!text.Contains("の護石"))
                 continue;
 
-            var x0 = line.Words.Min(w => w.BoundingRect.X);
-            var y0 = line.Words.Min(w => w.BoundingRect.Y);
-            var dx = x0 - anchorX;
-            var dy = y0 - anchorY;
-            if (dx >= -50 && dx <= 250 && dy >= 80 && dy <= 280)
+            if (IsInCharmNameArea(line, anchorX, anchorY))
             {
                 var idx = text.IndexOf("の護石");
                 var name = text[..idx] + "の護石";
@@ -164,15 +155,17 @@ public static class SkillReadingPipeline
 
     /// <summary>
     /// フルスクリーンOCRでアンカーが見つからない場合、右端から狭い幅を順に切り出して再OCRを
-    /// 試みる。成功した場合はそのOCR結果と切り出し開始位置(ocrTarget全体の座標系でのX)を返す。
-    /// 全て失敗した場合はnullを返す。戻り値のOcrResultはフォールバックを使わなかった場合、
-    /// フルスクリーンでの結果そのもの(AnchorOffsetX=0)。
+    /// 試みる。成功した場合はそのOCR結果、切り出し開始位置(ocrTarget全体の座標系でのX)、
+    /// アンカー(そのOCR結果の座標系)を返す。全て失敗した場合はnullを返す。
+    /// 戻り値のOcrResultはフォールバックを使わなかった場合、フルスクリーンでの結果そのもの(AnchorOffsetX=0)。
+    /// anchorLabelScaleは<see cref="FindAnchor"/>に渡す。
     /// </summary>
-    private static async Task<(OcrResult Ocr, double AnchorOffsetX)?> FindAnchorWithFallbackAsync(Mat ocrTarget, double ocrScale)
+    private static async Task<(OcrResult Ocr, double AnchorOffsetX, (double X, double Y) Anchor)?> FindAnchorWithFallbackAsync(
+        Mat ocrTarget, double anchorLabelScale)
     {
         var fullOcr = await OcrMatAsync(ocrTarget);
-        if (FindAnchor(fullOcr, ocrScale) is not null)
-            return (fullOcr, 0);
+        if (FindAnchor(fullOcr, anchorLabelScale) is { } fullAnchor)
+            return (fullOcr, 0, fullAnchor);
 
         foreach (var width in FallbackOcrWidths)
         {
@@ -180,30 +173,39 @@ public static class SkillReadingPipeline
             var region = new Rect(x0, 0, ocrTarget.Width - x0, ocrTarget.Height);
             using var cropped = new Mat(ocrTarget, region);
             var croppedOcr = await OcrMatAsync(cropped);
-            if (FindAnchor(croppedOcr, ocrScale) is not null)
-                return (croppedOcr, x0);
+            if (FindAnchor(croppedOcr, anchorLabelScale) is { } croppedAnchor)
+                return (croppedOcr, x0, croppedAnchor);
         }
 
         return null;
     }
 
     /// <summary>
-    /// ocrScaleは<see cref="FindSkillLabelAnchorCandidates"/>の固定pxオフセット(基準解像度前提)を
-    /// 補正するために使う。「装備詳細」「備詳細」経路は検出したテキスト自体の座標をそのまま返すため
-    /// 補正不要だが、「装備スキル」からの逆算経路は基準解像度でのオフセット値を直接引くため、
-    /// OCR対象がocrScaleで縮小済みの場合はオフセットも同率で縮小しないと座標系が食い違う
+    /// 「装備スキル」の左端から、そのパネルのアンカー(「装備詳細」の「装」の位置)までの距離(基準解像度でのpx)。
+    /// 「装備スキル」からアンカーを逆算するときに足す。
+    /// </summary>
+    private const double SkillLabelToAnchorX = -20;
+    private const double SkillLabelToAnchorY = -310;
+
+    /// <summary>
+    /// anchorLabelScaleは「装備スキル」からの逆算に使う固定pxオフセット(<see cref="SkillLabelToAnchorX"/>・
+    /// <see cref="SkillLabelToAnchorY"/>、基準解像度前提)を補正するために使う(UIの縮小率×OCR前の縮小率)。
+    /// 「装備詳細」「備詳細」経路は検出したテキスト自体の座標をそのまま返すため補正不要だが、
+    /// 「装備スキル」からの逆算経路は基準解像度でのオフセット値を直接引くため、OCR対象が縮小済みの
+    /// 場合はオフセットも同率で縮小しないと座標系が食い違う
     /// (2026-08-05発見、真の21:9ネイティブでY方向に約100px級のずれが生じる計算上のバグだった)。
     /// </summary>
-    internal static (double X, double Y)? FindAnchor(OcrResult ocrResult, double ocrScale = 1.0)
+    internal static (double X, double Y)? FindAnchor(OcrResult ocrResult, double anchorLabelScale = 1.0)
     {
         // 「装備詳細」(読めなければ「備詳細」)の候補と、「装備スキル」からの逆算候補を集め、最右を採る
-        var detailLabels = FindAnchorCandidates(ocrResult, "装備詳細", "装");
+        var detailLabels = FindLabelCandidates(ocrResult, "装備詳細", "装", 0, 0);
         if (detailLabels.Count == 0)
-            detailLabels = FindAnchorCandidates(ocrResult, "備詳細", "備");
-        var skillLabels = FindSkillLabelAnchorCandidates(ocrResult, ocrScale);
+            detailLabels = FindLabelCandidates(ocrResult, "備詳細", "備", 0, 0);
+        var skillLabels = FindLabelCandidates(ocrResult, "装備スキル", "装",
+            SkillLabelToAnchorX * anchorLabelScale, SkillLabelToAnchorY * anchorLabelScale);
         if (detailLabels.Count == 0 && skillLabels.Count == 0)
             return null;
-        return ChooseAnchor(detailLabels, skillLabels, ocrScale);
+        return ChooseAnchor(detailLabels, skillLabels, anchorLabelScale);
     }
 
     /// <summary>
@@ -242,7 +244,13 @@ public static class SkillReadingPipeline
         return separatePanels.Count > 0 ? separatePanels.MaxBy(c => c.X) : rightmostDetail;
     }
 
-    private static List<(double X, double Y)> FindAnchorCandidates(OcrResult ocrResult, string pattern, string wordChar)
+    /// <summary>
+    /// 空白を除いた行のテキストに<paramref name="pattern"/>を含む行ごとに、アンカー候補を返す(副作用なし)。
+    /// X座標は<paramref name="wordChar"/>を含む最初の単語の左端(無ければ行の左端)、Y座標は行の上端で、
+    /// それぞれに<paramref name="offsetX"/>・<paramref name="offsetY"/>を足す。
+    /// </summary>
+    private static List<(double X, double Y)> FindLabelCandidates(
+        OcrResult ocrResult, string pattern, string wordChar, double offsetX, double offsetY)
     {
         var candidates = new List<(double X, double Y)>();
         foreach (var line in ocrResult.Lines)
@@ -253,27 +261,6 @@ public static class SkillReadingPipeline
 
             var y0 = line.Words.Min(w => w.BoundingRect.Y);
             var matched = line.Words.FirstOrDefault(w => w.Text.Contains(wordChar));
-            if (matched != null)
-                candidates.Add((matched.BoundingRect.X, y0));
-            else
-                candidates.Add((line.Words.Min(w => w.BoundingRect.X), y0));
-        }
-        return candidates;
-    }
-
-    private static List<(double X, double Y)> FindSkillLabelAnchorCandidates(OcrResult ocrResult, double ocrScale)
-    {
-        var candidates = new List<(double X, double Y)>();
-        double offsetX = -20 * ocrScale;
-        double offsetY = -310 * ocrScale;
-        foreach (var line in ocrResult.Lines)
-        {
-            var lineText = line.Text.Replace(" ", "");
-            if (!lineText.Contains("装備スキル"))
-                continue;
-
-            var y0 = line.Words.Min(w => w.BoundingRect.Y);
-            var matched = line.Words.FirstOrDefault(w => w.Text.Contains("装"));
             if (matched != null)
                 candidates.Add((matched.BoundingRect.X + offsetX, y0 + offsetY));
             else
@@ -290,14 +277,28 @@ public static class SkillReadingPipeline
             if (!lineText.Contains("護石"))
                 continue;
 
-            var x0 = line.Words.Min(w => w.BoundingRect.X);
-            var y0 = line.Words.Min(w => w.BoundingRect.Y);
-            var dx = x0 - anchorX;
-            var dy = y0 - anchorY;
-            if (dx >= -50 && dx <= 250 && dy >= 80 && dy <= 280)
+            if (IsInCharmNameArea(line, anchorX, anchorY))
                 return true;
         }
         return false;
+    }
+
+    // 護石名が表示される範囲: 行の左上の、アンカーからの距離(基準解像度でのpx。UIの倍率は掛けていない)
+    private const double CharmNameAreaMinDx = -50;
+    private const double CharmNameAreaMaxDx = 250;
+    private const double CharmNameAreaMinDy = 80;
+    private const double CharmNameAreaMaxDy = 280;
+
+    /// <summary>
+    /// 行の左上(単語の左端・上端の最小値)が、アンカーから見て護石名の範囲にあるか(副作用なし)。
+    /// <see cref="IsCharmPanel"/>と<see cref="ExtractCharmName"/>で同じ範囲を使う。
+    /// </summary>
+    private static bool IsInCharmNameArea(OcrLine line, double anchorX, double anchorY)
+    {
+        var dx = line.Words.Min(w => w.BoundingRect.X) - anchorX;
+        var dy = line.Words.Min(w => w.BoundingRect.Y) - anchorY;
+        return dx >= CharmNameAreaMinDx && dx <= CharmNameAreaMaxDx
+            && dy >= CharmNameAreaMinDy && dy <= CharmNameAreaMaxDy;
     }
 
     /// <summary>
@@ -383,13 +384,13 @@ public static class SkillReadingPipeline
 
         // 名前・Lvはそれぞれ独立に最多検出のバリアントを採用する（あるバリアントは名前の検出に強く、
         // 別のバリアントはLvの検出に強い、といったケースがあるため）。ペアリングはY座標順を保った
-        // 単調アライメント(DP)で行う（詳細はPairByNearestYのXMLコメント参照。単純なインデックス順や
+        // 単調アライメント(DP)で行う（詳細はPairInYOrderのXMLコメント参照。単純なインデックス順や
         // 素朴なY最近傍の貪欲マッチングでは、名前の検出漏れや行間隔次第で誤ったペアになる問題があった）。
         var bestNames = allResults.MaxBy(r => r.Names.Count)!.Names;
         var bestLvs = allResults.MaxBy(r => r.Lvs.Count)!.Lvs;
-        var entries = PairByNearestY(bestNames, bestLvs);
+        var entries = PairInYOrder(bestNames, bestLvs);
 
-        var rawImage = variants.FirstOrDefault(v => v.Name == "raw").Image;
+        var rawImage = variants.FirstOrDefault(v => v.Name == ImageVariantFactory.RawVariantName).Image;
         if (rawImage is not null)
             await TryRecoverOrphanNames(entries, rawImage, knownSkills, knownSkillSet);
 
@@ -424,7 +425,7 @@ public static class SkillReadingPipeline
     /// スキップを許容する）を使う。これにより、名前の検出漏れ（スキップが必要なケース、
     /// 例:「匠」等の1文字名検出漏れ）にも対応しつつ、交差マッチを防げる。
     /// </summary>
-    internal static List<(double Y, SkillEntry Entry)> PairByNearestY(
+    internal static List<(double Y, SkillEntry Entry)> PairInYOrder(
         List<(double Y, string SkillName)> names,
         List<(double Y, int Lv)> lvs)
     {
@@ -558,11 +559,7 @@ public static class SkillReadingPipeline
             using var combined = new Mat();
             Cv2.HConcat(new[] { orphanBand, companionResized }, combined);
 
-            using var bgra = new Mat();
-            Cv2.CvtColor(combined, bgra, ColorConversionCodes.BGR2BGRA);
-            var bytes = new byte[bgra.Rows * bgra.Cols * 4];
-            System.Runtime.InteropServices.Marshal.Copy(bgra.Data, bytes, 0, bytes.Length);
-            var ocr = await TextOcrReader.RecognizeBytesAsync(bytes, bgra.Cols, bgra.Rows);
+            var ocr = await OcrMatAsync(combined);
 
             foreach (var line in ocr.Lines)
             {
