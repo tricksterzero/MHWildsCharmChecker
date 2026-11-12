@@ -5,7 +5,8 @@ namespace CharmChecker.Core.SlotIcon;
 
 /// <summary>
 /// legacy/slot-icon-pipeline/pipeline.py で検証済みのスロットアイコン判定ロジックの移植を土台に、
-/// 実データでのチューニングを加えたもの（Lv1/Lv2判定の閾値・n==1の扱いがPoCと異なる。
+/// 実データでのチューニングを加えたもの（Lvの判定はPoCの列プロファイル方式から空スロットの
+/// テンプレート照合(<see cref="MatchEmptyTemplate"/>)に置き換え、融合した枠の回復なども加えている。
 /// legacy側はビルド対象外の参照記録のため未追随）。
 /// 詳細仕様はリポジトリルートのCLAUDE.mdを参照。
 /// </summary>

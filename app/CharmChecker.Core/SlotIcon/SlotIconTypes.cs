@@ -44,7 +44,8 @@ public static class SlotIconConstants
     // 「RARE」ラベルの「R」の文字の輪郭(実測37x22px)がソケット枠として誤検出される問題を
     // 高さ下限の引き上げ(20→28)で対処しようとしたが、既存資産に正当なソケット枠が高さ26〜27pxの
     // ケースがあり(誤検出との差が4〜5pxしかない)安全に分離できないため撤回(2026-07-27)。
-    // 誤検出の排除はMatchEmptyTemplateの差分値ベースの候補除外(ClassifyFrames)で行う。
+    // 実害があった1件(装飾品なしのLv3単一スロット)は、DetectFramesの融合フレームの回復と、その後の
+    // Yクラスタリングのやり直し(FilterYCluster)で解消した(CLAUDE.md「候補フレームの誤検出対策」)。
     public const double FrameHeightMin = 20;
     public const double FrameHeightMax = 45;
     public const double FrameYMin = 10;

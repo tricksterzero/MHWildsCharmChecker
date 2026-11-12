@@ -541,7 +541,7 @@ public static class SkillReadingPipeline
         foreach (var i in orphanIndices)
         {
             var (orphanY, orphanEntry) = entries[i];
-            // orphanYはLv行のY座標(371行目のコメント通り、名前が欠落した行のYはLv側の値)。
+            // orphanYはLv行のY座標(ペアリングで名前と対応しなかったLvは、そのLvのY座標で加えるため)。
             // 名前は実データでLvより平均37px上に位置する(AssumedRowOffset)ため、Lv位置を
             // そのまま中心にすると行間隔(約80px)の半分を超える画像で名前の上端が窓の外に
             // はみ出しうる。名前の推定位置を中心に据える
