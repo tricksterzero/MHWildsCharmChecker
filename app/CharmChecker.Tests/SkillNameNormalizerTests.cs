@@ -25,15 +25,16 @@ public class SkillNameNormalizerTests
     [Fact]
     public void DakutenFallback()
     {
-        // "カート性能" → 濁点除去で "カート性能" vs "カート性能" → "ガード性能"
+        // 「カード性能」は濁点を除くと「カート性能」になり、「ガード性能」の濁点を除いた「カート性能」と一致する
         Assert.Equal("ガード性能", SkillNameNormalizer.Normalize("カード性能", Skills));
     }
 
     [Fact]
     public void LongerMatchPreferred()
     {
-        // "龍属性攻撃強化" contains "攻撃" but longer match should win
-        Assert.Equal("龍属性攻撃強化", SkillNameNormalizer.Normalize("龍属性攻撃強化", Skills));
+        // 「龍属性攻撃強化」は「攻撃」も含むが、長い名前が優先される。正規名そのものだと完全一致で先に
+        // 決まってしまうため、先頭に余計な文字を付けて部分一致の処理を通す
+        Assert.Equal("龍属性攻撃強化", SkillNameNormalizer.Normalize("x龍属性攻撃強化", Skills));
     }
 
     [Fact]

@@ -25,13 +25,12 @@ public class DuplicateCheckerTests
             MakeCharm([("見切り", 2), ("攻撃", 4)], [1, 3, 0], [1, 0, 0])));
     }
 
-    [Theory]
-    [InlineData(3)]  // Lv違い
-    public void AreIdentical_DifferentSkillLevel_ReturnsFalse(int lv)
+    [Fact]
+    public void AreIdentical_DifferentSkillLevel_ReturnsFalse()
     {
         Assert.False(DuplicateChecker.AreIdentical(
             MakeCharm([("攻撃", 4)], [3, 0, 0]),
-            MakeCharm([("攻撃", lv)], [3, 0, 0])));
+            MakeCharm([("攻撃", 3)], [3, 0, 0])));
     }
 
     [Fact]
@@ -53,7 +52,7 @@ public class DuplicateCheckerTests
     }
 
     [Fact]
-    public void NoDuplicates_NorInferiors_ReturnsEmpty()
+    public void Check_NoDuplicates_NorInferiors_ReturnsEmpty()
     {
         var charms = new[]
         {
@@ -68,7 +67,7 @@ public class DuplicateCheckerTests
     }
 
     [Fact]
-    public void IdenticalCharms_GroupedTogether()
+    public void Check_IdenticalCharms_GroupedTogether()
     {
         var charms = new[]
         {
@@ -85,7 +84,7 @@ public class DuplicateCheckerTests
     }
 
     [Fact]
-    public void ThreeIdentical_SingleGroup()
+    public void Check_ThreeIdentical_SingleGroup()
     {
         var charms = new[]
         {
@@ -101,7 +100,7 @@ public class DuplicateCheckerTests
     }
 
     [Fact]
-    public void StrictlySuperior_SkillLevel()
+    public void Check_StrictlySuperior_SkillLevel()
     {
         var charms = new[]
         {
@@ -118,7 +117,7 @@ public class DuplicateCheckerTests
     }
 
     [Fact]
-    public void StrictlySuperior_SlotLevel()
+    public void Check_StrictlySuperior_SlotLevel()
     {
         var charms = new[]
         {
@@ -134,7 +133,7 @@ public class DuplicateCheckerTests
     }
 
     [Fact]
-    public void StrictlySuperior_WeaponSlot()
+    public void Check_StrictlySuperior_WeaponSlot()
     {
         var charms = new[]
         {
@@ -150,7 +149,7 @@ public class DuplicateCheckerTests
     }
 
     [Fact]
-    public void DifferentSkillNames_Incomparable()
+    public void Check_DifferentSkillNames_Incomparable()
     {
         var charms = new[]
         {
@@ -165,7 +164,7 @@ public class DuplicateCheckerTests
     }
 
     [Fact]
-    public void MixedComparison_Incomparable()
+    public void Check_MixedComparison_Incomparable()
     {
         // スキルは上位だがスロットは下位 → 比較不能
         var charms = new[]
@@ -181,7 +180,7 @@ public class DuplicateCheckerTests
     }
 
     [Fact]
-    public void DuplicatesExcludedFromInferiorCheck()
+    public void Check_DuplicatesExcludedFromInferiorCheck()
     {
         // 0,1は同一 → 重複グループへ。2は0,1より下位だが、重複除外されるので比較対象外
         var charms = new[]
@@ -198,7 +197,7 @@ public class DuplicateCheckerTests
     }
 
     [Fact]
-    public void MultipleSkills_Superior()
+    public void Check_MultipleSkills_Superior()
     {
         var charms = new[]
         {
@@ -214,7 +213,7 @@ public class DuplicateCheckerTests
     }
 
     [Fact]
-    public void MultipleSuperiors_AllListed()
+    public void Check_MultipleSuperiors_AllListed()
     {
         var charms = new[]
         {
@@ -231,7 +230,7 @@ public class DuplicateCheckerTests
     }
 
     [Fact]
-    public void DifferentSkillCount_Incomparable()
+    public void Check_DifferentSkillCount_Incomparable()
     {
         var charms = new[]
         {

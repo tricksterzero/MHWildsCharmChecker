@@ -1,5 +1,4 @@
 using CharmChecker.Core.Model;
-using Xunit;
 
 namespace CharmChecker.Tests;
 
@@ -73,10 +72,11 @@ public class CharmProbabilityEstimatorTests
     [Fact]
     public void UnknownRarity_ReturnsNull()
     {
+        // Rare5_UniformAssumption_ComputesProductOfFractionsと同じ護石(RARE5なら確率を出せる)で、RAREだけを不明にする
         var charm = new Charm
         {
-            Skills = [new("ＫＯ術", 1)],
-            ArmorSlots = [1, 0, 0],
+            Skills = [new("ＫＯ術", 1), new("アイテム使用強化", 2), new("ボマー", 2)],
+            ArmorSlots = [3, 0, 0],
             WeaponSlots = [0, 0, 0],
             Rarity = null,
         };

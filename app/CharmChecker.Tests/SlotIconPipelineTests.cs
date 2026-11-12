@@ -1,3 +1,4 @@
+using CharmChecker.Core.Screenshot;
 using CharmChecker.Core.SlotIcon;
 using OpenCvSharp;
 
@@ -38,71 +39,51 @@ public class SlotIconPipelineTests
     [MemberData(nameof(BoxPanelCases))]
     public void BoxPanel_DetectAndMatchEmptyTemplate(string fileName, SlotLevel[] expected)
     {
-        var path = Path.Combine(TestPaths.FindAssetsDir(), fileName);
-        using var img = Cv2.ImRead(path);
-        var (sx, sy) = SlotIconAnalyzer.ScaleFactors(img);
-
-        using var color = new Mat(img, SlotIconAnalyzer.PanelRegion(img));
-        using var gray = new Mat();
-        Cv2.CvtColor(color, gray, ColorConversionCodes.BGR2GRAY);
-
-        var frames = SlotIconAnalyzer.DetectFrames(gray, sx, sy);
-        Assert.Equal(expected.Length, frames.Count);
-
-        for (int i = 0; i < frames.Count; i++)
-        {
-            var result = SlotIconAnalyzer.MatchEmptyTemplate(color, frames[i]);
-            Assert.Equal(expected[i], result.Level);
-        }
+        AssertDetectAndMatch(fileName, SlotIconAnalyzer.PanelRegion, expected);
     }
 
     [Theory]
     [MemberData(nameof(DetailPanelCases))]
     public void DetailPanel_DetectAndMatchEmptyTemplate(string fileName, SlotLevel[] expected)
     {
-        var path = Path.Combine(TestPaths.FindAssetsDir(), fileName);
-        using var img = Cv2.ImRead(path);
-        var (sx, sy) = SlotIconAnalyzer.ScaleFactors(img);
+        AssertDetectAndMatch(fileName, SlotIconAnalyzer.DetailPanelRegion, expected);
+    }
 
-        using var color = new Mat(img, SlotIconAnalyzer.DetailPanelRegion(img));
+    /// <summary>assets直下の画像の探索領域から枠を検出し、各枠を空スロットの見本と照合したLvが期待どおりか確かめる。</summary>
+    private static void AssertDetectAndMatch(string fileName, Func<Mat, Rect> region, SlotLevel[] expected)
+    {
+        using var img = Cv2.ImRead(Path.Combine(TestPaths.FindAssetsDir(), fileName));
+        var (sx, sy) = SlotIconAnalyzer.ScaleFactors(img);
+        using var color = new Mat(img, region(img));
+        var frames = DetectFrames(color, sx, sy);
+
+        Assert.Equal(expected.Length, frames.Count);
+        for (int i = 0; i < frames.Count; i++)
+            Assert.Equal(expected[i], SlotIconAnalyzer.MatchEmptyTemplate(color, frames[i]).Level);
+    }
+
+    private static List<Rect> DetectFrames(Mat color, double sx, double sy)
+    {
         using var gray = new Mat();
         Cv2.CvtColor(color, gray, ColorConversionCodes.BGR2GRAY);
-
-        var frames = SlotIconAnalyzer.DetectFrames(gray, sx, sy);
-        Assert.Equal(expected.Length, frames.Count);
-
-        for (int i = 0; i < frames.Count; i++)
-        {
-            var result = SlotIconAnalyzer.MatchEmptyTemplate(color, frames[i]);
-            Assert.Equal(expected[i], result.Level);
-        }
+        return SlotIconAnalyzer.DetectFrames(gray, sx, sy);
     }
 
     [Theory]
     [InlineData("20260614061441_1.jpg", 3, 0)]
     [InlineData("20260614061353_1.jpg", 2, 1)]
     [InlineData("20260604111556_1.jpg", 0, 3)]
-    public void DualRegion_PicksRegionWithMoreFrames(string fileName, int expectedBox, int expectedDetail)
+    public void BothRegions_DetectExpectedFrameCounts(string fileName, int expectedBox, int expectedDetail)
     {
-        var path = Path.Combine(TestPaths.FindAssetsDir(), fileName);
-        using var img = Cv2.ImRead(path);
+        // BOX領域・Detail領域それぞれで検出する枠の数。どちらの領域を使うかの規則(BOX側で1件以上
+        // 見つかればBOX側)は、ReadSlots_BoxUndercountsDetail_...などのReadSlotsのテストで確かめる
+        using var img = Cv2.ImRead(Path.Combine(TestPaths.FindAssetsDir(), fileName));
         var (sx, sy) = SlotIconAnalyzer.ScaleFactors(img);
+        using var box = new Mat(img, SlotIconAnalyzer.PanelRegion(img));
+        using var detail = new Mat(img, SlotIconAnalyzer.DetailPanelRegion(img));
 
-        using var boxRegion = new Mat(img, SlotIconAnalyzer.PanelRegion(img));
-        using var boxGray = new Mat();
-        Cv2.CvtColor(boxRegion, boxGray, ColorConversionCodes.BGR2GRAY);
-        var boxFrames = SlotIconAnalyzer.DetectFrames(boxGray, sx, sy);
-
-        using var detRegion = new Mat(img, SlotIconAnalyzer.DetailPanelRegion(img));
-        using var detGray = new Mat();
-        Cv2.CvtColor(detRegion, detGray, ColorConversionCodes.BGR2GRAY);
-        var detFrames = SlotIconAnalyzer.DetectFrames(detGray, sx, sy);
-
-        Assert.Equal(expectedBox, boxFrames.Count);
-        Assert.Equal(expectedDetail, detFrames.Count);
-
-        var chosen = boxFrames.Count > detFrames.Count ? boxFrames : detFrames;
-        Assert.Equal(Math.Max(expectedBox, expectedDetail), chosen.Count);
+        Assert.Equal(expectedBox, DetectFrames(box, sx, sy).Count);
+        Assert.Equal(expectedDetail, DetectFrames(detail, sx, sy).Count);
     }
 
     [Fact]
@@ -112,7 +93,7 @@ public class SlotIconPipelineTests
         // Detail領域(x:1400-1650)側はこの画面では護石画像プレビュー部分を誤検出しており、
         // BOX領域の検出結果(Lv2+Lv1、正解)が採用されるべき回帰テスト
         var path = Path.Combine(TestPaths.FindAssetsDir(), "case5 craft result", "20260615054704_1.jpg");
-        var (armor, weapon) = CharmChecker.Core.Screenshot.ScreenshotCharmReader.ReadSlots(path, hasWeaponSlot: false);
+        var (armor, weapon) = ScreenshotCharmReader.ReadSlots(path, hasWeaponSlot: false);
 
         Assert.Equal(new List<int> { 2, 1, 0 }, armor);
         Assert.Equal(new List<int> { 0, 0, 0 }, weapon);
@@ -124,7 +105,7 @@ public class SlotIconPipelineTests
         // 同種の同数タイ問題の別ケース: BOX・Detailとも1枠ずつ検出するが、
         // Detail領域側がLv3と誤判定する（正解はBOX領域のLv1）
         var path = Path.Combine(TestPaths.FindAssetsDir(), "case5 craft result", "20260527222641_1.jpg");
-        var (armor, weapon) = CharmChecker.Core.Screenshot.ScreenshotCharmReader.ReadSlots(path, hasWeaponSlot: false);
+        var (armor, weapon) = ScreenshotCharmReader.ReadSlots(path, hasWeaponSlot: false);
 
         Assert.Equal(new List<int> { 1, 0, 0 }, armor);
         Assert.Equal(new List<int> { 0, 0, 0 }, weapon);
@@ -140,7 +121,7 @@ public class SlotIconPipelineTests
         // TryRecoverFusedFrameが、確定済みの2つ目のアイコンを手掛かりに、融合した塊の
         // 未検出側だけを狭い窓で再度Canny検出することで1つ目のLv2を回復する。
         var path = Path.Combine(TestPaths.FindAssetsDir(), "case2 equip change", "20260506085633_1.jpg");
-        var (armor, weapon) = CharmChecker.Core.Screenshot.ScreenshotCharmReader.ReadSlots(path, hasWeaponSlot: false);
+        var (armor, weapon) = ScreenshotCharmReader.ReadSlots(path, hasWeaponSlot: false);
 
         Assert.Equal(new List<int> { 2, 1, 0 }, armor);
         Assert.Equal(new List<int> { 0, 0, 0 }, weapon);
@@ -155,7 +136,7 @@ public class SlotIconPipelineTests
         // 塊の境界自体はCannyの融合具合で伸縮し不安定なため、隣接する確定フレームの端を
         // 起点にした固定幅の窓で再探索して回復する。
         var path = Path.Combine(TestPaths.FindAssetsDir(), "case6 appraisal box", "20250906064316_1.jpg");
-        var (armor, weapon) = CharmChecker.Core.Screenshot.ScreenshotCharmReader.ReadSlots(path, hasWeaponSlot: true);
+        var (armor, weapon) = ScreenshotCharmReader.ReadSlots(path, hasWeaponSlot: true);
 
         Assert.Equal(new List<int> { 1, 0, 0 }, armor);
         Assert.Equal(new List<int> { 1, 0, 0 }, weapon);
@@ -171,7 +152,7 @@ public class SlotIconPipelineTests
         // (正: 防具[3,0,0]。BOX領域は1件でも検出できていれば常に信頼すべきで、
         // Detail領域の検出数が上回ることは根拠にならない)。
         var path = Path.Combine(TestPaths.FindAssetsDir(), "option 21_9 native craft result", "205B741.JPG");
-        var (armor, weapon) = CharmChecker.Core.Screenshot.ScreenshotCharmReader.ReadSlots(path, hasWeaponSlot: false);
+        var (armor, weapon) = ScreenshotCharmReader.ReadSlots(path, hasWeaponSlot: false);
 
         Assert.Equal(new List<int> { 3, 0, 0 }, armor);
         Assert.Equal(new List<int> { 0, 0, 0 }, weapon);
@@ -184,7 +165,7 @@ public class SlotIconPipelineTests
         // 下部の三角の数だけが異なる。空スロットの見本がLv1として誤登録されていたため、実物の
         // Lv3スロットが防具[1,0,0]と読まれていた回帰テスト(2026-11-07、正: [3,0,0])。
         var path = Path.Combine(TestPaths.FindAssetsDir(), "option 21_9 native quest result", "20660C1.JPG");
-        var (armor, weapon) = CharmChecker.Core.Screenshot.ScreenshotCharmReader.ReadSlots(path, hasWeaponSlot: false);
+        var (armor, weapon) = ScreenshotCharmReader.ReadSlots(path, hasWeaponSlot: false);
 
         Assert.Equal(new List<int> { 3, 0, 0 }, armor);
         Assert.Equal(new List<int> { 0, 0, 0 }, weapon);
@@ -200,7 +181,7 @@ public class SlotIconPipelineTests
         // 「装飾品あり」で除外されていた回帰テスト(2026-11-08)。右端に接する枠は、幅をアイコンの
         // 縦横比から求めた値にして照合し直す。
         var path = Path.Combine(TestPaths.FindAssetsDir(), folder, fileName);
-        var (armor, weapon) = CharmChecker.Core.Screenshot.ScreenshotCharmReader.ReadSlots(path, hasWeaponSlot: true);
+        var (armor, weapon) = ScreenshotCharmReader.ReadSlots(path, hasWeaponSlot: true);
 
         Assert.Equal(new List<int> { 1, 1, 0 }, armor);
         Assert.Equal(new List<int> { 1, 0, 0 }, weapon);
@@ -236,7 +217,7 @@ public class SlotIconPipelineTests
         var path = Path.Combine(TestPaths.FindAssetsDir(), "option 21_9 native", fileName);
 
         Assert.Throws<DecorationEquippedException>(
-            () => CharmChecker.Core.Screenshot.ScreenshotCharmReader.ReadSlots(path, hasWeaponSlot));
+            () => ScreenshotCharmReader.ReadSlots(path, hasWeaponSlot));
     }
 
     [Fact]
@@ -256,7 +237,7 @@ public class SlotIconPipelineTests
         try
         {
             Assert.Throws<SlotDetectionFailedException>(
-                () => CharmChecker.Core.Screenshot.ScreenshotCharmReader.ReadSlots(tempPath, hasWeaponSlot: false));
+                () => ScreenshotCharmReader.ReadSlots(tempPath, hasWeaponSlot: false));
         }
         finally
         {
@@ -299,11 +280,11 @@ public class SlotIconPipelineTests
         if (expectException)
         {
             Assert.Throws<DecorationEquippedException>(
-                () => CharmChecker.Core.Screenshot.ScreenshotCharmReader.ReadSlots(path, hasWeaponSlot: false));
+                () => ScreenshotCharmReader.ReadSlots(path, hasWeaponSlot: false));
         }
         else
         {
-            var (armor, _) = CharmChecker.Core.Screenshot.ScreenshotCharmReader.ReadSlots(path, hasWeaponSlot: false);
+            var (armor, _) = ScreenshotCharmReader.ReadSlots(path, hasWeaponSlot: false);
             Assert.Equal(expectedArmor, armor);
         }
     }

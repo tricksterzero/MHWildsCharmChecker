@@ -1,5 +1,4 @@
 using CharmChecker.Core.Model;
-using Xunit;
 
 namespace CharmChecker.Tests;
 
@@ -9,7 +8,8 @@ public class CharmTheoreticalValueCheckerTests
     public void MaxSkillsAndFrontierSlot_ReturnsTrue()
     {
         // ＫＯ術Lv3・ひるみ軽減Lv3はいずれも自身の最大Lv（groupを問わず）、
-        // スロット[1,1]+武器1はレアリティ横断でどのパターンにも支配されない最大構成
+        // スロット[1,1]+武器1は、同じスキルの組み合わせ[3,7]を持つ構成(RARE7・RARE8)の中で
+        // どのパターンにも支配されない最大構成
         var charm = new Charm
         {
             Skills = [new("ＫＯ術", 3), new("ひるみ軽減", 3)],

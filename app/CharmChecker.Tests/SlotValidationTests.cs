@@ -1,5 +1,4 @@
 using CharmChecker.Core.SlotIcon;
-using Xunit;
 
 namespace CharmChecker.Tests;
 

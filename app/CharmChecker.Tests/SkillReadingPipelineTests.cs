@@ -8,6 +8,20 @@ public class SkillReadingPipelineTests
 
     private static string FindAssetsDir() => TestPaths.FindAssetsDir();
 
+    private static IReadOnlyList<string> LoadKnownSkills() =>
+        SkillNameLoader.Load(Path.Combine(FindResourcesDir(), "skill-decoration-map.json"));
+
+    /// <summary>読み取ったスキルが、期待した名前とLvの並び(上の行から順)と同じか確かめる。</summary>
+    private static void AssertSkills((string Name, int Lv)[] expected, IReadOnlyList<SkillEntry> actual)
+    {
+        Assert.Equal(expected.Length, actual.Count);
+        for (int i = 0; i < expected.Length; i++)
+        {
+            Assert.Equal(expected[i].Name, actual[i].Name);
+            Assert.Equal(expected[i].Lv, actual[i].Lv);
+        }
+    }
+
     public static IEnumerable<object[]> TestCases =>
     [
         // case1: クエスト報酬鑑定結果
@@ -98,30 +112,15 @@ public class SkillReadingPipelineTests
         // （Windows.Media.Ocrは同一行に他のテキストが無い孤立した1文字を行として検出しない仕様）。
         // 名前とLvを単純なインデックス順でペアリングすると、1つ目のスキル名が
         // 丸ごと欠落した影響で後続の全スキルのLvがずれてしまう問題があったため、
-        // Y座標最近傍ペアリングで欠落自体は解消済み。さらに、名前が無いLv行(孤児行)については
+        // Y座標の順を保った対応付け(PairInYOrder)で欠落自体は解消済み。さらに、名前が無いLv行(孤児行)については
         // 既に判明している別の行のテキストをコンパニオンとして横に連結し再OCRすることで、
         // 「匠」単独では検出されない文字を回復させる（正: 匠Lv3, 回避性能Lv2, 満足感Lv1）。
-        var assetsDir = FindAssetsDir();
-        var resourcesDir = FindResourcesDir();
-        var jsonPath = Path.Combine(resourcesDir, "skill-decoration-map.json");
-        var imagePath = Path.Combine(assetsDir, "20260614061441_1.jpg");
+        var imagePath = Path.Combine(FindAssetsDir(), "20260614061441_1.jpg");
 
-        if (!File.Exists(imagePath))
-        {
-            return;
-        }
-
-        var knownSkills = SkillNameLoader.Load(jsonPath);
-        var result = await SkillReadingPipeline.ReadAsync(imagePath, knownSkills);
+        var result = await SkillReadingPipeline.ReadAsync(imagePath, LoadKnownSkills());
 
         Assert.NotNull(result);
-        Assert.Equal(3, result.Count);
-        Assert.Equal("匠", result[0].Name);
-        Assert.Equal(3, result[0].Lv);
-        Assert.Equal("回避性能", result[1].Name);
-        Assert.Equal(2, result[1].Lv);
-        Assert.Equal("満足感", result[2].Name);
-        Assert.Equal(1, result[2].Lv);
+        AssertSkills([("匠", 3), ("回避性能", 2), ("満足感", 1)], result);
     }
 
     [Fact]
@@ -129,18 +128,9 @@ public class SkillReadingPipelineTests
     {
         // 左パネル(秘歴の護石)・右パネル(栄世の護石)が同時に写る装備変更画面。
         // FindAnchorは右パネルを選ぶため、護石名も右パネル(栄世の護石)を返すべき。
-        var assetsDir = FindAssetsDir();
-        var resourcesDir = FindResourcesDir();
-        var jsonPath = Path.Combine(resourcesDir, "skill-decoration-map.json");
-        var imagePath = Path.Combine(assetsDir, "case2 equip change", "20260615054234_1.jpg");
+        var imagePath = Path.Combine(FindAssetsDir(), "case2 equip change", "20260615054234_1.jpg");
 
-        if (!File.Exists(imagePath))
-        {
-            return;
-        }
-
-        var knownSkills = SkillNameLoader.Load(jsonPath);
-        var result = await SkillReadingPipeline.ReadWithMetadataAsync(imagePath, knownSkills);
+        var result = await SkillReadingPipeline.ReadWithMetadataAsync(imagePath, LoadKnownSkills());
 
         Assert.NotNull(result);
         Assert.Equal("栄世の護石", result.CharmName);
@@ -152,18 +142,9 @@ public class SkillReadingPipelineTests
         // 21:9(黒帯付き2560x1440)の装備詳細2パネル画面。左パネル=秘歴の護石、右パネル=未解の護石。
         // FindAnchorは生画像のフルOCRで右パネルを選ぶ(検出は拡大しない設計、詳細はCropSkillArea
         // のXMLコメント参照)ため、護石名も右パネル(未解の護石)を返すべき回帰テスト。
-        var assetsDir = FindAssetsDir();
-        var resourcesDir = FindResourcesDir();
-        var jsonPath = Path.Combine(resourcesDir, "skill-decoration-map.json");
-        var imagePath = Path.Combine(assetsDir, "option 21_9", "20260615094750_1.jpg");
+        var imagePath = Path.Combine(FindAssetsDir(), "option 21_9", "20260615094750_1.jpg");
 
-        if (!File.Exists(imagePath))
-        {
-            return;
-        }
-
-        var knownSkills = SkillNameLoader.Load(jsonPath);
-        var result = await SkillReadingPipeline.ReadWithMetadataAsync(imagePath, knownSkills);
+        var result = await SkillReadingPipeline.ReadWithMetadataAsync(imagePath, LoadKnownSkills());
 
         Assert.NotNull(result);
         Assert.Equal("未解の護石", result.CharmName);
@@ -228,8 +209,7 @@ public class SkillReadingPipelineTests
         // 真っ黒な画像は護石パネルではないためnullを返すべき回帰テスト(2026-11-07、Steamのスクショで発見。
         // 当時はLetterboxNormalizerが倍率0を返し、ChooseAnchorの倍率の検査で例外になっていた。
         // 2026-11-08からLetterboxNormalizerは真っ黒な画像を黒帯なしとして扱う)
-        var resourcesDir = FindResourcesDir();
-        var knownSkills = SkillNameLoader.Load(Path.Combine(resourcesDir, "skill-decoration-map.json"));
+        var knownSkills = LoadKnownSkills();
         var tempPath = Path.Combine(Path.GetTempPath(), $"charmchecker_black_{Guid.NewGuid():N}.png");
         using (var black = new OpenCvSharp.Mat(new OpenCvSharp.Size(2560, 1440), OpenCvSharp.MatType.CV_8UC3, OpenCvSharp.Scalar.All(0)))
         {
@@ -252,7 +232,7 @@ public class SkillReadingPipelineTests
     {
         // 画像として読めないファイルは、OpenCVの分かりにくい例外("!_src.empty()")ではなく、
         // 原因の分かる例外にする(2026-11-08)
-        var knownSkills = SkillNameLoader.Load(Path.Combine(FindResourcesDir(), "skill-decoration-map.json"));
+        var knownSkills = LoadKnownSkills();
         var tempPath = Path.Combine(Path.GetTempPath(), $"charmchecker_notimage_{Guid.NewGuid():N}.jpg");
         File.WriteAllText(tempPath, "これは画像ではありません");
 
@@ -270,7 +250,7 @@ public class SkillReadingPipelineTests
     [Fact]
     public async Task ReadWithMetadataAsync_InvalidArguments_Throw()
     {
-        var knownSkills = SkillNameLoader.Load(Path.Combine(FindResourcesDir(), "skill-decoration-map.json"));
+        var knownSkills = LoadKnownSkills();
         await Assert.ThrowsAsync<ArgumentException>(() => SkillReadingPipeline.ReadWithMetadataAsync("", knownSkills));
         await Assert.ThrowsAsync<ArgumentNullException>(() => SkillReadingPipeline.ReadWithMetadataAsync(null!, knownSkills));
         await Assert.ThrowsAsync<ArgumentNullException>(() => SkillReadingPipeline.ReadWithMetadataAsync("x.jpg", null!));
@@ -285,22 +265,14 @@ public class SkillReadingPipelineTests
     [Fact]
     public async Task ReadWithMetadataAsync_RightPanelCharmNameAlsoUnreadable_ReturnsNullInsteadOfLeftPanel()
     {
-        // 上と同じ状況だが、右パネルの護石名(栄世の護石)も全画面OCRで読めない画像。右パネルが
+        // 下のReadWithMetadataAsync_RightPanelDetailLabelUnreadable_StillPicksRightPanelと同じ状況だが、
+        // 右パネルの護石名(栄世の護石)も全画面OCRで読めない画像。右パネルが
         // アンカーに選ばれた上でIsCharmPanelが成立せずnull(護石画面ではない扱い)になる。修正前は
         // 左パネル(史伝の護石)のスキルと右パネルのスロットが混ざった結果を返していたため、
         // 左パネルを読まずに除外されることを確かめる(右パネルを読めるようにするのは今後の課題)。
-        var assetsDir = FindAssetsDir();
-        var resourcesDir = FindResourcesDir();
-        var jsonPath = Path.Combine(resourcesDir, "skill-decoration-map.json");
-        var imagePath = Path.Combine(assetsDir, "case9 right panel anchor", "20260523212858_1.jpg");
+        var imagePath = Path.Combine(FindAssetsDir(), "case9 right panel anchor", "20260523212858_1.jpg");
 
-        if (!File.Exists(imagePath))
-        {
-            return;
-        }
-
-        var knownSkills = SkillNameLoader.Load(jsonPath);
-        var result = await SkillReadingPipeline.ReadWithMetadataAsync(imagePath, knownSkills);
+        var result = await SkillReadingPipeline.ReadWithMetadataAsync(imagePath, LoadKnownSkills());
 
         Assert.Null(result);
     }
@@ -316,27 +288,13 @@ public class SkillReadingPipelineTests
         // スキル・護石名は左、スロットは右(固定の探索領域)という2つの護石が混ざった結果になっていた。
         // 右パネルの「装備スキル」は読めているので、それを別パネルの候補として採用し、右パネル
         // (いずれも栄世の護石)を読むべき回帰テスト。
-        var assetsDir = FindAssetsDir();
-        var resourcesDir = FindResourcesDir();
-        var jsonPath = Path.Combine(resourcesDir, "skill-decoration-map.json");
-        var imagePath = Path.Combine(assetsDir, "case9 right panel anchor", file);
+        var imagePath = Path.Combine(FindAssetsDir(), "case9 right panel anchor", file);
 
-        if (!File.Exists(imagePath))
-        {
-            return;
-        }
-
-        var knownSkills = SkillNameLoader.Load(jsonPath);
-        var result = await SkillReadingPipeline.ReadWithMetadataAsync(imagePath, knownSkills);
+        var result = await SkillReadingPipeline.ReadWithMetadataAsync(imagePath, LoadKnownSkills());
 
         Assert.NotNull(result);
         Assert.Equal("栄世の護石", result.CharmName);
-        Assert.Equal(expected.Length, result.Skills.Count);
-        for (int i = 0; i < expected.Length; i++)
-        {
-            Assert.Equal(expected[i].Name, result.Skills[i].Name);
-            Assert.Equal(expected[i].Lv, result.Skills[i].Lv);
-        }
+        AssertSkills(expected, result.Skills);
     }
 
     [Theory]
@@ -358,27 +316,11 @@ public class SkillReadingPipelineTests
     [MemberData(nameof(TestCases))]
     public async Task ReadAsync_MatchesExpected(string folder, string file, (string Name, int Lv)[] expected)
     {
-        var assetsDir = FindAssetsDir();
-        var resourcesDir = FindResourcesDir();
-        var imagePath = Path.Combine(assetsDir, folder, file);
-        var jsonPath = Path.Combine(resourcesDir, "skill-decoration-map.json");
+        var imagePath = Path.Combine(FindAssetsDir(), folder, file);
 
-        if (!File.Exists(imagePath))
-        {
-            // ローカル画像がない環境ではスキップ
-            return;
-        }
-
-        var knownSkills = SkillNameLoader.Load(jsonPath);
-        var result = await SkillReadingPipeline.ReadAsync(imagePath, knownSkills);
+        var result = await SkillReadingPipeline.ReadAsync(imagePath, LoadKnownSkills());
 
         Assert.NotNull(result);
-        Assert.Equal(expected.Length, result.Count);
-
-        for (int i = 0; i < expected.Length; i++)
-        {
-            Assert.Equal(expected[i].Name, result[i].Name);
-            Assert.Equal(expected[i].Lv, result[i].Lv);
-        }
+        AssertSkills(expected, result);
     }
 }

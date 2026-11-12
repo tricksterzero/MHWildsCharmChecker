@@ -41,58 +41,42 @@ public class SkillNameLoaderTests
         Assert.DoesNotContain("オトモへの采配", names);
     }
 
-    private static string WriteTempJson(string json)
+    /// <summary>jsonを一時ファイルに書き、それを読むと<see cref="InvalidOperationException"/>になることを確かめる(一時ファイルは消す)。</summary>
+    private static void AssertLoadThrows(string json)
     {
         var path = Path.GetTempFileName();
         File.WriteAllText(path, json);
-        return path;
+        try
+        {
+            Assert.Throws<InvalidOperationException>(() => SkillNameLoader.Load(path));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
     }
 
     [Fact]
     public void Load_EmptyDecorationSkillName_Throws()
     {
-        var path = WriteTempJson("""
+        AssertLoadThrows("""
             { "decorations": [ { "skills": { "": {} } } ], "extra_skills": [] }
             """);
-        try
-        {
-            Assert.Throws<InvalidOperationException>(() => SkillNameLoader.Load(path));
-        }
-        finally
-        {
-            File.Delete(path);
-        }
     }
 
     [Fact]
     public void Load_NullExtraSkill_Throws()
     {
-        var path = WriteTempJson("""
+        AssertLoadThrows("""
             { "decorations": [], "extra_skills": [null] }
             """);
-        try
-        {
-            Assert.Throws<InvalidOperationException>(() => SkillNameLoader.Load(path));
-        }
-        finally
-        {
-            File.Delete(path);
-        }
     }
 
     [Fact]
     public void Load_MissingExtraSkillsProperty_Throws()
     {
-        var path = WriteTempJson("""
+        AssertLoadThrows("""
             { "decorations": [] }
             """);
-        try
-        {
-            Assert.Throws<InvalidOperationException>(() => SkillNameLoader.Load(path));
-        }
-        finally
-        {
-            File.Delete(path);
-        }
     }
 }

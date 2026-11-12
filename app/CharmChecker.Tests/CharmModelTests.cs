@@ -39,16 +39,19 @@ public class CharmModelTests
         Assert.Throws<ArgumentException>(() => new Charm { Skills = [default] });
     }
 
-    [Theory]
-    [InlineData(0, false)] // 境界値: Lvは1以上
-    [InlineData(-1, false)]
-    [InlineData(1, true)]
-    public void Skills_LevelAtLeastOne(int lv, bool valid)
+    [Fact]
+    public void Skills_LevelOne_Accepted()
     {
-        if (valid)
-            _ = new Charm { Skills = [new("攻撃", lv)] };
-        else
-            Assert.Throws<ArgumentException>(() => new Charm { Skills = [new("攻撃", lv)] });
+        // 境界値: Lvは1以上
+        Assert.Equal(1, new Charm { Skills = [new("攻撃", 1)] }.Skills[0].Lv);
+    }
+
+    [Theory]
+    [InlineData(0)] // 境界値: Lvは1以上
+    [InlineData(-1)]
+    public void Skills_LevelBelowOne_Rejected(int lv)
+    {
+        Assert.Throws<ArgumentException>(() => new Charm { Skills = [new("攻撃", lv)] });
     }
 
     [Fact]
@@ -88,16 +91,19 @@ public class CharmModelTests
     }
 
     [Theory]
-    [InlineData(4, false)] // 境界値: RAREはnullか5〜8
-    [InlineData(5, true)]
-    [InlineData(8, true)]
-    [InlineData(9, false)]
-    public void Rarity_Range(int rarity, bool valid)
+    [InlineData(5)] // 境界値: RAREはnullか5〜8
+    [InlineData(8)]
+    public void Rarity_InRange_Accepted(int rarity)
     {
-        if (valid)
-            Assert.Equal(rarity, new Charm { Rarity = rarity }.Rarity);
-        else
-            Assert.Throws<ArgumentException>(() => new Charm { Rarity = rarity });
+        Assert.Equal(rarity, new Charm { Rarity = rarity }.Rarity);
+    }
+
+    [Theory]
+    [InlineData(4)] // 境界値: RAREはnullか5〜8
+    [InlineData(9)]
+    public void Rarity_OutOfRange_Rejected(int rarity)
+    {
+        Assert.Throws<ArgumentException>(() => new Charm { Rarity = rarity });
     }
 
     [Fact]

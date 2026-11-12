@@ -1,5 +1,4 @@
 using CharmChecker.Core.Model;
-using Xunit;
 
 namespace CharmChecker.Tests;
 
