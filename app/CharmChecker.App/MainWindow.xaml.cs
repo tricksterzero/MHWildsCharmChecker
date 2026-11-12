@@ -64,7 +64,8 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
             }
             if (!string.IsNullOrEmpty(settings.ScreenshotFolder))
                 ScreenshotFolderPath.Text = settings.ScreenshotFolder;
-            if (!double.IsNaN(settings.DetailPanelHeight) && settings.DetailPanelHeight >= 80)
+            // 保存した高さは、詳細パネルの最小の高さ(MainWindow.xamlのDetailRowDefのMinHeight)以上のときだけ使う
+            if (!double.IsNaN(settings.DetailPanelHeight) && settings.DetailPanelHeight >= DetailRowDef.MinHeight)
                 DetailRowDef.Height = new GridLength(settings.DetailPanelHeight);
             _themeMode = ThemeService.Parse(settings.Theme);
         }
@@ -344,6 +345,9 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
 
     private static readonly string[] ImageExtensions = [".jpg", ".jpeg", ".png", ".bmp"];
 
+    /// <summary>読み取る画像がこの枚数以上のときは、処理を始める前に確認する。</summary>
+    private const int ConfirmReadingFileCount = 500;
+
     /// <summary>
     /// スクショ読み取りの並列数。処理時間の大半はWindows.Media.OcrのOCR(全画面OCRだけで1枚約100ms)で、
     /// 並列化でほぼ線形に短縮できることを実測済み(2026-09-30、Ryzen 7 9800X3D 8C/16T・検証用78枚:
@@ -389,7 +393,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
             return;
         }
 
-        if (targetFiles.Count >= 500)
+        if (targetFiles.Count >= ConfirmReadingFileCount)
         {
             var confirm = MessageBox.Show(
                 $"対象ファイルが{targetFiles.Count}枚あります。処理しますか？",

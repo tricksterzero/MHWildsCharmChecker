@@ -17,6 +17,12 @@ public partial class CharmEditWindow : Wpf.Ui.Controls.FluentWindow
     /// </summary>
     public bool CanRepresentExisting { get; } = true;
 
+    // 入力欄の組(1〜3つ目の順)。画面の欄はInitializeComponentの後でできるため、フィールドの初期化式ではなく
+    // 呼ぶたびに配列を作るプロパティにする
+    private ComboBox[] SkillNameBoxes => [Skill1Name, Skill2Name, Skill3Name];
+    private ComboBox[] SkillLvBoxes => [Skill1Lv, Skill2Lv, Skill3Lv];
+    private ComboBox[] SlotBoxes => [ArmorSlot1, ArmorSlot2, WeaponSlot1];
+
     public CharmEditWindow(Charm? existing = null)
     {
         InitializeComponent();
@@ -28,17 +34,12 @@ public partial class CharmEditWindow : Wpf.Ui.Controls.FluentWindow
             .Where(n => charmSkillNames.Contains(n))
             .ToList();
 
-        var skillNameComboBoxes = new[] { Skill1Name, Skill2Name, Skill3Name };
-        foreach (var cb in skillNameComboBoxes)
+        foreach (var cb in SkillNameBoxes)
             cb.ItemsSource = _skillNames;
-
-        var skillLvComboBoxes = new[] { Skill1Lv, Skill2Lv, Skill3Lv };
-        foreach (var cb in skillLvComboBoxes)
+        foreach (var cb in SkillLvBoxes)
             cb.SelectedIndex = 0;
-
-        ArmorSlot1.SelectedIndex = 0;
-        ArmorSlot2.SelectedIndex = 0;
-        WeaponSlot1.SelectedIndex = 0;
+        foreach (var cb in SlotBoxes)
+            cb.SelectedIndex = 0;
 
         if (existing is not null)
         {
@@ -54,11 +55,11 @@ public partial class CharmEditWindow : Wpf.Ui.Controls.FluentWindow
             Title = "護石の手動入力";
         }
 
-        foreach (var cb in skillLvComboBoxes)
+        foreach (var cb in SkillLvBoxes)
             cb.SelectionChanged += OnInputChanged;
-        foreach (var cb in new[] { ArmorSlot1, ArmorSlot2, WeaponSlot1 })
+        foreach (var cb in SlotBoxes)
             cb.SelectionChanged += OnInputChanged;
-        foreach (var cb in skillNameComboBoxes)
+        foreach (var cb in SkillNameBoxes)
         {
             cb.SelectionChanged += OnInputChanged;
             cb.AddHandler(System.Windows.Controls.Primitives.TextBoxBase.TextChangedEvent,
@@ -73,8 +74,8 @@ public partial class CharmEditWindow : Wpf.Ui.Controls.FluentWindow
 
     private void LoadFromCharm(Charm charm)
     {
-        var skillNames = new[] { Skill1Name, Skill2Name, Skill3Name };
-        var skillLvs = new[] { Skill1Lv, Skill2Lv, Skill3Lv };
+        var skillNames = SkillNameBoxes;
+        var skillLvs = SkillLvBoxes;
 
         for (int i = 0; i < charm.Skills.Count && i < skillNames.Length; i++)
         {
@@ -117,14 +118,7 @@ public partial class CharmEditWindow : Wpf.Ui.Controls.FluentWindow
     private (Charm? Charm, string? Error) TryBuildCharm()
     {
         var skills = new List<CharmSkill>();
-        var skillInputs = new[]
-        {
-            (Skill1Name, Skill1Lv),
-            (Skill2Name, Skill2Lv),
-            (Skill3Name, Skill3Lv),
-        };
-
-        foreach (var (nameBox, lvBox) in skillInputs)
+        foreach (var (nameBox, lvBox) in SkillNameBoxes.Zip(SkillLvBoxes))
         {
             var name = nameBox.Text?.Trim() ?? "";
             var lv = GetComboBoxValue(lvBox);

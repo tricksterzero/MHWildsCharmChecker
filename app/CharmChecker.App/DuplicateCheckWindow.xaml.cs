@@ -53,21 +53,12 @@ public partial class DuplicateCheckWindow : FluentWindow
             {
                 var ids = g.Indices.Select(i => $"#{charmItems[i].Id}");
                 var sample = charmItems[g.Indices[0]];
-                return new
-                {
-                    Header = $"[RARE {sample.RarityText}] {sample.SkillText}  {sample.SlotText}（{g.Indices.Count}個）",
-                    Detail = $"対象: {string.Join(", ", ids)}",
-                };
+                return new ResultItem(
+                    Header: $"[RARE {sample.RarityText}] {sample.SkillText}  {sample.SlotText}（{g.Indices.Count}個）",
+                    Detail: $"対象: {string.Join(", ", ids)}");
             }).ToList();
             DupIdenticalList.ItemsSource = items;
-
-            sb.AppendLine();
-            sb.AppendLine("--- 完全同一の護石 ---");
-            foreach (var item in items)
-            {
-                sb.AppendLine(item.Header);
-                sb.AppendLine($"  {item.Detail}");
-            }
+            AppendSection(sb, "--- 完全同一の護石 ---", items);
         }
 
         if (inferiorCount > 0)
@@ -78,25 +69,31 @@ public partial class DuplicateCheckWindow : FluentWindow
                 var target = charmItems[inf.TargetIndex];
                 var superiors = inf.SuperiorIndices
                     .Select(i => $"#{charmItems[i].Id}（{charmItems[i].SkillText}  {charmItems[i].SlotText}）");
-                return new
-                {
-                    Header = $"処分候補: #{target.Id}（[RARE {target.RarityText}] {target.SkillText}  {target.SlotText}）",
-                    Detail = $"上位互換: {string.Join(", ", superiors)}",
-                };
+                return new ResultItem(
+                    Header: $"処分候補: #{target.Id}（[RARE {target.RarityText}] {target.SkillText}  {target.SlotText}）",
+                    Detail: $"上位互換: {string.Join(", ", superiors)}");
             }).ToList();
             DupInferiorList.ItemsSource = items;
-
-            sb.AppendLine();
-            sb.AppendLine("--- 上位互換がある護石 ---");
-            foreach (var item in items)
-            {
-                sb.AppendLine(item.Header);
-                sb.AppendLine($"  {item.Detail}");
-            }
+            AppendSection(sb, "--- 上位互換がある護石 ---", items);
         }
 
         _resultText = sb.ToString();
         SaveButton.Visibility = Visibility.Visible;
+    }
+
+    /// <summary>画面の一覧の1項目(DuplicateCheckWindow.xamlのTextBlockがHeader・Detailにバインドする)。</summary>
+    private sealed record ResultItem(string Header, string Detail);
+
+    /// <summary>保存用の文字列に、空行・見出し・各項目(見出しの行と字下げした詳細の行)を書き足す。</summary>
+    private static void AppendSection(StringBuilder sb, string title, IEnumerable<ResultItem> items)
+    {
+        sb.AppendLine();
+        sb.AppendLine(title);
+        foreach (var item in items)
+        {
+            sb.AppendLine(item.Header);
+            sb.AppendLine($"  {item.Detail}");
+        }
     }
 
     private void Save_Click(object sender, RoutedEventArgs e)
