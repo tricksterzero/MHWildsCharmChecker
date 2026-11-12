@@ -4,18 +4,7 @@ namespace CharmChecker.Tests;
 
 public class CharmTypeLoaderTests
 {
-    private static string FindJsonPath()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null)
-        {
-            var candidate = Path.Combine(dir.FullName, "resources", "charm-types.json");
-            if (File.Exists(candidate))
-                return candidate;
-            dir = dir.Parent;
-        }
-        throw new FileNotFoundException("charm-types.json が見つかりません。");
-    }
+    private static string FindJsonPath() => Path.Combine(TestPaths.FindResourcesDir(), "charm-types.json");
 
     [Fact]
     public void Load_Returns4Types()

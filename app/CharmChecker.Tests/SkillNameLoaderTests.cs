@@ -4,18 +4,7 @@ namespace CharmChecker.Tests;
 
 public class SkillNameLoaderTests
 {
-    private static string FindJsonPath()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null)
-        {
-            var candidate = Path.Combine(dir.FullName, "resources", "skill-decoration-map.json");
-            if (File.Exists(candidate))
-                return candidate;
-            dir = dir.Parent;
-        }
-        throw new FileNotFoundException("skill-decoration-map.json が見つかりません。");
-    }
+    private static string FindJsonPath() => Path.Combine(TestPaths.FindResourcesDir(), "skill-decoration-map.json");
 
     [Fact]
     public void Load_Returns120Skills()

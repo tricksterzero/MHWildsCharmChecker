@@ -4,31 +4,9 @@ namespace CharmChecker.Tests;
 
 public class SkillReadingPipelineTests
 {
-    private static string FindResourcesDir()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null)
-        {
-            var candidate = Path.Combine(dir.FullName, "resources");
-            if (Directory.Exists(candidate))
-                return candidate;
-            dir = dir.Parent;
-        }
-        throw new DirectoryNotFoundException("resources フォルダが見つかりません。");
-    }
+    private static string FindResourcesDir() => TestPaths.FindResourcesDir();
 
-    private static string FindAssetsDir()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null)
-        {
-            var candidate = Path.Combine(dir.FullName, "assets");
-            if (Directory.Exists(candidate))
-                return candidate;
-            dir = dir.Parent;
-        }
-        throw new DirectoryNotFoundException("assets フォルダが見つかりません(ローカル検証用画像が未配置の可能性)。");
-    }
+    private static string FindAssetsDir() => TestPaths.FindAssetsDir();
 
     public static IEnumerable<object[]> TestCases =>
     [
