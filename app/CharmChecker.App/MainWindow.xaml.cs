@@ -563,28 +563,10 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
 
     private void ExecuteImport_Click(object sender, RoutedEventArgs e)
     {
-        string csvText;
         try
         {
-            if (ImportFromFile.IsChecked == true)
-            {
-                var path = ImportFilePath.Text;
-                if (string.IsNullOrWhiteSpace(path))
-                {
-                    ImportResultText.Text = "ファイルを選択してください。";
-                    return;
-                }
-                csvText = File.ReadAllText(path);
-            }
-            else
-            {
-                csvText = ImportTextBox.Text;
-                if (string.IsNullOrWhiteSpace(csvText))
-                {
-                    ImportResultText.Text = "テキストを入力してください。";
-                    return;
-                }
-            }
+            var csvText = ReadImportCsvText();
+            if (csvText is null) return;
 
             // ゲームにありえない値の行が1つでもあれば全体を取り込まない(CharmImportScreening.ScreenCsv)
             var screening = CharmImportScreening.ScreenCsv(
@@ -594,29 +576,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
                 ImportResultText.Text = $"読み込みエラー: 行 {screening.ErrorLineNumber}: {string.Join(" ", screening.ErrorMessages)}（どの護石も取り込んでいません）";
                 return;
             }
-            string warningNote = screening.WarningCount > 0 ? $"（{screening.WarningCount}件にスキル候補一覧にないスキル名があります）" : "";
-            var parsed = screening.Accepted;
-
-            if (ModeOverwrite.IsChecked == true)
-            {
-                var result = MessageBox.Show(
-                    $"既存の護石データ（{CharmItems.Count}件）をすべて削除し、インポートデータ（{parsed.Count}件）で置き換えます。\nよろしいですか？",
-                    "全件上書きの確認",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Warning);
-
-                if (result != MessageBoxResult.Yes) return;
-
-                ReplaceAllCharms(parsed);
-                SaveCharms();
-                ImportResultText.Text = $"{parsed.Count}件をインポートしました。{warningNote}";
-            }
-            else
-            {
-                var (added, skipped) = AddCharmsSkippingIdentical(parsed);
-                SaveCharms();
-                ImportResultText.Text = $"{added}件を追加、{skipped}件をスキップしました。（既存{CharmItems.Count}件）{warningNote}";
-            }
+            ApplyCsvImport(screening.Accepted, CsvImportWarningNote(screening.WarningCount));
         }
         catch (FormatException ex)
         {
@@ -626,6 +586,70 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         {
             ImportResultText.Text = $"ファイル読み込みエラー: {ex.Message}";
         }
+    }
+
+    /// <summary>
+    /// 取り込むCSVの文字列を、選んだ入力元(ファイルかテキスト欄)から取り出す。ファイルが選ばれていない・
+    /// テキストが空のときは、結果欄に知らせてnullを返す。ファイルを読めなければIOException等をそのまま投げる。
+    /// </summary>
+    private string? ReadImportCsvText()
+    {
+        if (ImportFromFile.IsChecked == true)
+        {
+            var path = ImportFilePath.Text;
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                ImportResultText.Text = "ファイルを選択してください。";
+                return null;
+            }
+            return File.ReadAllText(path);
+        }
+
+        var csvText = ImportTextBox.Text;
+        if (string.IsNullOrWhiteSpace(csvText))
+        {
+            ImportResultText.Text = "テキストを入力してください。";
+            return null;
+        }
+        return csvText;
+    }
+
+    /// <summary>
+    /// 検査を通ったCSVの護石を、選んだモード(全件上書きは確認してから・差分追加)で一覧に反映して保存し、
+    /// 結果欄に件数と<paramref name="warningNote"/>を表示する。
+    /// </summary>
+    private void ApplyCsvImport(IReadOnlyList<Charm> charms, string warningNote)
+    {
+        if (ModeOverwrite.IsChecked == true)
+        {
+            var result = MessageBox.Show(
+                $"既存の護石データ（{CharmItems.Count}件）をすべて削除し、インポートデータ（{charms.Count}件）で置き換えます。\nよろしいですか？",
+                "全件上書きの確認",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            if (result != MessageBoxResult.Yes) return;
+
+            ReplaceAllCharms(charms);
+            SaveCharms();
+            ImportResultText.Text = $"{charms.Count}件をインポートしました。{warningNote}";
+        }
+        else
+        {
+            var (added, skipped) = AddCharmsSkippingIdentical(charms);
+            SaveCharms();
+            ImportResultText.Text = $"{added}件を追加、{skipped}件をスキップしました。（既存{CharmItems.Count}件）{warningNote}";
+        }
+    }
+
+    /// <summary>
+    /// CSVの取り込み結果の末尾に付ける、候補にないスキル名の警告の文(副作用なし)。0件なら空文字列。
+    /// 事前条件: warningCountは0以上。
+    /// </summary>
+    internal static string CsvImportWarningNote(int warningCount)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(warningCount);
+        return warningCount > 0 ? $"（{warningCount}件にスキル候補一覧にないスキル名があります）" : "";
     }
 
     /// <summary>取り込みの全件上書き: 一覧をcharmsで置き換え、番号を1から振り直す(保存はしない)。</summary>
@@ -756,23 +780,14 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         };
         if (dialog.ShowDialog() != true) return;
 
-        CharmJsonParseResult parseResult;
-        try
-        {
-            parseResult = CharmJsonSerializer.Parse(File.ReadAllText(dialog.FileName));
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
-        {
-            MessageBox.Show($"読み込みエラー: {ex.Message}", "インポート", MessageBoxButton.OK, MessageBoxImage.Error);
-            return;
-        }
+        var parseResult = ReadLocalDataFile(dialog.FileName);
+        if (parseResult is null) return;
 
         // 不変条件の違反とゲームにありえない値の項目は取り込まない(CharmImportScreening.ScreenJson。
         // 起動時の既存データの読み込みとは扱いが違う)。候補にないスキル名は警告として件数だけ知らせる
         var screening = CharmImportScreening.ScreenJson(parseResult, CharmCombinationTable.LoadSkillGroups());
         var parsed = screening.Accepted;
         var excludedReasons = screening.ExcludedReasons;
-        int warningCount = screening.WarningCount;
         foreach (var reason in excludedReasons)
             ErrorLogger.Log("ImportLocalData", $"{dialog.FileName}: 取り込みませんでした: {reason}");
 
@@ -783,31 +798,68 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
             return;
         }
 
+        var mode = AskJsonImportMode(parsed.Count, JsonImportNotes(excludedReasons, screening.WarningCount));
+        if (mode == MessageBoxResult.Cancel) return;
+        ApplyJsonImport(parsed, overwrite: mode == MessageBoxResult.No);
+    }
+
+    /// <summary>
+    /// データ管理で取り込むJSONファイルを読んで護石にする。読めない・JSONとして読めないときは、
+    /// エラーのダイアログを出してnullを返す。
+    /// </summary>
+    private static CharmJsonParseResult? ReadLocalDataFile(string path)
+    {
+        try
+        {
+            return CharmJsonSerializer.Parse(File.ReadAllText(path));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
+        {
+            MessageBox.Show($"読み込みエラー: {ex.Message}", "インポート", MessageBoxButton.OK, MessageBoxImage.Error);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// JSONの取り込みの確認ダイアログに書く補足(副作用なし)。取り込まない項目があれば件数と最初の理由、
+    /// 候補にないスキル名を含む護石があればその件数を、この順に1行ずつ(各行の先頭に改行)書く。どちらも無ければ空文字列。
+    /// 事前条件: excludedReasonsはnullでなく、warningCountは0以上。
+    /// </summary>
+    internal static string JsonImportNotes(IReadOnlyList<string> excludedReasons, int warningCount)
+    {
+        ArgumentNullException.ThrowIfNull(excludedReasons);
+        ArgumentOutOfRangeException.ThrowIfNegative(warningCount);
+
         var notes = "";
         if (excludedReasons.Count > 0)
             notes += $"\n不正な形式のため取り込まない: {excludedReasons.Count}件（例: {excludedReasons[0]}。理由は error.log に記録しました）";
         if (warningCount > 0)
             notes += $"\nスキル候補一覧にないスキル名を含む: {warningCount}件（取り込みます）";
+        return notes;
+    }
 
-        var mode = MessageBox.Show(
-            $"インポートデータ: {parsed.Count}件\n既存データ: {CharmItems.Count}件{notes}\n\n"
+    /// <summary>JSONの取り込み方を尋ねる(はい=差分追加、いいえ=全件上書き、キャンセル=取り込まない)。</summary>
+    private MessageBoxResult AskJsonImportMode(int importCount, string notes) =>
+        MessageBox.Show(
+            $"インポートデータ: {importCount}件\n既存データ: {CharmItems.Count}件{notes}\n\n"
             + "「はい」→ 差分追加（既存データに追加）\n"
             + "「いいえ」→ 全件上書き（既存データを置換）",
             "インポートモード",
             MessageBoxButton.YesNoCancel,
             MessageBoxImage.Question);
 
-        if (mode == MessageBoxResult.Cancel) return;
-
-        if (mode == MessageBoxResult.No)
+    /// <summary>検査を通ったJSONの護石を、全件上書きか差分追加で一覧に反映して保存し、件数を知らせる。</summary>
+    private void ApplyJsonImport(IReadOnlyList<Charm> charms, bool overwrite)
+    {
+        if (overwrite)
         {
-            ReplaceAllCharms(parsed);
+            ReplaceAllCharms(charms);
             SaveCharms();
-            MessageBox.Show($"{parsed.Count}件をインポートしました。（全件上書き）", "インポート");
+            MessageBox.Show($"{charms.Count}件をインポートしました。（全件上書き）", "インポート");
         }
         else
         {
-            var (added, skipped) = AddCharmsSkippingIdentical(parsed);
+            var (added, skipped) = AddCharmsSkippingIdentical(charms);
             SaveCharms();
             MessageBox.Show($"{added}件を追加、{skipped}件をスキップしました。（差分追加）", "インポート");
         }

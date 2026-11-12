@@ -30,4 +30,59 @@ public class MainWindowTests
     {
         Assert.Equal("約0.0156%", CharmChecker.App.MainWindow.FormatProbability(0.000156));
     }
+
+    // CSVの取り込み結果の末尾に付ける警告の文(2026-11-12にExecuteImport_Clickから切り出した。文言は変えていない)
+    [Theory]
+    [InlineData(0, "")]
+    [InlineData(1, "（1件にスキル候補一覧にないスキル名があります）")]
+    [InlineData(12, "（12件にスキル候補一覧にないスキル名があります）")]
+    public void CsvImportWarningNote_ByCount(int warningCount, string expected)
+    {
+        Assert.Equal(expected, CharmChecker.App.MainWindow.CsvImportWarningNote(warningCount));
+    }
+
+    [Fact]
+    public void CsvImportWarningNote_NegativeCount_Throws()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => CharmChecker.App.MainWindow.CsvImportWarningNote(-1));
+    }
+
+    // JSONの取り込みの確認ダイアログに書く補足(2026-11-12にImportLocalDataMenu_Clickから切り出した。文言は変えていない)
+    [Fact]
+    public void JsonImportNotes_NothingExcludedNoWarning_ReturnsEmpty()
+    {
+        Assert.Equal("", CharmChecker.App.MainWindow.JsonImportNotes([], 0));
+    }
+
+    [Fact]
+    public void JsonImportNotes_Excluded_ShowsCountAndFirstReason()
+    {
+        Assert.Equal(
+            "\n不正な形式のため取り込まない: 2件（例: 1件目: 理由A。理由は error.log に記録しました）",
+            CharmChecker.App.MainWindow.JsonImportNotes(["1件目: 理由A", "3件目: 理由B"], 0));
+    }
+
+    [Fact]
+    public void JsonImportNotes_Warning_ShowsCount()
+    {
+        Assert.Equal(
+            "\nスキル候補一覧にないスキル名を含む: 3件（取り込みます）",
+            CharmChecker.App.MainWindow.JsonImportNotes([], 3));
+    }
+
+    [Fact]
+    public void JsonImportNotes_ExcludedAndWarning_ExcludedComesFirst()
+    {
+        Assert.Equal(
+            "\n不正な形式のため取り込まない: 1件（例: 1件目: 理由A。理由は error.log に記録しました）"
+            + "\nスキル候補一覧にないスキル名を含む: 1件（取り込みます）",
+            CharmChecker.App.MainWindow.JsonImportNotes(["1件目: 理由A"], 1));
+    }
+
+    [Fact]
+    public void JsonImportNotes_InvalidArguments_Throw()
+    {
+        Assert.Throws<ArgumentNullException>(() => CharmChecker.App.MainWindow.JsonImportNotes(null!, 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => CharmChecker.App.MainWindow.JsonImportNotes([], -1));
+    }
 }
