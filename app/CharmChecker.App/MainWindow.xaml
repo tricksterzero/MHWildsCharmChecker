@@ -277,15 +277,17 @@
                                     <TextBlock Text="レアリティ" FontWeight="Bold" />
                                     <TextBlock x:Name="DetailRarity" Margin="12,2,0,8" />
 
-                                    <TextBlock Text="構成確率（参考値）" FontWeight="Bold"
-                                               ToolTip="スキル・スロットの組み合わせが等確率で選ばれるという未検証の仮定に基づく推定値です。実際の抽選確率とは異なる可能性があります。" />
-                                    <TextBlock x:Name="DetailProbability" Margin="12,2,0,8"
-                                               ToolTip="スキル・スロットの組み合わせが等確率で選ばれるという未検証の仮定に基づく推定値です。実際の抽選確率とは異なる可能性があります。" />
+                                    <!-- 見出しと値の両方に同じツールチップを出すため、2つを囲んだStackPanelに付ける
+                                         (背景を塗らないので、マウスが反応するのは文字の上だけで、以前と同じ) -->
+                                    <StackPanel ToolTip="スキル・スロットの組み合わせが等確率で選ばれるという未検証の仮定に基づく推定値です。実際の抽選確率とは異なる可能性があります。">
+                                        <TextBlock Text="構成確率（参考値）" FontWeight="Bold" />
+                                        <TextBlock x:Name="DetailProbability" Margin="12,2,0,8" />
+                                    </StackPanel>
 
-                                    <TextBlock Text="理論値判定" FontWeight="Bold"
-                                               ToolTip="各スキルがそのスキル自身の最大Lvであり、かつスロット構成がレアリティを問わず他のどのパターンにも支配されない（＝上回られない）最大構成であるかを判定します。" />
-                                    <TextBlock x:Name="DetailTheoreticalValue" Margin="12,2,0,8"
-                                               ToolTip="各スキルがそのスキル自身の最大Lvであり、かつスロット構成がレアリティを問わず他のどのパターンにも支配されない（＝上回られない）最大構成であるかを判定します。" />
+                                    <StackPanel ToolTip="各スキルがそのスキル自身の最大Lvであり、かつスロット構成が、同じスキルの組み合わせを持つ構成（RARE7とRARE8のようにレアリティが違うものも含む）の中で、他のどれにも上回られない最大構成であるかを判定します。">
+                                        <TextBlock Text="理論値判定" FontWeight="Bold" />
+                                        <TextBlock x:Name="DetailTheoreticalValue" Margin="12,2,0,8" />
+                                    </StackPanel>
 
                                     <TextBlock Text="スキル" FontWeight="Bold" />
                                     <TextBlock x:Name="DetailSkills" Margin="12,2,0,8" />

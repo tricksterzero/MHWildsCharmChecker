@@ -7,6 +7,22 @@
         FontFamily="BIZ UDGothic" FontSize="16"
         ExtendsContentIntoTitleBar="True"
         WindowBackdropType="Mica">
+    <ui:FluentWindow.Resources>
+        <!-- 2つの一覧の1項目(DuplicateCheckWindow.xaml.csのResultItem。Header・Detailにバインドする) -->
+        <DataTemplate x:Key="ResultItemTemplate">
+            <Border Background="{DynamicResource CardBackground}"
+                    Padding="12,8" Margin="0,0,0,8"
+                    CornerRadius="4">
+                <StackPanel>
+                    <TextBlock Text="{Binding Header}"
+                               FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding Detail}"
+                               Margin="12,4,0,0"
+                               Foreground="{DynamicResource SecondaryText}" />
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+    </ui:FluentWindow.Resources>
     <DockPanel>
         <ui:TitleBar DockPanel.Dock="Top" Title="重複チェック" FontFamily="BIZ UDGothic" FontSize="16" />
         <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
@@ -22,46 +38,16 @@
                 <StackPanel x:Name="DupIdenticalSection" Visibility="Collapsed"
                             Margin="0,16,0,0">
                     <TextBlock Text="完全同一の護石" FontSize="16" FontWeight="Bold" />
-                    <ItemsControl x:Name="DupIdenticalList" Margin="0,8,0,0">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border Background="{DynamicResource CardBackground}"
-                                        Padding="12,8" Margin="0,0,0,8"
-                                        CornerRadius="4">
-                                    <StackPanel>
-                                        <TextBlock Text="{Binding Header}"
-                                                   FontWeight="SemiBold" />
-                                        <TextBlock Text="{Binding Detail}"
-                                                   Margin="12,4,0,0"
-                                                   Foreground="{DynamicResource SecondaryText}" />
-                                    </StackPanel>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                    <ItemsControl x:Name="DupIdenticalList" Margin="0,8,0,0"
+                                  ItemTemplate="{StaticResource ResultItemTemplate}" />
                 </StackPanel>
 
                 <!-- 上位互換ありセクション -->
                 <StackPanel x:Name="DupInferiorSection" Visibility="Collapsed"
                             Margin="0,16,0,0">
                     <TextBlock Text="上位互換がある護石" FontSize="16" FontWeight="Bold" />
-                    <ItemsControl x:Name="DupInferiorList" Margin="0,8,0,0">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border Background="{DynamicResource CardBackground}"
-                                        Padding="12,8" Margin="0,0,0,8"
-                                        CornerRadius="4">
-                                    <StackPanel>
-                                        <TextBlock Text="{Binding Header}"
-                                                   FontWeight="SemiBold" />
-                                        <TextBlock Text="{Binding Detail}"
-                                                   Margin="12,4,0,0"
-                                                   Foreground="{DynamicResource SecondaryText}" />
-                                    </StackPanel>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                    <ItemsControl x:Name="DupInferiorList" Margin="0,8,0,0"
+                                  ItemTemplate="{StaticResource ResultItemTemplate}" />
                 </StackPanel>
             </StackPanel>
         </ScrollViewer>
