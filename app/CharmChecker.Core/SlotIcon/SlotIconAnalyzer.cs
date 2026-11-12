@@ -24,42 +24,65 @@ public static class SlotIconAnalyzer
     }
 
     /// <summary>単一護石詳細画面のスロットアイコン探索領域を、実画像サイズに合わせて切り出す矩形。</summary>
-    public static Rect DetailPanelRegion(Mat img)
+    public static Rect DetailPanelRegion(Mat img) => RegionFromTopRight(img,
+        SlotIconConstants.DetailPanelX0, SlotIconConstants.DetailPanelX1,
+        SlotIconConstants.DetailPanelY0, SlotIconConstants.DetailPanelY1);
+
+    /// <summary>装備BOX側スロットアイコンの探索領域を、実画像サイズに合わせて切り出す矩形。</summary>
+    public static Rect PanelRegion(Mat img) => RegionFromTopRight(img,
+        SlotIconConstants.PanelX0, SlotIconConstants.PanelX1,
+        SlotIconConstants.PanelY0, SlotIconConstants.PanelY1);
+
+    /// <summary>
+    /// 基準解像度での座標で表した領域を、実画像の矩形にする。X座標は右上コーナーからの距離として、
+    /// Y座標は黒帯の上端からの距離として、それぞれUIの縮小率を掛けて置き直す(<see cref="SlotIconConstants"/>参照)。
+    /// </summary>
+    private static Rect RegionFromTopRight(Mat img, double refX0, double refX1, double refY0, double refY1)
     {
         var (top, _, s) = LetterboxNormalizer.DetectContentBounds(img);
         int w = img.Width;
-        int y0 = top + (int)(SlotIconConstants.DetailPanelY0 * s);
-        int y1 = top + (int)(SlotIconConstants.DetailPanelY1 * s);
-        int x0 = w - (int)((SlotIconConstants.RefWidth - SlotIconConstants.DetailPanelX0) * s);
-        int x1 = w - (int)((SlotIconConstants.RefWidth - SlotIconConstants.DetailPanelX1) * s);
+        int y0 = top + (int)(refY0 * s);
+        int y1 = top + (int)(refY1 * s);
+        int x0 = w - (int)((SlotIconConstants.RefWidth - refX0) * s);
+        int x1 = w - (int)((SlotIconConstants.RefWidth - refX1) * s);
         return new Rect(x0, y0, x1 - x0, y1 - y0);
     }
 
-    /// <summary>装備BOX側スロットアイコンの探索領域を、実画像サイズに合わせて切り出す矩形。</summary>
-    public static Rect PanelRegion(Mat img)
+    // ソケット枠の輪郭を取るCannyのしきい値(DetectFramesと、融合した枠の回復で同じ値を使う)
+    private const double CannyThreshold1 = 50;
+    private const double CannyThreshold2 = 150;
+
+    /// <summary>ソケット枠とみなす大きさの範囲(UIの倍率を掛けた後のpx。上下限は含まない)。</summary>
+    private readonly record struct FrameSizeRange(double WidthMin, double WidthMax, double HeightMin, double HeightMax)
     {
-        var (top, _, s) = LetterboxNormalizer.DetectContentBounds(img);
-        int w = img.Width;
-        int y0 = top + (int)(SlotIconConstants.PanelY0 * s);
-        int y1 = top + (int)(SlotIconConstants.PanelY1 * s);
-        int x0 = w - (int)((SlotIconConstants.RefWidth - SlotIconConstants.PanelX0) * s);
-        int x1 = w - (int)((SlotIconConstants.RefWidth - SlotIconConstants.PanelX1) * s);
-        return new Rect(x0, y0, x1 - x0, y1 - y0);
+        public static FrameSizeRange Scaled(double sx, double sy) => new(
+            SlotIconConstants.FrameWidthMin * sx, SlotIconConstants.FrameWidthMax * sx,
+            SlotIconConstants.FrameHeightMin * sy, SlotIconConstants.FrameHeightMax * sy);
+
+        /// <summary>幅・高さとも範囲内か。</summary>
+        public bool Fits(Rect r) =>
+            r.Width > WidthMin && r.Width < WidthMax && r.Height > HeightMin && r.Height < HeightMax;
+
+        /// <summary>
+        /// 高さは範囲内で、幅だけが上限以上・上限の4倍未満か(枠が隣の飾りと1つに融合した可能性がある塊)。
+        /// </summary>
+        public bool IsWidthOnlyOversized(Rect r) =>
+            r.Width >= WidthMax && r.Width < WidthMax * 4 && r.Height > HeightMin && r.Height < HeightMax;
     }
+
+    /// <summary>2つの矩形のY範囲が重なるか(同じ行にあるか)。</summary>
+    private static bool OverlapsVertically(Rect a, Rect b) => a.Y < b.Y + b.Height && b.Y < a.Y + a.Height;
 
     /// <summary>
     /// Canny+輪郭検出でソケット枠を検出する。サイズ・y座標でフィルタし、x座標の昇順で返す。
     /// </summary>
     public static List<Rect> DetectFrames(Mat gray, double sx, double sy)
     {
-        double wLo = SlotIconConstants.FrameWidthMin * sx;
-        double wHi = SlotIconConstants.FrameWidthMax * sx;
-        double hLo = SlotIconConstants.FrameHeightMin * sy;
-        double hHi = SlotIconConstants.FrameHeightMax * sy;
+        var size = FrameSizeRange.Scaled(sx, sy);
         double yMin = SlotIconConstants.FrameYMin * sy;
 
         using var edges = new Mat();
-        Cv2.Canny(gray, edges, 50, 150);
+        Cv2.Canny(gray, edges, CannyThreshold1, CannyThreshold2);
 
         Cv2.FindContours(edges, out Point[][] contours, out _,
             RetrievalModes.External, ContourApproximationModes.ApproxSimple);
@@ -69,15 +92,11 @@ public static class SlotIconAnalyzer
         foreach (var contour in contours)
         {
             var rect = Cv2.BoundingRect(contour);
-            if (rect.Width > wLo && rect.Width < wHi
-                && rect.Height > hLo && rect.Height < hHi
-                && rect.Y >= yMin)
+            if (size.Fits(rect) && rect.Y >= yMin)
             {
                 raw.Add(rect);
             }
-            else if (rect.Width >= wHi && rect.Width < wHi * 4
-                && rect.Height > hLo && rect.Height < hHi
-                && rect.Y >= yMin)
+            else if (size.IsWidthOnlyOversized(rect) && rect.Y >= yMin)
             {
                 // 幅だけが上限を超える塊。ソケット枠が隣接UI装飾(スロットバーの縁取り等)と
                 // Cannyで1つに融合した可能性がある候補として保持する（TryRecoverFusedFrame参照）。
@@ -94,7 +113,7 @@ public static class SlotIconAnalyzer
         // 規則で誤った領域が選ばれるため(2026-11-08にコメントとCLAUDE.mdを実際の動作に合わせて明記)
         if (oversized.Count > 0 && filtered.Count > 0)
         {
-            filtered = TryRecoverFusedFrame(gray, filtered, oversized, wLo, wHi, hLo, hHi);
+            filtered = TryRecoverFusedFrame(gray, filtered, oversized, size);
             // 回復処理で別行のノイズ(例: 「RARE」テキストの誤検出)が同じ行に確定フレームの無い
             // 融合塊から回復されると、ノイズと本物のフレームが混在した状態になりうる。
             // 再度Yクラスタリングし、最頻グループ(=本物のスロット行)だけに絞り直す。
@@ -117,11 +136,14 @@ public static class SlotIconAnalyzer
     ///     隣接する確定フレームの端を基準にした固定幅の窓で再探索する方が安定する。
     /// </summary>
     private static List<Rect> TryRecoverFusedFrame(
-        Mat gray, List<Rect> accepted, List<Rect> oversizedCandidates,
-        double wLo, double wHi, double hLo, double hHi)
+        Mat gray, List<Rect> accepted, List<Rect> oversizedCandidates, FrameSizeRange size)
     {
         var result = new List<Rect>(accepted);
-        double adjacencyThreshold = wLo * 0.67;
+        double adjacencyThreshold = size.WidthMin * 0.67;
+
+        // 塊と同じ行で、X方向に[x, x+width)の窓から枠を探し、見つかればresultに加える
+        void RecoverInWindow(Rect oversize, int x, int width) =>
+            AddIfNotOverlapping(result, FindFrameInWindow(gray, new Rect(x, oversize.Y, width, oversize.Height), size));
 
         foreach (var oversize in oversizedCandidates)
         {
@@ -129,9 +151,8 @@ public static class SlotIconAnalyzer
             foreach (var f in accepted)
             {
                 // X範囲の内包だけで判定すると、Y範囲が全く異なる(=別行の)無関係な大型輪郭を
-                // 誤って内包パターンと認識してしまう(隣接パターンのsameRow条件と同じ理由で必須)
-                bool sameRow = oversize.Y < f.Y + f.Height && f.Y < oversize.Y + oversize.Height;
-                if (sameRow && f.X >= oversize.X && f.Right <= oversize.Right)
+                // 誤って内包パターンと認識してしまう(隣接パターンの同じ行の条件と同じ理由で必須)
+                if (OverlapsVertically(oversize, f) && f.X >= oversize.X && f.Right <= oversize.Right)
                 {
                     contained = f;
                     break;
@@ -144,14 +165,10 @@ public static class SlotIconAnalyzer
                 // 切り出すとCannyが輪郭を正しく閉じられず、本来のアイコン形状より小さい
                 // 断片に分裂することを実験で確認済みのため、内側(隣接フレーム側)は境界通り、
                 // 外側だけ余白を追加する。
-                int outerMargin = (int)(wHi * 0.4);
+                int outerMargin = (int)(size.WidthMax * 0.4);
 
-                TryRecoverSide(gray, oversize.Y, oversize.Height,
-                    oversize.X - outerMargin, (c.X - oversize.X) + outerMargin,
-                    wLo, wHi, hLo, hHi, result);
-                TryRecoverSide(gray, oversize.Y, oversize.Height,
-                    c.Right, (oversize.Right - c.Right) + outerMargin,
-                    wLo, wHi, hLo, hHi, result);
+                RecoverInWindow(oversize, oversize.X - outerMargin, (c.X - oversize.X) + outerMargin);
+                RecoverInWindow(oversize, c.Right, (oversize.Right - c.Right) + outerMargin);
                 continue;
             }
 
@@ -161,26 +178,21 @@ public static class SlotIconAnalyzer
             // X座標の近さだけで判定すると、Y座標が全く異なる(=別の行の)無関係な形状まで
             // 「隣接」とみなしてしまうため、Y範囲が重なっている場合に限定する
             // (実データで、別行の無関係な形状を誤検出する回帰を確認したため必須の条件)。
-            int fixedWindowWidth = (int)wHi;
+            int fixedWindowWidth = (int)size.WidthMax;
             bool recoveredViaAdjacency = false;
             foreach (var f in accepted)
             {
-                bool sameRow = oversize.Y < f.Y + f.Height && f.Y < oversize.Y + oversize.Height;
-                if (!sameRow)
+                if (!OverlapsVertically(oversize, f))
                     continue;
 
                 if (Math.Abs(oversize.Right - f.X) < adjacencyThreshold)
                 {
-                    TryRecoverSide(gray, oversize.Y, oversize.Height,
-                        f.X - fixedWindowWidth, fixedWindowWidth,
-                        wLo, wHi, hLo, hHi, result);
+                    RecoverInWindow(oversize, f.X - fixedWindowWidth, fixedWindowWidth);
                     recoveredViaAdjacency = true;
                 }
                 else if (Math.Abs(f.Right - oversize.X) < adjacencyThreshold)
                 {
-                    TryRecoverSide(gray, oversize.Y, oversize.Height,
-                        f.Right, fixedWindowWidth,
-                        wLo, wHi, hLo, hHi, result);
+                    RecoverInWindow(oversize, f.Right, fixedWindowWidth);
                     recoveredViaAdjacency = true;
                 }
             }
@@ -194,35 +206,32 @@ public static class SlotIconAnalyzer
             // 塊自体の左端・右端それぞれから固定幅の窓で再探索し、有効な候補が出た方を採用する
             // (実データで、真のソケット枠は融合塊の左端から始まるケースを確認済みだが、
             // 将来別の画面パターンで右端から始まるケースもありうるため両側を試す)。
-            TryRecoverSide(gray, oversize.Y, oversize.Height,
-                oversize.X, fixedWindowWidth,
-                wLo, wHi, hLo, hHi, result);
-            TryRecoverSide(gray, oversize.Y, oversize.Height,
-                oversize.Right - fixedWindowWidth, fixedWindowWidth,
-                wLo, wHi, hLo, hHi, result);
+            RecoverInWindow(oversize, oversize.X, fixedWindowWidth);
+            RecoverInWindow(oversize, oversize.Right - fixedWindowWidth, fixedWindowWidth);
         }
 
         result.Sort((a, b) => a.X.CompareTo(b.X));
         return result;
     }
 
-    private static void TryRecoverSide(
-        Mat gray, int y, int height, int subX, int subWidth,
-        double wLo, double wHi, double hLo, double hHi,
-        List<Rect> outResult)
+    /// <summary>
+    /// 窓(<paramref name="window"/>、画像からはみ出す分は切り詰める)の中でCanny+輪郭検出をやり直し、
+    /// ソケット枠の大きさに合う輪郭を1つに決められれば、画像全体の座標で返す(副作用なし)。
+    /// 窓の幅が枠の最小幅より狭い・候補が無い・候補が複数あって決められない場合はnull。
+    /// </summary>
+    private static Rect? FindFrameInWindow(Mat gray, Rect window, FrameSizeRange size)
     {
-        if (subWidth < wLo)
-            return;
+        if (window.Width < size.WidthMin)
+            return null;
 
-        var subRect = new Rect(subX, y, subWidth, height);
         var bounds = new Rect(0, 0, gray.Cols, gray.Rows);
-        subRect = subRect.Intersect(bounds);
+        var subRect = window.Intersect(bounds);
         if (subRect.Width <= 0 || subRect.Height <= 0)
-            return;
+            return null;
 
         using var subGray = new Mat(gray, subRect);
         using var subEdges = new Mat();
-        Cv2.Canny(subGray, subEdges, 50, 150);
+        Cv2.Canny(subGray, subEdges, CannyThreshold1, CannyThreshold2);
         Cv2.FindContours(subEdges, out Point[][] subContours, out _,
             RetrievalModes.External, ContourApproximationModes.ApproxSimple);
 
@@ -230,19 +239,19 @@ public static class SlotIconAnalyzer
         foreach (var contour in subContours)
         {
             var r = Cv2.BoundingRect(contour);
-            if (r.Width > wLo && r.Width < wHi && r.Height > hLo && r.Height < hHi)
+            if (size.Fits(r))
                 candidates.Add(r);
         }
 
         if (candidates.Count == 0)
-            return;
+            return null;
 
         Rect recovered;
         if (candidates.Count == 1)
         {
             recovered = candidates[0];
         }
-        else if (subWidth < wHi * 1.5)
+        else if (window.Width < size.WidthMax * 1.5)
         {
             // 窓の幅が1個分のアイコン相当のため、複数候補は同一アイコンの内側/外側境界の
             // 重複検出である可能性が高いと判断し、最大面積のものを採用する
@@ -252,18 +261,23 @@ public static class SlotIconAnalyzer
         else
         {
             // 窓が複数アイコン分の幅を持ちうる場合、どれが正しいか判断できないため採用しない
-            return;
+            return null;
         }
 
-        var recoveredRect = new Rect(recovered.X + subRect.X, recovered.Y + subRect.Y, recovered.Width, recovered.Height);
+        return new Rect(recovered.X + subRect.X, recovered.Y + subRect.Y, recovered.Width, recovered.Height);
+    }
 
-        // 複数のoversizedCandidatesが同じ枠を回復した場合や、1つの内包塊内に確定フレームが
-        // 複数含まれる場合に、同一の枠を重複して追加してしまうことを防ぐ
-        // (X範囲が重なっていれば同一アイコンの重複検出とみなす)
-        if (outResult.Any(existing => RangesOverlap(existing, recoveredRect)))
+    /// <summary>
+    /// 回復した枠を<paramref name="frames"/>に加える。nullなら何もしない。
+    /// 複数のoversizedCandidatesが同じ枠を回復した場合や、1つの内包塊内に確定フレームが
+    /// 複数含まれる場合に、同一の枠を重複して追加してしまうことを防ぐため、既にある枠とX範囲が
+    /// 重なっていれば加えない(同一アイコンの重複検出とみなす)。
+    /// </summary>
+    private static void AddIfNotOverlapping(List<Rect> frames, Rect? recovered)
+    {
+        if (recovered is not { } rect || frames.Any(existing => RangesOverlap(existing, rect)))
             return;
-
-        outResult.Add(recoveredRect);
+        frames.Add(rect);
     }
 
     private static bool RangesOverlap(Rect a, Rect b)
