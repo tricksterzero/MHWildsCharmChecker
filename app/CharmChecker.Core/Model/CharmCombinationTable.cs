@@ -19,10 +19,10 @@ public static class CharmCombinationTable
     internal const string KensanSkillName = "研鑽";
 
     private static readonly Lazy<IReadOnlyList<SkillGroupEntry>> _skillGroups =
-        new(() => LoadEmbeddedResource<SkillGroupEntry[]>("skill-groups.json", ParseSkillGroups));
+        new(() => ParseSkillGroups(EmbeddedResources.ReadText("skill-groups.json")));
 
     private static readonly Lazy<IReadOnlyList<CharmCombination>> _combinations =
-        new(() => LoadEmbeddedResource<CharmCombination[]>("charm-combinations.json", ParseCombinations));
+        new(() => ParseCombinations(EmbeddedResources.ReadText("charm-combinations.json")));
 
     public static IReadOnlyList<SkillGroupEntry> LoadSkillGroups() => _skillGroups.Value;
 
@@ -107,15 +107,6 @@ public static class CharmCombinationTable
             armorSorted.Skip(s.Armor.Length).All(v => v == 0) &&
             weaponSorted.Take(s.Weapon.Length).SequenceEqual(s.Weapon) &&
             weaponSorted.Skip(s.Weapon.Length).All(v => v == 0));
-    }
-
-    private static T LoadEmbeddedResource<T>(string resourceName, Func<string, T> parser)
-    {
-        var asm = typeof(CharmCombinationTable).Assembly;
-        using var stream = asm.GetManifestResourceStream($"CharmChecker.Core.Resources.{resourceName}")
-            ?? throw new InvalidOperationException($"埋め込みリソース '{resourceName}' が見つかりません。");
-        using var reader = new StreamReader(stream);
-        return parser(reader.ReadToEnd());
     }
 
     internal static SkillGroupEntry[] ParseSkillGroups(string json)

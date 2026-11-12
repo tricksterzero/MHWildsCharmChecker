@@ -7,15 +7,8 @@ public static class SkillNameLoader
     /// <summary>
     /// 埋め込みリソースの skill-decoration-map.json からスキル名一覧を読み込み、長い名前順で返す。
     /// </summary>
-    public static IReadOnlyList<string> LoadFromEmbeddedResource()
-    {
-        var asm = typeof(SkillNameLoader).Assembly;
-        using var stream = asm.GetManifestResourceStream("CharmChecker.Core.Resources.skill-decoration-map.json")
-            ?? throw new InvalidOperationException("埋め込みリソース 'skill-decoration-map.json' が見つかりません。");
-        using var reader = new StreamReader(stream);
-        var json = reader.ReadToEnd();
-        return ParseJson(json);
-    }
+    public static IReadOnlyList<string> LoadFromEmbeddedResource() =>
+        ParseJson(EmbeddedResources.ReadText("skill-decoration-map.json"));
 
     /// <summary>
     /// skill-decoration-map.json からスキル名一覧を読み込み、長い名前順で返す。
